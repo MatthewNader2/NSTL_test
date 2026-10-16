@@ -3,19 +3,58 @@
   "version": "1.0.0",
   "description": "Standard Python built-in functions, primitive collection transformers, and predicate constructor morphisms for NSTL.",
   "types": [
-    {"name": "collection", "parent": "object"},
-    {"name": "sequence", "parent": "collection"},
-    {"name": "list", "parent": "sequence"},
-    {"name": "tuple", "parent": "sequence"},
-    {"name": "set", "parent": "collection"},
-    {"name": "dict", "parent": "collection"},
-    {"name": "scalar", "parent": "object"},
-    {"name": "numeric", "parent": "scalar"},
-    {"name": "int", "parent": "numeric"},
-    {"name": "float", "parent": "numeric"},
-    {"name": "bool", "parent": "logical"},
-    {"name": "logical", "parent": "object"},
-    {"name": "str", "parent": "object"}
+    {
+      "name": "collection",
+      "parent": "object"
+    },
+    {
+      "name": "sequence",
+      "parent": "collection"
+    },
+    {
+      "name": "list",
+      "parent": "sequence"
+    },
+    {
+      "name": "tuple",
+      "parent": "sequence"
+    },
+    {
+      "name": "set",
+      "parent": "collection"
+    },
+    {
+      "name": "dict",
+      "parent": "collection"
+    },
+    {
+      "name": "scalar",
+      "parent": "object"
+    },
+    {
+      "name": "numeric",
+      "parent": "scalar"
+    },
+    {
+      "name": "int",
+      "parent": "numeric"
+    },
+    {
+      "name": "float",
+      "parent": "numeric"
+    },
+    {
+      "name": "bool",
+      "parent": "logical"
+    },
+    {
+      "name": "logical",
+      "parent": "object"
+    },
+    {
+      "name": "str",
+      "parent": "object"
+    }
   ],
   "cells": [
     {
@@ -25,14 +64,27 @@
       "node_type": "function",
       "node_role": "transformer",
       "docstring": "Returns the number of items in a collection or sequence.",
-      "keywords": ["len", "length", "count", "size", "elements", "contours", "items", "number"],
+      "keywords": [
+        "len",
+        "length",
+        "count",
+        "size",
+        "elements",
+        "contours",
+        "items",
+        "number"
+      ],
       "inputs": {
         "data": {
           "type_name": "collection",
           "abstract_type": "collection",
           "required": true,
           "port_role": "data_input",
-          "description": "Container or sequence to measure."
+          "description": "Container or sequence to measure.",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -40,7 +92,11 @@
           "type_name": "int",
           "state": "count",
           "abstract_type": "scalar",
-          "description": "Number of elements in the container."
+          "description": "Number of elements in the container.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "code_template": "{result} = len({data})",
@@ -54,14 +110,24 @@
       "node_type": "function",
       "node_role": "transformer",
       "docstring": "Returns the smallest item in an iterable or collection.",
-      "keywords": ["min", "minimum", "smallest", "least", "lowest"],
+      "keywords": [
+        "min",
+        "minimum",
+        "smallest",
+        "least",
+        "lowest"
+      ],
       "inputs": {
         "data": {
           "type_name": "collection",
           "abstract_type": "collection",
           "required": true,
           "port_role": "data_input",
-          "description": "Iterable of elements to compare."
+          "description": "Iterable of elements to compare.",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -69,7 +135,11 @@
           "type_name": "scalar",
           "state": "extremum",
           "abstract_type": "scalar",
-          "description": "Smallest element."
+          "description": "Smallest element.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{result} = min({data})",
@@ -83,14 +153,24 @@
       "node_type": "function",
       "node_role": "transformer",
       "docstring": "Returns the largest item in an iterable or collection.",
-      "keywords": ["max", "maximum", "largest", "greatest", "highest"],
+      "keywords": [
+        "max",
+        "maximum",
+        "largest",
+        "greatest",
+        "highest"
+      ],
       "inputs": {
         "data": {
           "type_name": "collection",
           "abstract_type": "collection",
           "required": true,
           "port_role": "data_input",
-          "description": "Iterable of elements to compare."
+          "description": "Iterable of elements to compare.",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -98,7 +178,11 @@
           "type_name": "scalar",
           "state": "extremum",
           "abstract_type": "scalar",
-          "description": "Largest element."
+          "description": "Largest element.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{result} = max({data})",
@@ -112,14 +196,22 @@
       "node_type": "function",
       "node_role": "transformer",
       "docstring": "Returns the sum of all items in an iterable.",
-      "keywords": ["sum", "total", "add"],
+      "keywords": [
+        "sum",
+        "total",
+        "add"
+      ],
       "inputs": {
         "data": {
           "type_name": "collection",
           "abstract_type": "collection",
           "required": true,
           "port_role": "data_input",
-          "description": "Iterable of numbers to sum."
+          "description": "Iterable of numbers to sum.",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -127,7 +219,11 @@
           "type_name": "numeric",
           "state": "accum",
           "abstract_type": "scalar",
-          "description": "Total sum."
+          "description": "Total sum.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{result} = sum({data})",
@@ -141,21 +237,33 @@
       "node_type": "function",
       "node_role": "transformer",
       "docstring": "Returns the absolute value of a number.",
-      "keywords": ["abs", "absolute", "magnitude"],
+      "keywords": [
+        "abs",
+        "absolute",
+        "magnitude"
+      ],
       "inputs": {
         "data": {
           "type_name": "numeric",
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Numeric value."
+          "description": "Numeric value.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
         "result": {
           "type_name": "numeric",
           "abstract_type": "scalar",
-          "description": "Absolute value."
+          "description": "Absolute value.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{result} = abs({data})",
@@ -169,28 +277,44 @@
       "node_type": "function",
       "node_role": "transformer",
       "docstring": "Rounds a number to a given precision in decimal digits.",
-      "keywords": ["round", "precision", "decimal"],
+      "keywords": [
+        "round",
+        "precision",
+        "decimal"
+      ],
       "inputs": {
         "data": {
           "type_name": "numeric",
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Numeric value to round."
+          "description": "Numeric value to round.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "ndigits": {
           "type_name": "int",
           "abstract_type": "scalar",
           "required": false,
           "default_value": 0,
-          "description": "Number of decimal places."
+          "description": "Number of decimal places.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
         "result": {
           "type_name": "numeric",
           "abstract_type": "scalar",
-          "description": "Rounded value."
+          "description": "Rounded value.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{result} = round({data}, {ndigits})",
@@ -204,21 +328,34 @@
       "node_type": "constructor",
       "node_role": "constructor",
       "docstring": "Generates a list of integers from 0 up to stop.",
-      "keywords": ["range", "indices", "sequence", "numbers"],
+      "keywords": [
+        "range",
+        "indices",
+        "sequence",
+        "numbers"
+      ],
       "inputs": {
         "stop": {
           "type_name": "int",
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Upper bound integer."
+          "description": "Upper bound integer.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
         "result": {
           "type_name": "list",
           "abstract_type": "collection",
-          "description": "List of integers."
+          "description": "List of integers.",
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "code_template": "{result} = list(range({stop}))",
@@ -232,18 +369,31 @@
       "node_type": "function",
       "node_role": "transformer",
       "docstring": "Converts a number or string to an integer.",
-      "keywords": ["int", "integer", "convert", "cast"],
+      "keywords": [
+        "int",
+        "integer",
+        "convert",
+        "cast"
+      ],
       "inputs": {
         "data": {
           "type_name": "any",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
         "result": {
           "type_name": "int",
-          "abstract_type": "scalar"
+          "abstract_type": "scalar",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "code_template": "{result} = int({data})",
@@ -257,18 +407,31 @@
       "node_type": "function",
       "node_role": "transformer",
       "docstring": "Converts a number or string to a floating point number.",
-      "keywords": ["float", "decimal", "convert", "cast"],
+      "keywords": [
+        "float",
+        "decimal",
+        "convert",
+        "cast"
+      ],
       "inputs": {
         "data": {
           "type_name": "any",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
         "result": {
           "type_name": "float",
-          "abstract_type": "scalar"
+          "abstract_type": "scalar",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{result} = float({data})",
@@ -282,18 +445,32 @@
       "node_type": "function",
       "node_role": "transformer",
       "docstring": "Converts an object into a string representation.",
-      "keywords": ["str", "string", "text", "convert", "format"],
+      "keywords": [
+        "str",
+        "string",
+        "text",
+        "convert",
+        "format"
+      ],
       "inputs": {
         "data": {
           "type_name": "any",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
         "result": {
           "type_name": "str",
-          "abstract_type": "text"
+          "abstract_type": "text",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "code_template": "{result} = str({data})",
@@ -307,19 +484,31 @@
       "node_type": "function",
       "node_role": "transformer",
       "docstring": "Converts a value to a boolean.",
-      "keywords": ["bool", "boolean", "truthy"],
+      "keywords": [
+        "bool",
+        "boolean",
+        "truthy"
+      ],
       "inputs": {
         "data": {
           "type_name": "any",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
         "result": {
           "type_name": "bool",
           "state": "condition",
-          "abstract_type": "logical"
+          "abstract_type": "logical",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "{result} = bool({data})",
@@ -333,19 +522,32 @@
       "node_type": "function",
       "node_role": "transformer",
       "docstring": "Converts an iterable into a list.",
-      "keywords": ["list", "to_list", "convert", "sequence"],
+      "keywords": [
+        "list",
+        "to_list",
+        "convert",
+        "sequence"
+      ],
       "inputs": {
         "data": {
           "type_name": "collection",
           "abstract_type": "collection",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
         "result": {
           "type_name": "list",
-          "abstract_type": "collection"
+          "abstract_type": "collection",
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "code_template": "{result} = list({data})",
@@ -359,19 +561,31 @@
       "node_type": "function",
       "node_role": "transformer",
       "docstring": "Converts an iterable into a set.",
-      "keywords": ["set", "unique", "distinct"],
+      "keywords": [
+        "set",
+        "unique",
+        "distinct"
+      ],
       "inputs": {
         "data": {
           "type_name": "collection",
           "abstract_type": "collection",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
         "result": {
           "type_name": "set",
-          "abstract_type": "collection"
+          "abstract_type": "collection",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "code_template": "{result} = set({data})",
@@ -385,14 +599,27 @@
       "node_type": "function",
       "node_role": "predicate",
       "docstring": "Checks whether a container or collection has length 0 (if 0 items / no elements found).",
-      "keywords": ["empty", "zero", "none", "no", "if_0", "0", "contours", "found"],
+      "keywords": [
+        "empty",
+        "zero",
+        "none",
+        "no",
+        "if_0",
+        "0",
+        "contours",
+        "found"
+      ],
       "inputs": {
         "data": {
           "type_name": "collection",
           "abstract_type": "collection",
           "required": true,
           "port_role": "data_input",
-          "description": "Collection to check for zero length."
+          "description": "Collection to check for zero length.",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -400,7 +627,11 @@
           "type_name": "bool",
           "state": "condition",
           "abstract_type": "logical",
-          "description": "True if len(data) == 0, False otherwise."
+          "description": "True if len(data) == 0, False otherwise.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "{condition} = (len({data}) == 0)",
@@ -414,20 +645,33 @@
       "node_type": "function",
       "node_role": "predicate",
       "docstring": "Checks whether a container or collection has more than 0 items (non-empty).",
-      "keywords": ["nonempty", "found", "any", "exists"],
+      "keywords": [
+        "nonempty",
+        "found",
+        "any",
+        "exists"
+      ],
       "inputs": {
         "data": {
           "type_name": "collection",
           "abstract_type": "collection",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
         "condition": {
           "type_name": "bool",
           "state": "condition",
-          "abstract_type": "logical"
+          "abstract_type": "logical",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "{condition} = (len({data}) > 0)",
@@ -441,20 +685,36 @@
       "node_type": "function",
       "node_role": "predicate",
       "docstring": "Evaluates whether two values are equal (a == b). Returns boolean condition.",
-      "keywords": ["equal", "equals", "same", "zero", "0", "match", "is"],
+      "keywords": [
+        "equal",
+        "equals",
+        "same",
+        "zero",
+        "0",
+        "match",
+        "is"
+      ],
       "inputs": {
         "a": {
           "type_name": "any",
           "required": true,
           "port_role": "data_input",
-          "description": "First operand."
+          "description": "First operand.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "b": {
           "type_name": "any",
           "required": false,
           "default_value": 0,
           "port_role": "literal_parameter",
-          "description": "Second operand (defaults to 0)."
+          "description": "Second operand (defaults to 0).",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -462,7 +722,11 @@
           "type_name": "bool",
           "state": "condition",
           "abstract_type": "logical",
-          "description": "Boolean test condition."
+          "description": "Boolean test condition.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "{condition} = ({a} == {b})",
@@ -476,25 +740,41 @@
       "node_type": "function",
       "node_role": "predicate",
       "docstring": "Evaluates whether a != b. Returns boolean condition.",
-      "keywords": ["not_equal", "different", "nonzero"],
+      "keywords": [
+        "not_equal",
+        "different",
+        "nonzero"
+      ],
       "inputs": {
         "a": {
           "type_name": "any",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "b": {
           "type_name": "any",
           "required": false,
           "default_value": 0,
-          "port_role": "literal_parameter"
+          "port_role": "literal_parameter",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
         "condition": {
           "type_name": "bool",
           "state": "condition",
-          "abstract_type": "logical"
+          "abstract_type": "logical",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "{condition} = ({a} != {b})",
@@ -508,27 +788,44 @@
       "node_type": "function",
       "node_role": "predicate",
       "docstring": "Evaluates whether a > b. Returns boolean condition.",
-      "keywords": ["greater", "more", "above", "exceeds"],
+      "keywords": [
+        "greater",
+        "more",
+        "above",
+        "exceeds"
+      ],
       "inputs": {
         "a": {
           "type_name": "numeric",
           "abstract_type": "scalar",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "b": {
           "type_name": "numeric",
           "abstract_type": "scalar",
           "required": false,
           "default_value": 0,
-          "port_role": "literal_parameter"
+          "port_role": "literal_parameter",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
         "condition": {
           "type_name": "bool",
           "state": "condition",
-          "abstract_type": "logical"
+          "abstract_type": "logical",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "{condition} = ({a} > {b})",
@@ -542,32 +839,50 @@
       "node_type": "function",
       "node_role": "predicate",
       "docstring": "Evaluates whether a < b. Returns boolean condition.",
-      "keywords": ["less", "fewer", "below", "under"],
+      "keywords": [
+        "less",
+        "fewer",
+        "below",
+        "under"
+      ],
       "inputs": {
         "a": {
           "type_name": "numeric",
           "abstract_type": "scalar",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "b": {
           "type_name": "numeric",
           "abstract_type": "scalar",
           "required": false,
           "default_value": 0,
-          "port_role": "literal_parameter"
+          "port_role": "literal_parameter",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
         "condition": {
           "type_name": "bool",
           "state": "condition",
-          "abstract_type": "logical"
+          "abstract_type": "logical",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "{condition} = ({a} < {b})",
       "primary_in": "a",
       "primary_out": "condition"
     }
-  ]
+  ],
+  "supported_formats": []
 }

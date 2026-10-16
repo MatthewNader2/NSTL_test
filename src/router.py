@@ -1319,6 +1319,13 @@ class LatticeRouter:
                 logger.warning(f"[ROUTER] Clause tagging FAILED ({type(_tc_err).__name__}): {_tc_err}")
                 self.last_tagging_decisions = []
 
+            # 2b. Autonomous Semantic Adapter Injection under --llm-feedback
+            if os.environ.get("NSTL_LLM_FEEDBACK") == "1" or getattr(ctx, "llm_feedback", False):
+                try:
+                    path = self._apply_llm_semantic_adapters(path, prompt)
+                except Exception as _adapt_err:
+                    logger.debug(f"[ROUTER] LLM semantic adapter injection skipped: {_adapt_err}")
+
             # 3. Sub-lattice recursive planning for cells with slots (control-flow, macros)
             try:
                 from unification import Substitution
@@ -1338,6 +1345,65 @@ class LatticeRouter:
             candidate_ids = set(c.cell_id for c in tunnel_cells)
             return path, candidate_ids
         return path
+
+    def _apply_llm_semantic_adapters(self, path: List[Cell], prompt: str) -> List[Cell]:
+        """
+        Autonomous semantic adapter injection protocol under --llm-feedback.
+        When adjacent nodes are structurally compatible but semantically suboptimal
+        (e.g., OpenCV BGR connecting to Matplotlib RGB imshow), prompts the LLM
+        to suggest an intermediate adapter cell from the loaded lattice.
+        """
+        if len(path) < 2:
+            return path
+        try:
+            from inference import ModelManager
+        except (ImportError, ValueError):
+            from .inference import ModelManager
+        mm = ModelManager.get_instance()
+        if not (mm.profile and (mm.can_synthesize() or mm.can_feedback_check())):
+            return path
+
+        new_path: List[Cell] = []
+        for i in range(len(path)):
+            new_path.append(path[i])
+            if i + 1 < len(path):
+                curr_cell = path[i]
+                next_cell = path[i + 1]
+                curr_domain = getattr(curr_cell, "domain_name", "") or ""
+                next_domain = getattr(next_cell, "domain_name", "") or ""
+                # Evaluate cross-domain transitions or format shifts
+                if curr_domain and next_domain and curr_domain != next_domain:
+                    query = (
+                        f"User Prompt: {prompt}\n"
+                        f"Candidate Pipeline Transition:\n"
+                        f"Producer: {curr_cell.cell_id} (domain: {curr_domain}, outputs: {[p.type_name for p in curr_cell.outputs.values()]})\n"
+                        f"Consumer: {next_cell.cell_id} (domain: {next_domain}, inputs: {[p.type_name for p in next_cell.inputs.values()]})\n"
+                        f"Question: Does this transition require an intermediate semantic adapter or format conversion (e.g. BGR to RGB)?\n"
+                        f"If yes, return JSON: {{\"adapter_cell\": \"<cell_id>\"}} or {{\"adapter_cell\": null}} if direct connection is correct."
+                    )
+                    try:
+                        resp = mm.generate_text(
+                            query,
+                            max_tokens=128,
+                            system_prompt="You are a neuro-symbolic pipeline optimizer. Recommend semantic adapters only when strictly necessary."
+                        )
+                        if resp and "adapter_cell" in resp:
+                            import json
+                            cleaned = resp.strip()
+                            if "```json" in cleaned:
+                                cleaned = cleaned.split("```json", 1)[1].split("```", 1)[0].strip()
+                            elif "```" in cleaned:
+                                cleaned = cleaned.split("```", 1)[1].split("```", 1)[0].strip()
+                            data = json.loads(cleaned)
+                            adapter_id = data.get("adapter_cell")
+                            if adapter_id and adapter_id in self.orchestrator.loaded_cells:
+                                adapter_cell = self.orchestrator.loaded_cells[adapter_id].clone()
+                                adapter_cell.matched_clause_idx = getattr(curr_cell, "matched_clause_idx", None)
+                                new_path.append(adapter_cell)
+                                logger.info(f"[ROUTER] LLM feedback injected semantic adapter '{adapter_id}' between '{curr_cell.cell_id}' and '{next_cell.cell_id}'")
+                    except Exception as _e:
+                        logger.debug(f"[ROUTER] LLM adapter query failed for transition {curr_cell.cell_id}->{next_cell.cell_id}: {_e}")
+        return new_path
 
 
 class HardwareProfiler:

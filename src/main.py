@@ -143,6 +143,7 @@ class RunRequest(BaseModel):
     prompt: str = Field(..., min_length=1, max_length=5000, description="Natural language specification")
     execute_in_sandbox: bool = Field(default=False, description="Whether to execute code in GEVR sandbox")
     timeout_seconds: float = Field(default=5.0, ge=0.5, le=60.0, description="Sandbox execution timeout")
+    allowed_capabilities: Optional[List[str]] = Field(default=None, description="Optional list of capabilities to grant")
 
 
 class RunResponse(BaseModel):
@@ -291,14 +292,17 @@ def run_prompt(request: Union[RunRequest, Dict[str, Any], str]) -> RunResponse:
         prompt = request.prompt
         exec_sandbox = request.execute_in_sandbox
         timeout = request.timeout_seconds
+        allowed_capabilities = request.allowed_capabilities
     elif isinstance(request, dict):
         prompt = request.get("prompt", "")
         exec_sandbox = request.get("execute_in_sandbox", False)
         timeout = float(request.get("timeout_seconds", 5.0))
+        allowed_capabilities = request.get("allowed_capabilities")
     else:
         prompt = str(request)
         exec_sandbox = False
         timeout = 5.0
+        allowed_capabilities = None
 
     if not prompt or not prompt.strip():
         raise ValueError("Prompt must not be empty.")
@@ -400,53 +404,10 @@ def run_prompt(request: Union[RunRequest, Dict[str, Any], str]) -> RunResponse:
         bridge_inserted = False
         for viol in lint_res.structured_violations:
             if viol.check_id in ("shape_carrier_mismatch", "type_unification_failure"):
-                rej_quals = set(viol.details.get("rejected_qualifiers", []))
-                res_quals = set(viol.details.get("resolved_qualifiers", []))
-                conflict = rej_quals & res_quals
-                prod_id = viol.details.get("producer_cell_id")
-
-                bridge_cand = None
-                if conflict:
-                    # Bridge selection derived solely from lattice declarations
-                    # (Rule 1: no qualifier-name or cell-id literals in the engine):
-                    # a valid bridge declares tolerance for the conflicting qualifier
-                    # on an input port (the qualifier token appears in the port's
-                    # declared state / accepted_states / qualifiers vocabulary) and
-                    # emits an output that carries no rejected qualifier.
-                    from tokenizer import CellTokenizer as _CT
-
-                    def _port_declares_acceptance(p_sig, wanted_quals):
-                        declared = list(getattr(p_sig, "qualifiers", None) or ())
-                        sig_inner = getattr(p_sig, "signature", None)
-                        declared.append(str(getattr(sig_inner, "state", "") or ""))
-                        declared.extend(str(s) for s in (getattr(sig_inner, "accepted_states", None) or frozenset()))
-                        declared_toks = set()
-                        for d in declared:
-                            declared_toks.update(_CT.tokenize_identifier(str(d).lower()))
-                        return any(str(q).lower() in declared_toks for q in wanted_quals)
-
-                    for c_cell in _orchestrator.loaded_cells.values():
-                        if getattr(c_cell, "node_role", "") not in ("bridge", "transformer"):
-                            continue
-                        c_out = getattr(c_cell, "primary_output", None)
-                        if c_out is None:
-                            continue
-                        c_out_quals = {str(q).lower() for q in (getattr(c_out, "qualifiers", []) or [])}
-                        if c_out_quals & rej_quals:
-                            continue
-                        if not any(
-                            _port_declares_acceptance(p_sig, conflict)
-                            for p_sig in c_cell.inputs.values()
-                        ):
-                            continue
-                        bridge_cand = c_cell
-                        break
-
-                if bridge_cand and prod_id:
-                    prod_idx = next((i for i, cl in enumerate(repaired_cells) if cl.cell_id == prod_id), None)
-                    if prod_idx is not None and (prod_idx + 1 >= len(repaired_cells) or repaired_cells[prod_idx + 1].cell_id != bridge_cand.cell_id):
-                        repaired_cells.insert(prod_idx + 1, bridge_cand)
-                        bridge_inserted = True
+                # Carrier / type mismatch violations are preserved as lint violations
+                # and resolved via explicit structural bridges or LLM feedback,
+                # not by blind injection of arbitrary transformers.
+                pass
 
             elif viol.check_id == "precondition_violated":
                 prod_id = viol.details.get("established_by")
@@ -526,6 +487,7 @@ def run_prompt(request: Union[RunRequest, Dict[str, Any], str]) -> RunResponse:
             egress_paths=dest_paths,
             verification_spec=getattr(local_gate, "last_verification_contract", None),
             runtime_aliases=local_gate.get_runtime_aliases(),
+            allowed_capabilities=allowed_capabilities,
         )
 
     path_ids = [c.cell_id for c in cells]

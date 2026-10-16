@@ -161,6 +161,15 @@ class PostconditionRegistry:
     def evaluate(self, property_name: str, target_val: Any, expected_val: Any) -> bool:
         evaluator = self._evaluators.get(property_name)
         if not evaluator:
+            if hasattr(target_val, property_name):
+                try:
+                    attr = getattr(target_val, property_name)
+                    val = attr() if callable(attr) else attr
+                    return bool(val == expected_val)
+                except Exception:
+                    pass
+            elif isinstance(target_val, dict) and property_name in target_val:
+                return bool(target_val[property_name] == expected_val)
             logger.warning("No postcondition evaluator registered for '%s'. Falling back to equality.", property_name)
             return bool(target_val == expected_val)
         try:
@@ -358,13 +367,16 @@ def _enforce_posix_resource_limits(max_memory_mb: int = 16384, max_cpu_seconds: 
         logger.debug("[SANDBOX] RLIMIT_CPU setup skipped: %s", exc)
 
 
-def _disable_network_sockets() -> None:
+def _disable_network_sockets(allow_network: bool = False) -> None:
     """
     Track 5.2: Disables all outbound/inbound network socket creation in the
-    sandbox worker process, even if a pre-imported library holds a reference to `socket`.
+    sandbox worker process unless the 'net' capability is explicitly allowed.
     """
+    if allow_network:
+        return
+
     def _blocked_socket(*args: Any, **kwargs: Any) -> Any:
-        raise SecurityViolationError("Network socket creation is strictly prohibited inside the GEVR sandbox.")
+        raise SecurityViolationError("Network socket creation is prohibited inside the GEVR sandbox without --allow-capabilities net.")
 
     _real_socket.socket = _blocked_socket  # type: ignore[misc,assignment]
     _real_socket.create_connection = _blocked_socket  # type: ignore[assignment]
@@ -435,17 +447,23 @@ def _create_sanitized_os():
     return _SanitizedOS()
 
 
-def _restricted_import(name: str, globals=None, locals=None, fromlist=(), level: int = 0):
-    """Guarded import callback preventing module escape."""
-    root_module = name.split(".")[0]
-    if root_module in _BLOCKED_MODULES:
-        raise SecurityViolationError(f"Import of restricted module '{root_module}' is blocked.")
+def _create_restricted_import(sec_policy: Optional[Any] = None):
+    def _restricted_import(name: str, globals=None, locals=None, fromlist=(), level: int = 0):
+        """Guarded import callback preventing module escape."""
+        root_module = name.split(".")[0]
+        if sec_policy is not None:
+            allowed, reason = sec_policy.is_module_allowed(name)
+            if not allowed:
+                raise SecurityViolationError(f"Import of module '{name}' is blocked: {reason}")
+        elif root_module in _BLOCKED_MODULES:
+            raise SecurityViolationError(f"Import of restricted module '{root_module}' is blocked.")
 
-    if root_module == "os":
-        return _create_sanitized_os()
+        if root_module == "os":
+            return _create_sanitized_os()
 
-    real_import = builtins.__import__
-    return real_import(name, globals, locals, fromlist, level)
+        real_import = builtins.__import__
+        return real_import(name, globals, locals, fromlist, level)
+    return _restricted_import
 
 
 class ASTLoopBounder(ast.NodeTransformer):
@@ -492,11 +510,22 @@ def _sandbox_worker_exec(
     egress_paths: Optional[List[str]] = None,
     max_memory_mb: int = 16384,
     max_cpu_seconds: int = 10,
+    allowed_capabilities: Optional[List[str]] = None,
 ) -> None:
     """
     Subprocess worker executing sandboxed code in strict process, resource,
-    network, and filesystem isolation.
+    network, and filesystem isolation with capability-based security.
     """
+    allowed_caps_set = set(allowed_capabilities or [])
+    if "NSTL_ALLOWED_CAPABILITIES" in os.environ:
+        allowed_caps_set.update(c.strip() for c in os.environ["NSTL_ALLOWED_CAPABILITIES"].split(",") if c.strip())
+
+    try:
+        from security_policy import SecurityPolicy
+        sec_policy = SecurityPolicy(allowed_capabilities=allowed_caps_set)
+    except Exception:
+        sec_policy = None
+
     # Step 0: Configure headless environment for GUI, Audio, and Plotting
     try:
         from lattice import TypeRegistry
@@ -553,7 +582,10 @@ def _sandbox_worker_exec(
         try:
             # Step 1: Pre-execution AST Analysis
             parsed_ast = ast.parse(code_str)
-            _SecurityASTVisitor().visit(parsed_ast)
+            if sec_policy is not None:
+                sec_policy.validate_ast(parsed_ast)
+            else:
+                _SecurityASTVisitor().visit(parsed_ast)
 
             if smoke_test:
                 try:
@@ -568,7 +600,8 @@ def _sandbox_worker_exec(
 
             # Step 2: Enforce POSIX resource limits & disable sockets (Track 5.1 & 5.2)
             _enforce_posix_resource_limits(max_memory_mb=max_memory_mb, max_cpu_seconds=max_cpu_seconds)
-            _disable_network_sockets()
+            allow_net = bool(allowed_caps_set & {"net", "net.http", "net.tcp", "net.all"})
+            _disable_network_sockets(allow_network=allow_net)
 
             # Step 3: Configure Ephemeral Filesystem Confinement (Track 5.2)
             ephemeral_resolved = str(Path(ephemeral_dir).resolve())
@@ -609,7 +642,7 @@ def _sandbox_worker_exec(
                 if k not in _SecurityASTVisitor.FORBIDDEN_CALLS:
                     safe_builtins[k] = v
 
-            safe_builtins["__import__"] = _restricted_import
+            safe_builtins["__import__"] = _create_restricted_import(sec_policy)
             safe_builtins["open"] = _create_confined_open(
                 allowed_read_roots=allowed_read_roots,
                 allowed_write_roots=allowed_write_roots,
@@ -734,12 +767,14 @@ def _derive_io_call_signatures() -> Tuple[Set[str], Set[str], Set[str], Set[str]
                 continue
 
             is_sink = (
-                c_stage == 3
+                getattr(cell, "is_endable", False)
+                or not getattr(cell, "outputs", None)
                 or c_role in ("sink", "egress", "terminal")
                 or any(str(getattr(getattr(p, "signature", p), "state", "")).lower() in ("materialization", "destination", "serialized", "sink") for p in getattr(cell, "inputs", {}).values())
             )
             is_ingress = (
-                c_stage == 1
+                getattr(cell, "is_ingress", False)
+                or (len(getattr(cell, "inputs", {})) == 0)
                 or c_role in ("source", "ingress")
             )
 
@@ -809,6 +844,7 @@ class GEVRSandbox:
         postcondition_registry: Optional[PostconditionRegistry] = None,
         intent_registry: Optional[TerminalIntentRegistry] = None,
         state_registry: Optional[StateProtocolRegistry] = None,
+        allowed_capabilities: Optional[Set[str]] = None,
     ):
         self.default_timeout = float(
             os.environ.get(
@@ -829,6 +865,7 @@ class GEVRSandbox:
         self.postconditions = postcondition_registry or PostconditionRegistry()
         self.intents = intent_registry or TerminalIntentRegistry()
         self.state_protocols = state_registry or StateProtocolRegistry()
+        self.allowed_capabilities = set(allowed_capabilities or set())
 
     @staticmethod
     def _verify_egress_paths(egress_paths: Optional[List[str]]) -> Dict[str, str]:
@@ -932,7 +969,7 @@ class GEVRSandbox:
                 if isinstance(b, dict):
                     c_role = str(b.get("role", "") or b.get("node_role", "")).lower()
                     c_stage = b.get("stage")
-                    if c_role in ("sink", "egress") or c_stage == 3:
+                    if c_role in ("sink", "egress", "terminal") or (c_stage is not None and c_stage >= 3):
                         for v in b.values():
                             if isinstance(v, str) and not v.startswith("var_"):
                                 cln = v.strip("'\"")
@@ -1038,6 +1075,15 @@ class GEVRSandbox:
         smoke_test = bool(kwargs.get("smoke_test", False))
         mem_limit = int(kwargs.get("max_memory_mb", self.max_memory_mb))
         cpu_limit = int(kwargs.get("max_cpu_seconds", max(int(exec_timeout) + 2, self.max_cpu_seconds)))
+        allowed_caps = kwargs.get("allowed_capabilities")
+        if allowed_caps is None:
+            allowed_caps = getattr(self, "allowed_capabilities", set())
+        if isinstance(allowed_caps, (set, frozenset, list, tuple)):
+            allowed_caps = list(allowed_caps)
+        else:
+            allowed_caps = []
+        if not allowed_caps and "NSTL_ALLOWED_CAPABILITIES" in os.environ:
+            allowed_caps = [c.strip() for c in os.environ["NSTL_ALLOWED_CAPABILITIES"].split(",") if c.strip()]
 
         worker = ctx.Process(
             target=_sandbox_worker_exec,
@@ -1050,6 +1096,7 @@ class GEVRSandbox:
                 list(egress_set),
                 mem_limit,
                 cpu_limit,
+                allowed_caps,
             ),
             daemon=True,
         )

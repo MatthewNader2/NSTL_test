@@ -4,6 +4,13 @@
   "aliases": {
     "sns": "seaborn"
   },
+  "supported_formats": [
+    "png",
+    "jpg",
+    "jpeg",
+    "pdf",
+    "svg"
+  ],
   "typestates": {
     "domain": "seaborn",
     "states": [
@@ -511,7 +518,7 @@
       "mutation_type": "stateful",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Set aspects of the visual theme for all seaborn and matplotlib plots.",
       "dependencies": [
@@ -562,7 +569,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -582,7 +593,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -603,7 +618,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "float",
@@ -619,7 +638,11 @@
           "value_constraints": {
             "gt": 0.0
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {},
@@ -628,38 +651,7 @@
       "effects": [
         "modifies_global_rcparams"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_histplot_univariate",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Theme configuration should precede plotting operations."
-          },
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "sns_scatterplot_xy",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Theme sets up global styling for relational plots."
-          },
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "sns_barplot_xy",
-          "affinity_score": 0.2,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Theme sets up global styling for categorical plots."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "void"
     },
@@ -672,7 +664,7 @@
       "mutation_type": "stateful",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Set the aesthetic style of the plots.",
       "dependencies": [
@@ -719,7 +711,11 @@
           ],
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {},
@@ -728,28 +724,7 @@
       "effects": [
         "modifies_global_rcparams"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_boxplot_xy",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Configuring style prior to boxplot rendering."
-          },
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "sns_lineplot_xy",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Configuring style prior to lineplot rendering."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "void"
     },
@@ -762,7 +737,7 @@
       "mutation_type": "stateful",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Set the plotting context parameters.",
       "dependencies": [
@@ -810,7 +785,11 @@
           ],
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "float",
@@ -826,7 +805,11 @@
           "value_constraints": {
             "gt": 0.0
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {},
@@ -835,18 +818,7 @@
       "effects": [
         "modifies_global_rcparams"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_scatterplot_xy",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Set scaling context for presentation or print."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "void"
     },
@@ -859,7 +831,7 @@
       "mutation_type": "stateful",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Set the matplotlib color cycle using a seaborn palette.",
       "dependencies": [
@@ -909,7 +881,11 @@
           ],
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "int",
@@ -925,7 +901,11 @@
           "value_constraints": {
             "gte": 1
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {},
@@ -934,18 +914,7 @@
       "effects": [
         "modifies_color_cycle"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_barplot_xy",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Sets default palette before categorical plotting."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "void"
     },
@@ -958,7 +927,7 @@
       "mutation_type": "immutable",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Load an example dataset from the online seaborn repository as a pandas DataFrame.",
       "dependencies": [
@@ -1009,7 +978,11 @@
           ],
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1025,7 +998,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -1040,48 +1017,7 @@
         }
       ],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "sns_histplot_univariate",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Directly feeds loaded DataFrame to histogram plot."
-          },
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "sns_scatterplot_xy",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Directly feeds loaded DataFrame to scatterplot."
-          },
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "sns_boxplot_xy",
-          "affinity_score": 0.2,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Directly feeds loaded DataFrame to boxplot."
-          },
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "sns_heatmap_annotated",
-          "affinity_score": 0.2,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "DataFrame can be transformed or passed to correlation heatmap."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -1094,7 +1030,7 @@
       "mutation_type": "immutable",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return a list of colors defining a color palette.",
       "dependencies": [
@@ -1146,7 +1082,11 @@
           ],
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "int",
@@ -1162,7 +1102,11 @@
           "value_constraints": {
             "gte": 1
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1178,24 +1122,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 3,
+          "element_type": "uint8",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "sns_barplot_hue",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Pass generated palette list into barplot palette slot."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -1208,7 +1145,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Plot univariate distributions using histogram bins and optional KDE smoothing curve.",
       "dependencies": [
@@ -1258,7 +1195,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -1272,7 +1213,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "int",
@@ -1288,7 +1233,11 @@
           "value_constraints": {
             "gte": 1
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "bool",
@@ -1302,7 +1251,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "Axes",
@@ -1319,7 +1272,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1335,7 +1292,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -1361,38 +1322,7 @@
       "effects": [
         "adds_patches_to_axes"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_despine_axes",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Clean top and right spines from histogram canvas."
-          },
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "sns_move_legend_axes",
-          "affinity_score": 0.2,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Configure legend position if present."
-          },
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "sns_axes_savefig",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Export finished histogram figure to disk."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -1405,7 +1335,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Plot bivariate distribution of two numeric variables using 2D histogram bins.",
       "dependencies": [
@@ -1454,7 +1384,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -1468,7 +1402,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -1482,7 +1420,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "bool",
@@ -1496,7 +1438,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "Axes",
@@ -1513,7 +1459,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1529,7 +1479,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -1537,18 +1491,7 @@
       "effects": [
         "adds_collections_to_axes"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_axes_savefig",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Save 2D histogram visualization."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -1561,7 +1504,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Plot partitioned histogram distributions grouped by categorical hue with stack or dodge mode.",
       "dependencies": [
@@ -1611,7 +1554,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -1625,7 +1572,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -1639,7 +1590,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "str",
@@ -1658,7 +1613,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "Axes",
@@ -1675,7 +1634,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1691,7 +1654,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -1700,28 +1667,7 @@
         "adds_patches_to_axes",
         "creates_legend"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_move_legend_axes",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Relocate hue legend generated by partitioned histogram."
-          },
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "sns_despine_axes",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Despine axes after grouped histogram."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -1734,7 +1680,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Compute and plot a univariate kernel density estimate curve.",
       "dependencies": [
@@ -1784,7 +1730,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -1798,7 +1748,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "float",
@@ -1814,7 +1768,11 @@
           "value_constraints": {
             "gt": 0.0
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "bool",
@@ -1828,7 +1786,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "Axes",
@@ -1845,7 +1807,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1861,7 +1827,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -1869,28 +1839,7 @@
       "effects": [
         "adds_lines_to_axes"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_despine_axes",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Despine univariate KDE plot."
-          },
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "sns_axes_savefig",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Save KDE plot."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -1903,7 +1852,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Compute and plot a 2D contour kernel density estimate.",
       "dependencies": [
@@ -1953,7 +1902,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -1967,7 +1920,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -1981,7 +1938,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "bool",
@@ -1995,7 +1956,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "float",
@@ -2012,7 +1977,11 @@
             "gte": 0.0,
             "lte": 1.0
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "port_5": {
           "type_name": "Axes",
@@ -2029,7 +1998,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2045,7 +2018,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -2053,18 +2030,7 @@
       "effects": [
         "adds_collections_to_axes"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_axes_savefig",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Save bivariate KDE contour visualization."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -2077,7 +2043,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Plot empirical cumulative distribution functions (ECDF).",
       "dependencies": [
@@ -2126,7 +2092,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -2140,7 +2110,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -2154,7 +2128,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "str",
@@ -2172,7 +2150,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "Axes",
@@ -2189,7 +2171,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2205,7 +2191,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -2213,28 +2203,7 @@
       "effects": [
         "adds_lines_to_axes"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_despine_axes",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Despine ECDF plot."
-          },
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "sns_axes_savefig",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Save ECDF plot."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -2247,7 +2216,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Plot marginal distributions by drawing ticks along an axis.",
       "dependencies": [
@@ -2295,7 +2264,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -2309,7 +2282,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "float",
@@ -2326,7 +2303,11 @@
             "gt": 0.0,
             "lte": 1.0
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "Axes",
@@ -2343,7 +2324,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2359,7 +2344,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -2367,18 +2356,7 @@
       "effects": [
         "adds_line_collections_to_axes"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_despine_axes",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Despine rug plot axes."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -2391,7 +2369,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Figure-level interface for drawing distribution plots onto a FacetGrid.",
       "dependencies": [
@@ -2442,7 +2420,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -2456,7 +2438,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -2470,7 +2456,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "str",
@@ -2484,7 +2474,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "str",
@@ -2502,7 +2496,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2518,7 +2516,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -2526,18 +2528,7 @@
       "effects": [
         "creates_figure_and_facetgrid"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_facetgrid_savefig",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Save faceted distribution figure to disk."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -2550,7 +2541,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Show point estimates and confidence intervals as rectangular bars.",
       "dependencies": [
@@ -2602,7 +2593,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -2616,7 +2611,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -2630,7 +2629,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "str",
@@ -2648,7 +2651,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "str",
@@ -2667,7 +2674,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_5": {
           "type_name": "Axes",
@@ -2684,7 +2695,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2700,7 +2715,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -2708,28 +2727,7 @@
       "effects": [
         "adds_patches_and_lines_to_axes"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_despine_axes",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Despine categorical barplot."
-          },
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "sns_axes_savefig",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Save barplot visualization."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -2742,7 +2740,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Categorical bar plot partitioned by secondary categorical variable hue.",
       "dependencies": [
@@ -2792,7 +2790,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -2806,7 +2808,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -2820,7 +2826,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "str",
@@ -2834,7 +2844,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "str",
@@ -2848,7 +2862,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_5": {
           "type_name": "Axes",
@@ -2865,7 +2883,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2881,7 +2903,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -2890,18 +2916,7 @@
         "adds_patches_and_lines_to_axes",
         "creates_legend"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_move_legend_axes",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Move legend after hue barplot."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -2914,7 +2929,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Show the counts of observations in each categorical bin using bars.",
       "dependencies": [
@@ -2963,7 +2978,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -2977,7 +2996,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -2991,7 +3014,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "str",
@@ -3005,7 +3032,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "Axes",
@@ -3022,7 +3053,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3038,7 +3073,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -3046,28 +3085,7 @@
       "effects": [
         "adds_patches_to_axes"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_despine_axes",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Despine count plot."
-          },
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "sns_axes_savefig",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Save countplot."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -3080,7 +3098,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Draw a box plot to show distributions with respect to categories.",
       "dependencies": [
@@ -3132,7 +3150,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -3146,7 +3168,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -3160,7 +3186,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "bool",
@@ -3174,7 +3204,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "str",
@@ -3188,7 +3222,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_5": {
           "type_name": "Axes",
@@ -3205,7 +3243,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3221,7 +3263,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -3229,28 +3275,7 @@
       "effects": [
         "adds_patches_and_lines_to_axes"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_despine_axes",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Despine boxplot."
-          },
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "sns_axes_savefig",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Save boxplot."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -3263,7 +3288,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Box plot grouped by primary x-category and secondary hue factor with dodging.",
       "dependencies": [
@@ -3313,7 +3338,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -3327,7 +3356,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -3341,7 +3374,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "str",
@@ -3355,7 +3392,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "bool",
@@ -3369,7 +3410,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         },
         "port_5": {
           "type_name": "Axes",
@@ -3386,7 +3431,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3402,7 +3451,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -3411,18 +3464,7 @@
         "adds_patches_and_lines_to_axes",
         "creates_legend"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_move_legend_axes",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Adjust hue legend location."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -3435,7 +3477,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Draw a combination of boxplot and kernel density estimate across categorical levels.",
       "dependencies": [
@@ -3486,7 +3528,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -3500,7 +3546,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -3514,7 +3564,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "bool",
@@ -3528,7 +3582,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "str",
@@ -3548,7 +3606,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_5": {
           "type_name": "Axes",
@@ -3565,7 +3627,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3581,7 +3647,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -3589,28 +3659,7 @@
       "effects": [
         "adds_collections_to_axes"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_despine_axes",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Despine violinplot."
-          },
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "sns_axes_savefig",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Save violinplot figure."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -3623,7 +3672,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Violin plot with split halves comparing two levels of a binary hue variable.",
       "dependencies": [
@@ -3672,7 +3721,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -3686,7 +3739,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -3700,7 +3757,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "str",
@@ -3714,7 +3775,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "str",
@@ -3733,7 +3798,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_5": {
           "type_name": "Axes",
@@ -3750,7 +3819,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3766,7 +3839,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -3775,18 +3852,7 @@
         "adds_collections_to_axes",
         "creates_legend"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_move_legend_axes",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Reposition split violin legend."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -3799,7 +3865,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Draw an enhanced box plot (letter-value plot) for larger datasets.",
       "dependencies": [
@@ -3848,7 +3914,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -3862,7 +3932,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -3876,7 +3950,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "str",
@@ -3895,7 +3973,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "Axes",
@@ -3912,7 +3994,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3928,7 +4014,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -3936,18 +4026,7 @@
       "effects": [
         "adds_collections_to_axes"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_despine_axes",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Despine boxenplot."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -3960,7 +4039,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Draw a categorical scatterplot with jitter to avoid overplotting.",
       "dependencies": [
@@ -4009,7 +4088,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -4023,7 +4106,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -4037,7 +4124,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "bool",
@@ -4051,7 +4142,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "float",
@@ -4068,7 +4163,11 @@
             "gt": 0.0,
             "lte": 1.0
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "port_5": {
           "type_name": "Axes",
@@ -4085,7 +4184,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4101,7 +4204,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -4109,18 +4216,7 @@
       "effects": [
         "adds_collections_to_axes"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_despine_axes",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Despine stripplot."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -4133,7 +4229,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Draw a categorical scatterplot with non-overlapping points.",
       "dependencies": [
@@ -4182,7 +4278,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -4196,7 +4296,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -4210,7 +4314,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "float",
@@ -4226,7 +4334,11 @@
           "value_constraints": {
             "gt": 0.0
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "str",
@@ -4240,7 +4352,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_5": {
           "type_name": "Axes",
@@ -4257,7 +4373,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4273,7 +4393,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -4281,18 +4405,7 @@
       "effects": [
         "adds_collections_to_axes"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_despine_axes",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Despine swarmplot."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -4305,7 +4418,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Show point estimates and confidence intervals using scatter plot glyphs and connecting lines.",
       "dependencies": [
@@ -4355,7 +4468,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -4369,7 +4486,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -4383,7 +4504,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "str",
@@ -4397,7 +4522,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "str",
@@ -4416,7 +4545,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_5": {
           "type_name": "Axes",
@@ -4433,7 +4566,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4449,7 +4586,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -4457,18 +4598,7 @@
       "effects": [
         "adds_lines_and_collections_to_axes"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_despine_axes",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Despine pointplot."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -4481,7 +4611,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Figure-level interface for drawing categorical plots onto a FacetGrid.",
       "dependencies": [
@@ -4532,7 +4662,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -4546,7 +4680,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -4560,7 +4698,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "str",
@@ -4574,7 +4716,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "str",
@@ -4597,7 +4743,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4613,7 +4763,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -4621,18 +4775,7 @@
       "effects": [
         "creates_figure_and_facetgrid"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_facetgrid_savefig",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Save faceted categorical grid figure."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -4645,7 +4788,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Draw a relational scatter plot with bivariate coordinates.",
       "dependencies": [
@@ -4694,7 +4837,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -4708,7 +4855,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -4722,7 +4873,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "float",
@@ -4739,7 +4894,11 @@
             "gt": 0.0,
             "lte": 1.0
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "Axes",
@@ -4756,7 +4915,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4772,7 +4935,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -4780,28 +4947,7 @@
       "effects": [
         "adds_collections_to_axes"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_despine_axes",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Despine relational scatterplot."
-          },
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "sns_axes_savefig",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Save scatterplot figure."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -4814,7 +4960,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Multidimensional relational scatterplot with hue and marker size semantics.",
       "dependencies": [
@@ -4867,7 +5013,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -4881,7 +5031,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -4895,7 +5049,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "str",
@@ -4909,7 +5067,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "str",
@@ -4923,7 +5085,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_5": {
           "type_name": "List[str]",
@@ -4940,7 +5106,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "port_6": {
           "type_name": "str",
@@ -4954,7 +5124,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_7": {
           "type_name": "Axes",
@@ -4971,7 +5145,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4987,7 +5165,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -4996,18 +5178,7 @@
         "adds_collections_to_axes",
         "creates_legend"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_move_legend_axes",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Position complex multidimensional legend."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -5020,7 +5191,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Draw a line plot with statistical aggregation and error bands.",
       "dependencies": [
@@ -5070,7 +5241,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -5084,7 +5259,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -5098,7 +5277,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "str",
@@ -5118,7 +5301,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "Axes",
@@ -5135,7 +5322,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5151,7 +5342,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -5159,28 +5354,7 @@
       "effects": [
         "adds_lines_and_polycollections_to_axes"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_despine_axes",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Despine lineplot."
-          },
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "sns_axes_savefig",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Save lineplot figure."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -5193,7 +5367,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Draw line plots with groupings mapped to hue and dash styles.",
       "dependencies": [
@@ -5246,7 +5420,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -5260,7 +5438,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -5274,7 +5456,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "str",
@@ -5288,7 +5474,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "str",
@@ -5302,7 +5492,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_5": {
           "type_name": "bool",
@@ -5316,7 +5510,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         },
         "port_6": {
           "type_name": "Axes",
@@ -5333,7 +5531,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5349,7 +5551,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -5357,18 +5563,7 @@
       "effects": [
         "adds_lines_and_legend_to_axes"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_move_legend_axes",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Position multi-group lineplot legend."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -5381,7 +5576,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Figure-level interface for drawing relational plots (scatter or line) onto a FacetGrid.",
       "dependencies": [
@@ -5432,7 +5627,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -5446,7 +5645,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -5460,7 +5663,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "str",
@@ -5474,7 +5681,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "str",
@@ -5488,7 +5699,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_5": {
           "type_name": "str",
@@ -5505,7 +5720,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5521,7 +5740,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -5529,18 +5752,7 @@
       "effects": [
         "creates_figure_and_facetgrid"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_facetgrid_savefig",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Save faceted relational figure."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -5553,7 +5765,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Plot rectangular data as a color-encoded matrix heatmap with numeric annotations.",
       "dependencies": [
@@ -5604,7 +5816,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "bool",
@@ -5618,7 +5834,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -5632,7 +5852,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "str",
@@ -5653,7 +5877,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "bool",
@@ -5667,7 +5895,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         },
         "port_5": {
           "type_name": "Axes",
@@ -5684,7 +5916,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5700,7 +5936,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -5717,18 +5957,7 @@
       "effects": [
         "adds_collections_and_text_to_axes"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_axes_savefig",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Save annotated heatmap matrix."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -5741,7 +5970,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Matrix heatmap masking triangular or invalid cells with custom colormap.",
       "dependencies": [
@@ -5792,7 +6021,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "DataFrame",
@@ -5807,7 +6040,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -5826,7 +6063,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "bool",
@@ -5840,7 +6081,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "float",
@@ -5856,7 +6101,11 @@
           "value_constraints": {
             "gte": 0.0
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "port_5": {
           "type_name": "Axes",
@@ -5873,7 +6122,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5889,7 +6142,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -5897,18 +6154,7 @@
       "effects": [
         "adds_collections_to_axes"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_axes_savefig",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Save masked correlation heatmap."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -5921,7 +6167,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Plot a hierarchically-clustered heatmap with marginal row and column dendrograms.",
       "dependencies": [
@@ -5969,7 +6215,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -5988,7 +6238,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "int",
@@ -6006,7 +6260,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "str",
@@ -6025,7 +6283,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "str",
@@ -6044,7 +6306,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6060,7 +6326,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -6078,18 +6348,7 @@
         "performs_scipy_linkage",
         "renders_dendrograms_and_matrix"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_clustermap_savefig",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Save hierarchical clustermap figure."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -6102,7 +6361,7 @@
       "mutation_type": "immutable",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Initialize a multi-plot grid for conditional faceting across rows and columns.",
       "dependencies": [
@@ -6151,7 +6410,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -6165,7 +6428,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -6179,7 +6446,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "str",
@@ -6193,7 +6464,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6209,7 +6484,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -6217,28 +6496,7 @@
       "effects": [
         "creates_figure_and_facetgrid"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_facetgrid_map",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Map plotting function across initialized FacetGrid."
-          },
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "sns_facetgrid_map_dataframe",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Map DataFrame-aware function across FacetGrid facets."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -6251,7 +6509,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Apply a plotting function to each facet's subset of data.",
       "dependencies": [
@@ -6297,7 +6555,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -6311,7 +6573,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -6325,7 +6591,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6341,7 +6611,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -6349,28 +6623,7 @@
       "effects": [
         "populates_facet_axes"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_facetgrid_add_legend",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Add legend to mapped FacetGrid."
-          },
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "sns_facetgrid_savefig",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Export finished FacetGrid figure to disk."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -6383,7 +6636,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Apply a function that accepts a dataframe and kwargs to each facet.",
       "dependencies": [
@@ -6427,7 +6680,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -6441,7 +6698,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6457,7 +6718,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -6465,28 +6730,7 @@
       "effects": [
         "populates_facet_axes"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_facetgrid_add_legend",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Add legend to mapped FacetGrid."
-          },
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "sns_facetgrid_savefig",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Save FacetGrid figure."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -6499,7 +6743,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Draw a legend for hue levels outside the facet grid.",
       "dependencies": [
@@ -6539,7 +6783,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -6553,7 +6801,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6569,7 +6821,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -6577,18 +6833,7 @@
       "effects": [
         "appends_legend_to_grid"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_facetgrid_savefig",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Save FacetGrid with legend included."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -6601,7 +6846,7 @@
       "mutation_type": "immutable",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Subplot grid for plotting pairwise relationships in a dataset.",
       "dependencies": [
@@ -6648,7 +6893,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -6662,7 +6911,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "List[str]",
@@ -6676,7 +6929,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6692,7 +6949,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -6700,28 +6961,7 @@
       "effects": [
         "creates_pairwise_axes_matrix"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_pairgrid_map_diag_offdiag",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Map diagonal and off-diagonal plotting routines."
-          },
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "sns_pairgrid_map_upper_lower",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Map distinct routines for upper and lower triangles."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -6734,7 +6974,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Map separate plotting functions to diagonal and off-diagonal subplots of a PairGrid.",
       "dependencies": [
@@ -6779,7 +7019,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -6793,7 +7037,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -6807,7 +7055,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6823,7 +7075,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -6831,18 +7087,7 @@
       "effects": [
         "populates_pairgrid_axes"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_facetgrid_savefig",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Save PairGrid figure to disk."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -6855,7 +7100,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Map distinct plotting functions to diagonal, upper, and lower triangular subplots of PairGrid.",
       "dependencies": [
@@ -6902,7 +7147,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -6916,7 +7165,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -6930,7 +7183,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "str",
@@ -6944,7 +7201,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6960,7 +7221,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -6968,18 +7233,7 @@
       "effects": [
         "populates_pairgrid_axes"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_facetgrid_savefig",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Save PairGrid figure."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -6992,7 +7246,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Plot pairwise relationships in a dataset with bivariate scatter and univariate marginals.",
       "dependencies": [
@@ -7040,7 +7294,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -7054,7 +7312,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -7072,7 +7334,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "bool",
@@ -7086,7 +7352,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7102,7 +7372,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -7110,18 +7384,7 @@
       "effects": [
         "creates_figure_and_pairgrid"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_facetgrid_savefig",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Save pairplot figure."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -7134,7 +7397,7 @@
       "mutation_type": "immutable",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Grid for bivariate plot with marginal univariate plots.",
       "dependencies": [
@@ -7181,7 +7444,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -7195,7 +7462,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -7209,7 +7480,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7225,7 +7500,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -7233,18 +7512,7 @@
       "effects": [
         "creates_joint_and_marginal_axes"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_jointgrid_plot",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Plot joint and marginal functions onto JointGrid."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -7257,7 +7525,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Draw the joint and marginal plots on a JointGrid.",
       "dependencies": [
@@ -7303,7 +7571,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -7317,7 +7589,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -7331,7 +7607,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7347,7 +7627,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -7355,18 +7639,7 @@
       "effects": [
         "populates_joint_and_marginal_axes"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_jointgrid_savefig",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Save JointGrid figure."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -7379,7 +7652,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Draw a plot of two variables with bivariate and marginal distributions.",
       "dependencies": [
@@ -7429,7 +7702,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -7443,7 +7720,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -7457,7 +7738,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "str",
@@ -7478,7 +7763,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7494,7 +7783,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -7502,18 +7795,7 @@
       "effects": [
         "creates_figure_and_jointgrid"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_jointgrid_savefig",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Save jointplot figure."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -7526,7 +7808,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Plot data and a linear regression model fit with confidence interval.",
       "dependencies": [
@@ -7578,7 +7860,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -7592,7 +7878,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -7606,7 +7896,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "int",
@@ -7623,7 +7917,11 @@
             "gte": 0,
             "lte": 100
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "bool",
@@ -7637,7 +7935,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         },
         "port_5": {
           "type_name": "Axes",
@@ -7654,7 +7956,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7670,7 +7976,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -7679,28 +7989,7 @@
         "fits_linear_model",
         "adds_lines_and_collections_to_axes"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_despine_axes",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Despine linear regression plot."
-          },
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "sns_axes_savefig",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Save linear regression figure."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -7713,7 +8002,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Plot data and a polynomial regression model fit of specified order.",
       "dependencies": [
@@ -7762,7 +8051,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -7776,7 +8069,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -7790,7 +8087,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "int",
@@ -7806,7 +8107,11 @@
           "value_constraints": {
             "gte": 1
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "Axes",
@@ -7823,7 +8128,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7839,7 +8148,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -7848,28 +8161,7 @@
         "fits_polynomial_model",
         "adds_lines_and_collections_to_axes"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_despine_axes",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Despine polynomial regression plot."
-          },
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "sns_axes_savefig",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Save polynomial fit figure."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -7882,7 +8174,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Fit a logistic regression model for binary response variables.",
       "dependencies": [
@@ -7933,7 +8225,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -7947,7 +8243,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -7961,7 +8261,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "bool",
@@ -7975,7 +8279,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "int",
@@ -7991,7 +8299,11 @@
           "value_constraints": {
             "gte": 100
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "port_5": {
           "type_name": "Axes",
@@ -8008,7 +8320,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8024,7 +8340,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -8033,28 +8353,7 @@
         "fits_logistic_model",
         "adds_sigmoid_to_axes"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_despine_axes",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Despine logistic regression plot."
-          },
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "sns_axes_savefig",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Save logistic regression figure."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -8067,7 +8366,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Plot the residuals of a linear regression to evaluate model fit.",
       "dependencies": [
@@ -8116,7 +8415,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -8130,7 +8433,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -8144,7 +8451,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "bool",
@@ -8158,7 +8469,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "Axes",
@@ -8175,7 +8490,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8191,7 +8510,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -8200,28 +8523,7 @@
         "computes_residuals",
         "adds_collections_and_baseline_to_axes"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_despine_axes",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Despine residual plot."
-          },
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "sns_axes_savefig",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Save residual plot figure."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -8234,7 +8536,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Plot data and regression model fits across a FacetGrid.",
       "dependencies": [
@@ -8285,7 +8587,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -8299,7 +8605,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -8313,7 +8623,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "str",
@@ -8327,7 +8641,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "str",
@@ -8341,7 +8659,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_5": {
           "type_name": "bool",
@@ -8355,7 +8677,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8371,7 +8697,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -8379,18 +8709,7 @@
       "effects": [
         "creates_figure_and_facetgrid"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_facetgrid_savefig",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Save faceted linear model figure."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -8403,7 +8722,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Remove the top and right spines from plot(s) to optimize visual presentation.",
       "dependencies": [
@@ -8453,7 +8772,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "bool",
@@ -8467,7 +8790,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "bool",
@@ -8481,7 +8808,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "bool",
@@ -8495,7 +8826,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "bool",
@@ -8509,7 +8844,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         },
         "port_5": {
           "type_name": "int",
@@ -8523,7 +8862,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8539,7 +8882,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -8547,28 +8894,7 @@
       "effects": [
         "hides_axes_spines"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_axes_savefig",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Save despined plot figure to disk."
-          },
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "sns_move_legend_axes",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Reposition legend after spine removal."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -8581,7 +8907,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Recreate and relocate a plot's legend with new formatting attributes.",
       "dependencies": [
@@ -8629,7 +8955,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -8653,7 +8983,11 @@
           ],
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "list",
@@ -8667,7 +9001,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "int",
@@ -8683,7 +9021,11 @@
           "value_constraints": {
             "gte": 1
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "str",
@@ -8697,7 +9039,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8713,7 +9059,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -8721,18 +9071,7 @@
       "effects": [
         "repositions_legend"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_axes_savefig",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Save figure with updated legend layout."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -8745,7 +9084,7 @@
       "mutation_type": "immutable",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Save the current FacetGrid or PairGrid figure to an image or vector file.",
       "dependencies": [
@@ -8791,7 +9130,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "File[Plot, Any]",
@@ -8805,7 +9148,13 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "*"
+          ]
         },
         "port_2": {
           "type_name": "int",
@@ -8821,7 +9170,11 @@
           "value_constraints": {
             "gte": 72
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {},
@@ -8844,7 +9197,7 @@
       "mutation_type": "immutable",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Save the current JointGrid figure to an image file.",
       "dependencies": [
@@ -8889,7 +9242,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "File[Plot, Any]",
@@ -8903,7 +9260,13 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "*"
+          ]
         },
         "port_2": {
           "type_name": "int",
@@ -8919,7 +9282,11 @@
           "value_constraints": {
             "gte": 72
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {},
@@ -8942,7 +9309,7 @@
       "mutation_type": "immutable",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Save the ClusterGrid hierarchical heatmap to an image file.",
       "dependencies": [
@@ -8986,7 +9353,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "File[Plot, Any]",
@@ -9000,7 +9371,13 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "*"
+          ]
         },
         "port_2": {
           "type_name": "int",
@@ -9016,7 +9393,11 @@
           "value_constraints": {
             "gte": 72
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {},
@@ -9039,7 +9420,7 @@
       "mutation_type": "immutable",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Export a matplotlib Axes figure created or modified by seaborn to persistent disk storage.",
       "dependencies": [
@@ -9087,7 +9468,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "File[Plot, Any]",
@@ -9101,7 +9486,13 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "*"
+          ]
         },
         "port_2": {
           "type_name": "int",
@@ -9117,7 +9508,11 @@
           "value_constraints": {
             "gte": 72
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "str",
@@ -9134,7 +9529,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {},
@@ -9157,7 +9556,7 @@
       "mutation_type": "immutable",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Bridge cell that consumes a generic 2D tabular DataFrame and initializes an empty Axes canvas ready for plotting.",
       "dependencies": [
@@ -9198,7 +9597,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -9214,7 +9617,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -9222,28 +9629,7 @@
       "effects": [
         "initializes_blank_axes"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sns_histplot_univariate",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Feed freshly initialized axes to histogram plot."
-          },
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "sns_scatterplot_xy",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {
-            "rationale": "Feed initialized axes to scatterplot."
-          },
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -9256,7 +9642,7 @@
       "mutation_type": "immutable",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Bridge cell extracting Figure reference from an active Axes object for downstream cross-domain pipelines.",
       "dependencies": [
@@ -9295,7 +9681,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -9311,7 +9701,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],

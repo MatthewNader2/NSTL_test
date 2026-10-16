@@ -1477,7 +1477,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Read a comma-separated values (csv) file into a DataFrame.",
       "dependencies": [
@@ -1523,7 +1523,21 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "csv",
+            "tsv",
+            "parquet",
+            "json",
+            "feather",
+            "orc",
+            "hdf",
+            "h5",
+            "sql"
+          ]
         }
       },
       "outputs": {
@@ -1539,7 +1553,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -1556,72 +1574,7 @@
       "effects": [
         "allocates_memory"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PD_DROPNA",
-          "affinity_score": 0.974,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 20,
-            "producer_occurrences": 21,
-            "transition_probability": 0.9524
-          },
-          "needs_mining": false
-        },
-        {
-          "target_cell_id": "PD_FILLNA_CONST",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "PD_SET_INDEX",
-          "affinity_score": 0.2,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "PD_DROP_DUPLICATES",
-          "affinity_score": 0.476,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 1,
-            "producer_occurrences": 21,
-            "transition_probability": 0.0476
-          },
-          "needs_mining": false
-        },
-        {
-          "target_cell_id": "PD_DATAFRAME_PROJECT_TO_NUMPY",
-          "affinity_score": 0.85,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 5,
-            "producer_occurrences": 21,
-            "transition_probability": 0.238
-          },
-          "needs_mining": false
-        },
-        {
-          "target_cell_id": "PD_MERGE",
-          "affinity_score": 0.85,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 12,
-            "producer_occurrences": 21,
-            "transition_probability": 0.571
-          },
-          "needs_mining": false
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -1634,7 +1587,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Load a parquet object from the file path, returning a DataFrame.",
       "dependencies": [
@@ -1678,7 +1631,21 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "csv",
+            "tsv",
+            "parquet",
+            "json",
+            "feather",
+            "orc",
+            "hdf",
+            "h5",
+            "sql"
+          ]
         }
       },
       "outputs": {
@@ -1694,7 +1661,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -1702,24 +1673,7 @@
       "effects": [
         "allocates_memory"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PD_DROPNA",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "PD_SELECT_COLUMNS",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -1732,7 +1686,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Convert a JSON string or file to a pandas DataFrame.",
       "dependencies": [
@@ -1775,7 +1729,21 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "csv",
+            "tsv",
+            "parquet",
+            "json",
+            "feather",
+            "orc",
+            "hdf",
+            "h5",
+            "sql"
+          ]
         }
       },
       "outputs": {
@@ -1791,7 +1759,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -1799,16 +1771,7 @@
       "effects": [
         "allocates_memory"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PD_DROPNA",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -1821,7 +1784,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Read an Excel table into a pandas DataFrame.",
       "dependencies": [
@@ -1864,7 +1827,21 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "csv",
+            "tsv",
+            "parquet",
+            "json",
+            "feather",
+            "orc",
+            "hdf",
+            "h5",
+            "sql"
+          ]
         }
       },
       "outputs": {
@@ -1880,7 +1857,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -1888,16 +1869,7 @@
       "effects": [
         "allocates_memory"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PD_DROPNA",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -1910,7 +1882,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Read SQL query or database table into a DataFrame.",
       "dependencies": [
@@ -1951,7 +1923,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "Engine",
@@ -1965,7 +1941,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1981,7 +1961,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -1990,16 +1974,7 @@
         "network_or_db_access",
         "allocates_memory"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PD_DROPNA",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -2012,7 +1987,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Construct two-dimensional, size-mutable, potentially heterogeneous tabular data structure.",
       "dependencies": [
@@ -2051,7 +2026,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2067,7 +2046,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -2075,16 +2058,7 @@
       "effects": [
         "allocates_memory"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PD_DROPNA",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -2097,7 +2071,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Construct one-dimensional ndarray with axis labels.",
       "dependencies": [
@@ -2134,7 +2108,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2150,7 +2128,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -2158,16 +2140,7 @@
       "effects": [
         "allocates_memory"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PANDAS_SERIES_TO_NUMPY",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -2180,7 +2153,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Remove missing values along given axis.",
       "dependencies": [
@@ -2242,7 +2215,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "int",
@@ -2259,7 +2236,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -2276,7 +2257,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2292,7 +2277,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -2309,62 +2298,7 @@
       "effects": [
         "cleans_missing"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PD_SELECT_COLUMN",
-          "affinity_score": 0.85,
-          "score_provenance": "ast_mined"
-        },
-        {
-          "target_cell_id": "PD_SET_COLUMN",
-          "affinity_score": 0.85,
-          "score_provenance": "ast_mined"
-        },
-        {
-          "target_cell_id": "PD_DROP_DUPLICATES",
-          "affinity_score": 0.627,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 9,
-            "producer_occurrences": 28,
-            "transition_probability": 0.3214
-          },
-          "needs_mining": false
-        },
-        {
-          "target_cell_id": "PD_SELECT_DTYPES_NUMERIC",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "PANDAS_DATAFRAME_TO_NUMPY",
-          "affinity_score": 0.804,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 18,
-            "producer_occurrences": 28,
-            "transition_probability": 0.6429
-          },
-          "needs_mining": false
-        },
-        {
-          "target_cell_id": "PD_GET_DUMMIES",
-          "affinity_score": 0.47,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 1,
-            "producer_occurrences": 28,
-            "transition_probability": 0.0357
-          },
-          "needs_mining": false
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -2377,7 +2311,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Remove rows where specified subset columns contain NA.",
       "dependencies": [
@@ -2425,7 +2359,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "List[str]",
@@ -2439,7 +2377,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2455,22 +2397,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "PD_DROP_DUPLICATES",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -2483,7 +2420,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Fill NA/NaN values using the specified value.",
       "dependencies": [
@@ -2528,7 +2465,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "float",
@@ -2542,7 +2483,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2558,7 +2503,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -2575,36 +2524,7 @@
       "effects": [
         "cleans_missing"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PD_DROP_DUPLICATES",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "PD_SELECT_DTYPES_NUMERIC",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "PANDAS_DATAFRAME_TO_NUMPY",
-          "affinity_score": 1.0,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 2,
-            "producer_occurrences": 2,
-            "transition_probability": 1.0
-          },
-          "needs_mining": false
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -2617,7 +2537,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Propagate last valid observation forward to next valid.",
       "dependencies": [
@@ -2661,7 +2581,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2677,22 +2601,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "PD_BFILL",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -2705,7 +2624,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Fill NA/NaN values by using the next valid observation to fill the gap.",
       "dependencies": [
@@ -2749,7 +2668,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2765,22 +2688,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "PD_DROP_DUPLICATES",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -2793,7 +2711,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Interpolate values according to different methods.",
       "dependencies": [
@@ -2840,7 +2758,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -2859,7 +2781,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2875,22 +2801,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "PD_DROP_DUPLICATES",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -2903,7 +2824,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return DataFrame with duplicate rows removed.",
       "dependencies": [
@@ -2951,7 +2872,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "List[str]",
@@ -2965,7 +2890,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -2983,7 +2912,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2999,7 +2932,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -3016,48 +2953,7 @@
       "effects": [
         "deduplicates"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PD_SET_INDEX",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "PD_GROUPBY",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "PANDAS_DATAFRAME_TO_NUMPY",
-          "affinity_score": 0.971,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 18,
-            "producer_occurrences": 19,
-            "transition_probability": 0.9474
-          },
-          "needs_mining": false
-        },
-        {
-          "target_cell_id": "PD_FILLNA_CONST",
-          "affinity_score": 0.479,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 1,
-            "producer_occurrences": 19,
-            "transition_probability": 0.0526
-          },
-          "needs_mining": false
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -3070,7 +2966,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Replace values given in `to_replace` with `value`.",
       "dependencies": [
@@ -3114,7 +3010,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -3128,7 +3028,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -3142,7 +3046,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3158,22 +3066,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "PD_DROP_DUPLICATES",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -3186,7 +3089,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Cast a pandas object to a specified dtype.",
       "dependencies": [
@@ -3233,7 +3136,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "Dict[str, str]",
@@ -3247,7 +3154,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3263,22 +3174,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "PD_SELECT_DTYPES_NUMERIC",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -3291,7 +3197,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Convert argument to a numeric type.",
       "dependencies": [
@@ -3336,7 +3242,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -3354,7 +3264,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3370,7 +3284,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -3378,16 +3296,7 @@
       "effects": [
         "transforms_column"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PANDAS_SERIES_TO_NUMPY",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -3400,7 +3309,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Convert argument to datetime.",
       "dependencies": [
@@ -3445,7 +3354,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -3459,7 +3372,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3475,7 +3392,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -3496,7 +3417,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return a subset of the DataFrame's columns based on numeric dtypes.",
       "dependencies": [
@@ -3540,7 +3461,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3556,30 +3481,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "PANDAS_DATAFRAME_TO_GENERIC_2D",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "PANDAS_DATAFRAME_TO_NUMPY",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -3592,7 +3504,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Remove leading and trailing characters in a string Series.",
       "dependencies": [
@@ -3636,7 +3548,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3652,7 +3568,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -3673,7 +3593,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Replace each occurrence of pattern/regex in the Series/Index.",
       "dependencies": [
@@ -3718,7 +3638,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -3732,7 +3656,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -3746,7 +3674,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "bool",
@@ -3763,7 +3695,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3779,7 +3715,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -3800,7 +3740,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Set the DataFrame index using existing columns.",
       "dependencies": [
@@ -3848,7 +3788,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -3862,7 +3806,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "bool",
@@ -3879,7 +3827,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3895,7 +3847,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -3910,24 +3866,7 @@
         }
       ],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "PD_LOC",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "PD_RESET_INDEX",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -3940,7 +3879,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Reset the index of the DataFrame to default integer index.",
       "dependencies": [
@@ -3985,7 +3924,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "bool",
@@ -4002,7 +3945,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4018,22 +3965,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "PD_DROP_DUPLICATES",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -4046,7 +3988,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Access a group of rows and columns by label(s) or a boolean array.",
       "dependencies": [
@@ -4094,7 +4036,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -4108,7 +4054,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4124,7 +4074,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -4143,7 +4097,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Purely integer-location based indexing for selection by position.",
       "dependencies": [
@@ -4190,7 +4144,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -4204,7 +4162,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4220,7 +4182,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -4239,7 +4205,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Query the columns of a DataFrame with a boolean expression.",
       "dependencies": [
@@ -4287,7 +4253,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -4301,7 +4271,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4317,22 +4291,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "PD_GROUPBY",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -4345,7 +4314,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Filter DataFrame rows matching boolean mask Series.",
       "dependencies": [
@@ -4392,7 +4361,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "Series",
@@ -4406,7 +4379,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4422,7 +4399,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -4442,7 +4423,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Select specified columns from DataFrame.",
       "dependencies": [
@@ -4490,7 +4471,11 @@
           "value_constraints": null,
           "shape_contract": null,
           "port_role": "data_input",
-          "binds": "data_carrier"
+          "binds": "data_carrier",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "List[str]",
@@ -4506,7 +4491,11 @@
           "value_constraints": null,
           "shape_contract": null,
           "port_role": "literal_parameter",
-          "binds": "column_key"
+          "binds": "column_key",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4522,22 +4511,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "PANDAS_DATAFRAME_TO_NUMPY",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -4550,7 +4534,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Drop specified labels from columns.",
       "dependencies": [
@@ -4596,7 +4580,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "List[str]",
@@ -4610,7 +4598,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4626,7 +4618,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -4645,7 +4641,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Alter DataFrame column labels via a mapping dictionary.",
       "dependencies": [
@@ -4689,7 +4685,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "Dict[str, str]",
@@ -4703,7 +4703,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4719,7 +4723,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -4738,7 +4746,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Sort by the values along either axis.",
       "dependencies": [
@@ -4787,7 +4795,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -4801,7 +4813,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "bool",
@@ -4818,7 +4834,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4834,22 +4854,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "PD_HEAD",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -4862,7 +4877,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Sort object by labels along the specified axis.",
       "dependencies": [
@@ -4906,7 +4921,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "bool",
@@ -4923,7 +4942,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4939,7 +4962,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -4958,7 +4985,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return the first n rows.",
       "dependencies": [
@@ -5004,7 +5031,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "int",
@@ -5018,7 +5049,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5034,7 +5069,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -5053,7 +5092,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return the last n rows.",
       "dependencies": [
@@ -5098,7 +5137,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "int",
@@ -5112,7 +5155,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5128,7 +5175,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -5147,7 +5198,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return a random sample of items from an axis of object.",
       "dependencies": [
@@ -5195,7 +5246,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "int",
@@ -5209,7 +5264,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "int",
@@ -5223,7 +5282,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5239,7 +5302,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -5258,7 +5325,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Assign new columns to a DataFrame.",
       "dependencies": [
@@ -5302,7 +5369,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "dict",
@@ -5316,7 +5387,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5332,7 +5407,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -5351,7 +5430,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Group DataFrame using a mapper or by a Series of columns.",
       "dependencies": [
@@ -5399,7 +5478,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -5413,7 +5496,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "bool",
@@ -5430,7 +5517,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5446,46 +5537,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "PD_GROUPBY_AGG",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "PD_GROUPBY_MEAN",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "PD_GROUPBY_SUM",
-          "affinity_score": 0.2,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "PD_GROUPBY_TRANSFORM",
-          "affinity_score": 0.2,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -5498,7 +5560,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Aggregate using one or more operations over the specified axis.",
       "dependencies": [
@@ -5537,7 +5599,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "dict",
@@ -5551,7 +5617,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5567,22 +5637,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "PD_RESET_INDEX",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -5595,7 +5660,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Call function producing a like-indexed DataFrame on each group.",
       "dependencies": [
@@ -5634,7 +5699,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -5648,7 +5717,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5664,7 +5737,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -5683,7 +5760,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return a copy of a DataFrame excluding elements from groups that do not satisfy the boolean criterion.",
       "dependencies": [
@@ -5720,7 +5797,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -5734,7 +5815,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5750,7 +5835,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -5769,7 +5858,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Compute sum of group values.",
       "dependencies": [
@@ -5807,7 +5896,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5823,22 +5916,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "PD_RESET_INDEX",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -5851,7 +5939,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Compute mean of groups.",
       "dependencies": [
@@ -5889,7 +5977,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5905,22 +5997,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "PD_RESET_INDEX",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -5933,7 +6020,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Compute count of non-null values for each group.",
       "dependencies": [
@@ -5970,7 +6057,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5986,7 +6077,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -6005,7 +6100,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Compute group sizes.",
       "dependencies": [
@@ -6042,7 +6137,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6058,7 +6157,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -6077,7 +6180,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Generate descriptive statistics.",
       "dependencies": [
@@ -6121,7 +6224,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6137,7 +6244,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -6156,7 +6267,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return a Series containing counts of unique values.",
       "dependencies": [
@@ -6199,7 +6310,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "bool",
@@ -6216,7 +6331,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6232,22 +6351,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "PANDAS_SERIES_TO_NUMPY",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -6260,7 +6374,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Create a spreadsheet-style pivot table as a DataFrame.",
       "dependencies": [
@@ -6310,7 +6424,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -6324,7 +6442,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -6338,7 +6460,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "str",
@@ -6352,7 +6478,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "str",
@@ -6370,7 +6500,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6386,22 +6520,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "PD_RESET_INDEX",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -6414,7 +6543,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return reshaped DataFrame organized by given index / column values without aggregation.",
       "dependencies": [
@@ -6461,7 +6590,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -6475,7 +6608,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -6489,7 +6626,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "str",
@@ -6503,7 +6644,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6519,7 +6664,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -6538,7 +6687,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Unpivot a DataFrame from wide to long format.",
       "dependencies": [
@@ -6587,7 +6736,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "List[str]",
@@ -6601,7 +6754,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "List[str]",
@@ -6615,7 +6772,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "str",
@@ -6629,7 +6790,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "str",
@@ -6643,7 +6808,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6659,22 +6828,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "PD_GROUPBY",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -6687,7 +6851,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Stack the prescribed level(s) from columns to index.",
       "dependencies": [
@@ -6731,7 +6895,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6747,7 +6915,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -6766,7 +6938,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Pivot a level of the (necessarily hierarchical) index labels.",
       "dependencies": [
@@ -6812,7 +6984,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "int",
@@ -6826,7 +7002,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6842,7 +7022,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -6861,7 +7045,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Transform each element of a list-like to a row.",
       "dependencies": [
@@ -6907,7 +7091,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -6921,7 +7109,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6937,7 +7129,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -6956,7 +7152,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Compute a simple cross tabulation of two (or more) factors.",
       "dependencies": [
@@ -6999,7 +7195,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "Series",
@@ -7017,7 +7217,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7033,7 +7237,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -7052,7 +7260,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Convert categorical variable into dummy/indicator variables.",
       "dependencies": [
@@ -7098,7 +7306,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "List[str]",
@@ -7112,7 +7324,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "bool",
@@ -7129,7 +7345,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7145,7 +7365,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -7156,40 +7380,7 @@
           "from_port": "port_1"
         }
       ],
-      "edges": [
-        {
-          "target_cell_id": "PANDAS_DATAFRAME_TO_GENERIC_2D",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "PANDAS_DATAFRAME_TO_NUMPY",
-          "affinity_score": 1.0,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 2,
-            "producer_occurrences": 2,
-            "transition_probability": 1.0
-          },
-          "needs_mining": false
-        },
-        {
-          "target_cell_id": "PD_DATAFRAME_PROJECT_TO_NUMPY",
-          "affinity_score": 1.0,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 5,
-            "producer_occurrences": 5,
-            "transition_probability": 1.0
-          },
-          "needs_mining": false
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -7202,7 +7393,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Convert arrays to MultiIndex.",
       "dependencies": [
@@ -7242,7 +7433,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "list",
@@ -7256,7 +7451,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7272,7 +7471,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -7291,7 +7494,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Convert list of tuples to MultiIndex.",
       "dependencies": [
@@ -7329,7 +7532,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "list",
@@ -7343,7 +7550,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7359,7 +7570,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -7378,7 +7593,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Swap levels i and j in a MultiIndex.",
       "dependencies": [
@@ -7421,7 +7636,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "int",
@@ -7435,7 +7654,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "int",
@@ -7449,7 +7672,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "int",
@@ -7466,7 +7693,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7482,7 +7713,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -7501,7 +7736,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Rearrange levels using input order.",
       "dependencies": [
@@ -7543,7 +7778,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "List[str]",
@@ -7557,7 +7796,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "int",
@@ -7574,7 +7817,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7590,7 +7837,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -7609,7 +7860,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return DataFrame with specified index / column level(s) removed.",
       "dependencies": [
@@ -7652,7 +7903,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "int",
@@ -7666,7 +7921,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "int",
@@ -7683,7 +7942,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7699,7 +7962,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -7718,7 +7985,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return cross-section from the Series/DataFrame.",
       "dependencies": [
@@ -7762,7 +8029,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -7776,7 +8047,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -7790,7 +8065,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "int",
@@ -7807,7 +8086,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7823,7 +8106,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -7842,7 +8129,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Merge DataFrame or named Series objects with a database-style join.",
       "dependencies": [
@@ -7894,7 +8181,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "DataFrame",
@@ -7914,7 +8205,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -7928,7 +8223,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "str",
@@ -7948,7 +8247,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7964,22 +8267,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "PD_DROPNA",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -7992,7 +8290,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Merge DataFrame objects using differing left and right key columns.",
       "dependencies": [
@@ -8041,7 +8339,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "DataFrame",
@@ -8060,7 +8362,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -8074,7 +8380,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "str",
@@ -8088,7 +8398,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "str",
@@ -8107,7 +8421,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8123,7 +8441,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -8142,7 +8464,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Join columns of another DataFrame on index.",
       "dependencies": [
@@ -8190,7 +8512,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "DataFrame",
@@ -8209,7 +8535,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -8223,7 +8553,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "str",
@@ -8242,7 +8576,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "str",
@@ -8256,7 +8594,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_5": {
           "type_name": "str",
@@ -8270,7 +8612,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8286,7 +8632,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -8305,7 +8655,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Concatenate pandas objects along row axis (vertical stacking).",
       "dependencies": [
@@ -8350,7 +8700,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "DataFrame",
@@ -8369,7 +8723,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "bool",
@@ -8386,7 +8744,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8402,22 +8764,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "PD_DROP_DUPLICATES",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -8430,7 +8787,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Concatenate pandas objects along column axis (horizontal binding).",
       "dependencies": [
@@ -8475,7 +8832,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "DataFrame",
@@ -8494,7 +8855,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "bool",
@@ -8511,7 +8876,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8527,7 +8896,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -8546,7 +8919,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Perform an asof merge (ordered time join).",
       "dependencies": [
@@ -8595,7 +8968,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "DataFrame",
@@ -8615,7 +8992,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -8629,7 +9010,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "str",
@@ -8647,7 +9032,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8663,7 +9052,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -8682,7 +9075,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Provide rolling window calculations computing the moving average.",
       "dependencies": [
@@ -8732,7 +9125,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "int",
@@ -8746,7 +9143,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "int",
@@ -8760,7 +9161,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8776,22 +9181,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "PANDAS_DATAFRAME_TO_NUMPY",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -8804,7 +9204,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Provide rolling window calculations computing the moving sum.",
       "dependencies": [
@@ -8852,7 +9252,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "int",
@@ -8866,7 +9270,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "int",
@@ -8880,7 +9288,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8896,7 +9308,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -8915,7 +9331,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Provide rolling window calculations computing the moving standard deviation.",
       "dependencies": [
@@ -8963,7 +9379,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "int",
@@ -8977,7 +9397,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "int",
@@ -8991,7 +9415,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -9007,7 +9435,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -9026,7 +9458,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Provide exponentially weighted (EW) calculations computing the EW mean.",
       "dependencies": [
@@ -9074,7 +9506,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "float",
@@ -9088,7 +9524,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "bool",
@@ -9105,7 +9545,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -9121,7 +9565,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -9140,7 +9588,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Resample time-series data using frequency conversion and aggregation.",
       "dependencies": [
@@ -9188,7 +9636,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -9209,7 +9661,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "str",
@@ -9229,7 +9685,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -9245,7 +9705,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -9260,16 +9724,7 @@
       ],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "PD_DROPNA",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -9282,7 +9737,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Shift index by desired number of periods with an optional time freq.",
       "dependencies": [
@@ -9329,7 +9784,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "int",
@@ -9343,7 +9802,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -9359,30 +9822,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "PD_DROPNA",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "PD_BFILL",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -9395,7 +9845,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "First discrete difference of element.",
       "dependencies": [
@@ -9440,7 +9890,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "int",
@@ -9454,7 +9908,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -9470,22 +9928,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "PD_DROPNA",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -9498,7 +9951,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Percentage change between the current and a prior element.",
       "dependencies": [
@@ -9544,7 +9997,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "int",
@@ -9558,7 +10015,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -9574,22 +10035,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "PD_DROPNA",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -9602,7 +10058,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Convert the DataFrame to a NumPy ndarray representation matching the shared interchange vocabulary.",
       "dependencies": [
@@ -9652,7 +10108,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -9670,7 +10130,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -9678,128 +10142,7 @@
       "effects": [
         "zero_copy_or_allocates_buffer"
       ],
-      "edges": [
-        {
-          "target_cell_id": "sklearn.model_selection.train_test_split",
-          "affinity_score": 0.68,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 18,
-            "producer_occurrences": 43,
-            "transition_probability": 0.4186
-          },
-          "needs_mining": false
-        },
-        {
-          "target_cell_id": "sklearn.preprocessing.StandardScaler.fit_transform",
-          "affinity_score": 0.578,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 10,
-            "producer_occurrences": 43,
-            "transition_probability": 0.2326
-          },
-          "needs_mining": false
-        },
-        {
-          "target_cell_id": "sklearn.preprocessing.MinMaxScaler.fit_transform",
-          "affinity_score": 0.501,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 4,
-            "producer_occurrences": 43,
-            "transition_probability": 0.093
-          },
-          "needs_mining": false
-        },
-        {
-          "target_cell_id": "sklearn.preprocessing.RobustScaler.fit_transform",
-          "affinity_score": 0.501,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 4,
-            "producer_occurrences": 43,
-            "transition_probability": 0.093
-          },
-          "needs_mining": false
-        },
-        {
-          "target_cell_id": "sklearn.feature_selection.SelectKBest.fit_transform",
-          "affinity_score": 0.476,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 2,
-            "producer_occurrences": 43,
-            "transition_probability": 0.0465
-          },
-          "needs_mining": false
-        },
-        {
-          "target_cell_id": "sklearn.impute.SimpleImputer.fit_transform",
-          "affinity_score": 0.463,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 1,
-            "producer_occurrences": 43,
-            "transition_probability": 0.0233
-          },
-          "needs_mining": false
-        },
-        {
-          "target_cell_id": "sklearn.model_selection.cross_val_score",
-          "affinity_score": 0.463,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 1,
-            "producer_occurrences": 43,
-            "transition_probability": 0.0233
-          },
-          "needs_mining": false
-        },
-        {
-          "target_cell_id": "sklearn.model_selection.GridSearchCV.fit",
-          "affinity_score": 0.463,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 1,
-            "producer_occurrences": 43,
-            "transition_probability": 0.0233
-          },
-          "needs_mining": false
-        },
-        {
-          "target_cell_id": "sklearn.ensemble.RandomForestClassifier.fit",
-          "affinity_score": 0.463,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 1,
-            "producer_occurrences": 43,
-            "transition_probability": 0.0233
-          },
-          "needs_mining": false
-        },
-        {
-          "target_cell_id": "sklearn.metrics.accuracy_score",
-          "affinity_score": 0.463,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 1,
-            "producer_occurrences": 43,
-            "transition_probability": 0.0233
-          },
-          "needs_mining": false
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0",
       "endable": true
@@ -9813,7 +10156,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Convert the Series to a NumPy ndarray representation matching the shared interchange vocabulary.",
       "dependencies": [
@@ -9858,7 +10201,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -9876,7 +10223,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -9884,13 +10235,7 @@
       "effects": [
         "zero_copy_or_allocates_buffer"
       ],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_FFT_FFT",
-          "affinity_score": 0.9,
-          "score_provenance": "ast_mined"
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0",
       "endable": false
@@ -9904,7 +10249,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Enforce numeric-only and non-null contract to produce a dataframe_2d_generic interchange object.",
       "dependencies": [
@@ -9951,7 +10296,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "float",
@@ -9965,7 +10314,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -9981,7 +10334,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -9998,16 +10355,7 @@
       "effects": [
         "cleans_missing"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PANDAS_DATAFRAME_TO_NUMPY",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -10020,7 +10368,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Write DataFrame to a comma-separated values (csv) file.",
       "dependencies": [
@@ -10076,7 +10424,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "File[Tabular, CSV]",
@@ -10092,7 +10444,21 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "csv",
+            "tsv",
+            "parquet",
+            "json",
+            "feather",
+            "orc",
+            "hdf",
+            "h5",
+            "sql"
+          ]
         },
         "port_2": {
           "type_name": "bool",
@@ -10109,7 +10475,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -10125,7 +10495,21 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "csv",
+            "tsv",
+            "parquet",
+            "json",
+            "feather",
+            "orc",
+            "hdf",
+            "h5",
+            "sql"
+          ]
         }
       },
       "preconditions": [],
@@ -10147,7 +10531,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Write a DataFrame to the binary parquet format.",
       "dependencies": [
@@ -10200,7 +10584,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "File[Tabular, Parquet]",
@@ -10216,7 +10604,21 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "csv",
+            "tsv",
+            "parquet",
+            "json",
+            "feather",
+            "orc",
+            "hdf",
+            "h5",
+            "sql"
+          ]
         },
         "port_2": {
           "type_name": "bool",
@@ -10233,7 +10635,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -10249,7 +10655,21 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "csv",
+            "tsv",
+            "parquet",
+            "json",
+            "feather",
+            "orc",
+            "hdf",
+            "h5",
+            "sql"
+          ]
         }
       },
       "preconditions": [],
@@ -10271,7 +10691,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Convert the object to a JSON string or save to file.",
       "dependencies": [
@@ -10322,7 +10742,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "File[Tabular, JSONFormat]",
@@ -10338,7 +10762,21 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "csv",
+            "tsv",
+            "parquet",
+            "json",
+            "feather",
+            "orc",
+            "hdf",
+            "h5",
+            "sql"
+          ]
         },
         "port_2": {
           "type_name": "str",
@@ -10358,7 +10796,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -10374,7 +10816,21 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "csv",
+            "tsv",
+            "parquet",
+            "json",
+            "feather",
+            "orc",
+            "hdf",
+            "h5",
+            "sql"
+          ]
         }
       },
       "preconditions": [],
@@ -10396,7 +10852,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Write object to an Excel sheet.",
       "dependencies": [
@@ -10447,7 +10903,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "File[Tabular, Excel]",
@@ -10463,7 +10923,21 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "csv",
+            "tsv",
+            "parquet",
+            "json",
+            "feather",
+            "orc",
+            "hdf",
+            "h5",
+            "sql"
+          ]
         },
         "port_2": {
           "type_name": "bool",
@@ -10480,7 +10954,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -10496,7 +10974,21 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "csv",
+            "tsv",
+            "parquet",
+            "json",
+            "feather",
+            "orc",
+            "hdf",
+            "h5",
+            "sql"
+          ]
         }
       },
       "preconditions": [],
@@ -10518,7 +11010,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Write records stored in a DataFrame to a SQL database.",
       "dependencies": [
@@ -10569,7 +11061,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -10583,7 +11079,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "Engine",
@@ -10597,7 +11097,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "str",
@@ -10615,7 +11119,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_4": {
           "type_name": "bool",
@@ -10632,7 +11140,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -10648,7 +11160,21 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "csv",
+            "tsv",
+            "parquet",
+            "json",
+            "feather",
+            "orc",
+            "hdf",
+            "h5",
+            "sql"
+          ]
         }
       },
       "preconditions": [],
@@ -10670,7 +11196,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Write a DataFrame to the binary Feather format (Arrow IPC).",
       "dependencies": [
@@ -10722,7 +11248,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "File[Tabular, Feather]",
@@ -10738,7 +11268,21 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "csv",
+            "tsv",
+            "parquet",
+            "json",
+            "feather",
+            "orc",
+            "hdf",
+            "h5",
+            "sql"
+          ]
         }
       },
       "outputs": {
@@ -10754,7 +11298,21 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "csv",
+            "tsv",
+            "parquet",
+            "json",
+            "feather",
+            "orc",
+            "hdf",
+            "h5",
+            "sql"
+          ]
         }
       },
       "preconditions": [],
@@ -10776,7 +11334,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Convert the DataFrame to a dictionary.",
       "dependencies": [
@@ -10826,7 +11384,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -10847,7 +11409,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -10863,7 +11429,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -10895,7 +11465,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "endable": false,
       "docstring": "Project the given columns of a DataFrame and convert them to a NumPy ndarray. Composes column projection with the array bridge so feature selection for supervised tasks is expressed by declared lattice morphisms rather than engine-side special cases.",
@@ -10927,7 +11497,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "columns": {
           "type_name": "List[str]",
@@ -10941,7 +11515,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -10960,7 +11538,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)",
-          "port_role": "feature_input"
+          "port_role": "feature_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "slots": [
@@ -10970,49 +11552,7 @@
       ],
       "bound_slots": {},
       "code_template": "{output_var} = {df}[{columns}].to_numpy()",
-      "edges": [
-        {
-          "target_cell_id": "sklearn.linear_model.LinearRegression.fit",
-          "affinity_score": 0.88,
-          "score_provenance": "ast_mined"
-        },
-        {
-          "target_cell_id": "sklearn.model_selection.train_test_split",
-          "affinity_score": 0.68,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 18,
-            "producer_occurrences": 43,
-            "transition_probability": 0.4186
-          },
-          "needs_mining": false
-        },
-        {
-          "target_cell_id": "sklearn.preprocessing.StandardScaler.fit_transform",
-          "affinity_score": 0.578,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 12,
-            "producer_occurrences": 43,
-            "transition_probability": 0.279
-          },
-          "needs_mining": false
-        },
-        {
-          "target_cell_id": "sklearn.preprocessing.MinMaxScaler.fit_transform",
-          "affinity_score": 0.578,
-          "score_provenance": "ast_mined",
-          "bridging_precondition": "true",
-          "metadata": {
-            "co_occurrences": 10,
-            "producer_occurrences": 43,
-            "transition_probability": 0.233
-          },
-          "needs_mining": false
-        }
-      ],
+      "edges": [],
       "preconditions": [],
       "postconditions": [],
       "effects": [],
@@ -11029,7 +11569,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Compute pairwise correlation of columns, excluding NA/null values.",
       "dependencies": [
@@ -11081,7 +11621,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -11099,7 +11643,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "int",
@@ -11113,7 +11661,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "port_3": {
           "type_name": "bool",
@@ -11130,7 +11682,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -11146,22 +11702,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "PANDAS_DATAFRAME_TO_NUMPY",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -11174,7 +11725,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Compute pairwise covariance of columns, excluding NA/null values.",
       "dependencies": [
@@ -11222,7 +11773,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "int",
@@ -11236,7 +11791,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "bool",
@@ -11253,7 +11812,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -11269,7 +11832,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -11288,7 +11855,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return the median of values over the requested axis.",
       "dependencies": [
@@ -11334,7 +11901,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "int",
@@ -11351,7 +11922,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "bool",
@@ -11368,7 +11943,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -11384,7 +11963,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -11404,7 +11987,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "endable": false,
       "docstring": "Construct a DataFrame by reshaping an ndarray to match the column count of the provided projection headers.",
@@ -11459,7 +12042,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "columns": {
           "type_name": "List[str]",
@@ -11478,7 +12065,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "column_projection"
+          "port_role": "column_projection",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -11494,7 +12085,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -11511,24 +12106,7 @@
       "effects": [
         "allocates_memory"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PANDAS_DATAFRAME_TO_NUMPY",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "PD_TO_CSV",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "data",
       "primary_out": "output_var"
     },
@@ -11542,7 +12120,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Select a single column from a DataFrame as a Series.",
       "dependencies": [
@@ -11595,7 +12173,11 @@
           "value_constraints": null,
           "shape_contract": null,
           "port_role": "data_input",
-          "binds": "data_carrier"
+          "binds": "data_carrier",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -11616,7 +12198,11 @@
           "value_constraints": null,
           "shape_contract": null,
           "port_role": "literal_parameter",
-          "binds": "column_key"
+          "binds": "column_key",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -11637,39 +12223,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "PANDAS_SERIES_TO_NUMPY",
-          "affinity_score": 0.85,
-          "score_provenance": "ast_mined"
-        },
-        {
-          "target_cell_id": "PD_SERIES_MEAN",
-          "affinity_score": 0.8,
-          "score_provenance": "ast_mined"
-        },
-        {
-          "target_cell_id": "PD_SERIES_NORMALIZE",
-          "affinity_score": 0.85,
-          "score_provenance": "ast_mined"
-        },
-        {
-          "target_cell_id": "PD_SERIES_ADD",
-          "affinity_score": 0.85,
-          "score_provenance": "ast_mined"
-        },
-        {
-          "target_cell_id": "NUMPY_FFT_FFT",
-          "affinity_score": 0.85,
-          "score_provenance": "ast_mined"
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -11682,7 +12246,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Assign an array or Series to a DataFrame column, returning an updated DataFrame.",
       "dependencies": [
@@ -11740,7 +12304,11 @@
           "value_constraints": null,
           "shape_contract": null,
           "port_role": "data_input",
-          "binds": "data_carrier"
+          "binds": "data_carrier",
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "port_1": {
           "type_name": "str",
@@ -11761,7 +12329,11 @@
           "value_constraints": null,
           "shape_contract": null,
           "port_role": "literal_parameter",
-          "binds": "column_key"
+          "binds": "column_key",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "port_2": {
           "type_name": "array-like",
@@ -11782,7 +12354,11 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
-          "binds": "assigned_value"
+          "binds": "assigned_value",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -11805,24 +12381,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 2,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "PD_DATAFRAME_PROJECT_TO_NUMPY",
-          "affinity_score": 0.85,
-          "score_provenance": "ast_mined"
-        },
-        {
-          "target_cell_id": "PD_SELECT_COLUMN",
-          "affinity_score": 0.8,
-          "score_provenance": "ast_mined"
-        }
-      ],
+      "edges": [],
       "primary_in": "port_0",
       "primary_out": "port_0"
     },
@@ -11835,7 +12404,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Calculate the arithmetic mean of a Series.",
       "dependencies": [
@@ -11882,7 +12451,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -11902,7 +12475,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -11921,7 +12498,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Element-wise addition of two pandas Series.",
       "dependencies": [
@@ -11972,7 +12549,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "series_2": {
           "type_name": "Series",
@@ -11992,7 +12573,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -12013,7 +12598,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -12021,13 +12610,7 @@
       "effects": [
         "transforms_column"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PANDAS_SERIES_TO_NUMPY",
-          "affinity_score": 0.9,
-          "score_provenance": "ast_mined"
-        }
-      ],
+      "edges": [],
       "primary_in": "series_1",
       "primary_out": "output_var"
     },
@@ -12040,7 +12623,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Normalize values of a pandas Series using min-max scaling.",
       "dependencies": [
@@ -12091,7 +12674,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -12112,7 +12699,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -12120,18 +12711,7 @@
       "effects": [
         "transforms_column"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PANDAS_SERIES_TO_NUMPY",
-          "affinity_score": 0.85,
-          "score_provenance": "ast_mined"
-        },
-        {
-          "target_cell_id": "PD_SERIES_ADD",
-          "affinity_score": 0.85,
-          "score_provenance": "ast_mined"
-        }
-      ],
+      "edges": [],
       "primary_in": "series",
       "primary_out": "output_var"
     },
@@ -12142,7 +12722,7 @@
       "node_role": "bridge",
       "mutation_type": "pure",
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Declared morphism Table x ColumnIdentifier -> Series: project one column of a tabular carrier.",
       "dependencies": [
@@ -12168,20 +12748,32 @@
           "type_name": "table",
           "state": "any",
           "required": true,
-          "description": "Tabular carrier variable."
+          "description": "Tabular carrier variable.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "column": {
           "type_name": "str",
           "state": "column_identifier",
           "required": true,
-          "description": "Declared column identifier."
+          "description": "Declared column identifier.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
         "output_var": {
           "type_name": "series",
           "state": "any",
-          "description": "Projected labeled series."
+          "description": "Projected labeled series.",
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       }
     }
@@ -12310,5 +12902,16 @@
       "token": "df_",
       "type_name": "DataFrame"
     }
+  ],
+  "supported_formats": [
+    "csv",
+    "tsv",
+    "parquet",
+    "json",
+    "feather",
+    "orc",
+    "hdf",
+    "h5",
+    "sql"
   ]
 }

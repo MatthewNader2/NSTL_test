@@ -70,7 +70,7 @@ class NSTLSettings(BaseSettings):
     # Macro-goal routing & Topology Planning
     macros_enabled: bool = True
     topology_mode: str = "frontier"
-    use_ir_compiler: bool = False
+    use_ir_compiler: bool = True
     require_coverage_floor: bool = True
     coverage_floor_fraction: float = Field(
         default=0.85,

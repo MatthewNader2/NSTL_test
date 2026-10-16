@@ -44,21 +44,33 @@
           "state": "adjacency_dict",
           "required": false,
           "default_value": "{'A': {'B': 1, 'C': 4}, 'B': {'C': 2, 'D': 5}, 'C': {'D': 1}, 'D': {}}",
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "start": {
           "type_name": "str",
           "state": "source_node",
           "required": false,
           "default_value": "'A'",
-          "port_role": "literal_parameter"
+          "port_role": "literal_parameter",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
         "output_var": {
           "type_name": "dict",
           "state": "distances",
-          "required": true
+          "required": true,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "code_template": "import heapq\n\ndef dijkstra(graph, start):\n    distances = {node: float(\"inf\") for node in graph}\n    distances[start] = 0\n    pq = [(0, start)]\n    while pq:\n        curr_dist, curr_node = heapq.heappop(pq)\n        if curr_dist > distances[curr_node]:\n            continue\n        for neighbor, weight in graph.get(curr_node, {}).items():\n            dist = curr_dist + weight\n            if dist < distances[neighbor]:\n                distances[neighbor] = dist\n                heapq.heappush(pq, (dist, neighbor))\n    return distances\n\n{output_var} = dijkstra({graph}, {start})",
@@ -68,7 +80,7 @@
         "import heapq"
       ],
       "verified": 1,
-      "source_priority": 10,
+      "source_priority": 100,
       "slots": [
         "graph",
         "start",
@@ -99,21 +111,33 @@
           "state": "sorted_list",
           "required": false,
           "default_value": "[1, 3, 5, 7, 9]",
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "target": {
           "type_name": "int",
           "state": "query",
           "required": false,
           "default_value": "5",
-          "port_role": "literal_parameter"
+          "port_role": "literal_parameter",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
         "output_var": {
           "type_name": "int",
           "state": "index",
-          "required": true
+          "required": true,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "code_template": "def binary_search(arr, target):\n    low, high = 0, len(arr) - 1\n    while low <= high:\n        mid = (low + high) // 2\n        if arr[mid] == target:\n            return mid\n        elif arr[mid] < target:\n            low = mid + 1\n        else:\n            high = mid - 1\n    return -1\n\n{output_var} = binary_search({data}, {target})",
@@ -121,7 +145,7 @@
       "primary_out": "output_var",
       "dependencies": [],
       "verified": 1,
-      "source_priority": 10,
+      "source_priority": 100,
       "slots": [
         "data",
         "target",
@@ -151,14 +175,22 @@
           "state": "raw_list",
           "required": false,
           "default_value": "[5, 2, 8, 1, 9]",
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
         "output_var": {
           "type_name": "list",
           "state": "sorted_list",
-          "required": true
+          "required": true,
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "code_template": "def merge_sort(arr):\n    if len(arr) <= 1:\n        return arr\n    mid = len(arr) // 2\n    left = merge_sort(arr[:mid])\n    right = merge_sort(arr[mid:])\n    res = []\n    i = j = 0\n    while i < len(left) and j < len(right):\n        if left[i] <= right[j]:\n            res.append(left[i])\n            i += 1\n        else:\n            res.append(right[j])\n            j += 1\n    res.extend(left[i:])\n    res.extend(right[j:])\n    return res\n\n{output_var} = merge_sort({data})",
@@ -166,12 +198,13 @@
       "primary_out": "output_var",
       "dependencies": [],
       "verified": 1,
-      "source_priority": 10,
+      "source_priority": 100,
       "slots": [
         "data",
         "output_var"
       ],
       "endable": true
     }
-  ]
+  ],
+  "supported_formats": []
 }

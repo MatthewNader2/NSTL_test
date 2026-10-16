@@ -169,6 +169,10 @@ class PortSchema(BaseModel):
     role: Optional[str] = None
     polarity: Optional[str] = None
     binds: Optional[str] = None
+    structure_kind: Optional[str] = None
+    rank: Optional[int] = None
+    element_type: Optional[str] = None
+    supported_formats: List[str] = Field(default_factory=list)
 
     def model_post_init(self, __context: Any) -> None:
         if self.role and not self.port_role:
@@ -199,8 +203,7 @@ class CellSchema(BaseModel):
 
     cell_id: str
 
-    # Stage 0 was never defined downstream.  Only 1, 2, 3 are valid.
-    stage: Literal[1, 2, 3] = 2
+    stage: int = 2
 
     inputs: Dict[str, PortSchema] = Field(default_factory=dict)
     outputs: Dict[str, PortSchema] = Field(default_factory=dict)
@@ -287,17 +290,14 @@ class CellSchema(BaseModel):
             elif isinstance(pc, list) and isinstance(ef, list):
                 d["postconditions"] = list(pc) + list(ef)
 
-        # Stage 0 is invalid.
         if "stage" in d:
             v = d["stage"]
             if v is None:
                 d["stage"] = 2
             elif isinstance(v, str) and v.isdigit():
                 d["stage"] = int(v)
-            if d.get("stage") == 0:
-                raise ValueError("Stage 0 is undefined; valid stages are 1, 2, 3")
-            if d.get("stage") not in (1, 2, 3):
-                raise ValueError("Stage must be one of 1, 2, 3")
+            if d.get("stage") is not None and d.get("stage") < 1:
+                d["stage"] = 1
 
         return d
 
@@ -510,9 +510,10 @@ class TreeSchema(BaseModel):
     asset_placeholders: Dict[str, str] = Field(default_factory=dict)
     output_placeholders: Dict[str, str] = Field(default_factory=dict)
     default_asset_placeholders: Dict[str, str] = Field(default_factory=dict)
-    default_output_placeholders: Dict[str, str] = Field(default_factory=dict)
     stopwords: List[str] = Field(default_factory=list)
     preposition_triggers: List[str] = Field(default_factory=list)
+    supported_formats: List[str] = Field(default_factory=list)
+    capabilities: Dict[str, Any] = Field(default_factory=dict)
 
     @field_validator("types", mode="before")
     @classmethod

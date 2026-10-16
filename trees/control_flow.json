@@ -12,24 +12,40 @@
           "type_name": "str",
           "required": true,
           "port_role": "literal_parameter",
-          "default_value": "synthesized_fn"
+          "default_value": "synthesized_fn",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "arg_names": {
           "type_name": "str",
           "required": true,
           "port_role": "literal_parameter",
-          "default_value": "x"
+          "default_value": "x",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "body_pipeline": {
           "type_name": "Callable[..., R]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda *args: None"
+          "default_value": "lambda *args: None",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
         "function_handle": {
-          "type_name": "Callable[..., R]"
+          "type_name": "Callable[..., R]",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_templates": {
@@ -60,18 +76,30 @@
           "type_name": "str",
           "required": true,
           "port_role": "literal_parameter",
-          "default_value": "x"
+          "default_value": "x",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "expression": {
           "type_name": "Callable[..., R]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda x: x"
+          "default_value": "lambda x: x",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
         "closure": {
-          "type_name": "Callable[..., R]"
+          "type_name": "Callable[..., R]",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_templates": {
@@ -100,42 +128,70 @@
           "type_name": "str",
           "required": true,
           "port_role": "literal_parameter",
-          "default_value": "SynthesizedClass"
+          "default_value": "SynthesizedClass",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "init_params": {
           "type_name": "str",
           "required": true,
           "port_role": "literal_parameter",
-          "default_value": "self"
+          "default_value": "self",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "init_assignments": {
           "type_name": "str",
           "required": true,
           "port_role": "literal_parameter",
-          "default_value": "pass"
+          "default_value": "pass",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "method_name": {
           "type_name": "str",
           "required": true,
           "port_role": "literal_parameter",
-          "default_value": "execute"
+          "default_value": "execute",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "method_params": {
           "type_name": "str",
           "required": true,
           "port_role": "literal_parameter",
-          "default_value": "x"
+          "default_value": "x",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "method_body": {
           "type_name": "Callable[..., R]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda self, *args: None"
+          "default_value": "lambda self, *args: None",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
         "class_handle": {
-          "type_name": "Type[C]"
+          "type_name": "Type[C]",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_templates": {
@@ -165,36 +221,60 @@
           "type_name": "str",
           "required": true,
           "port_role": "literal_parameter",
-          "default_value": "synthesized_fn"
+          "default_value": "synthesized_fn",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "base_predicate": {
           "type_name": "Callable[[T], bool]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda x: False"
+          "default_value": "lambda x: False",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "base_action": {
           "type_name": "Callable[[T], R]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda x: x"
+          "default_value": "lambda x: x",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "step_action": {
           "type_name": "Callable[[T, Callable[[T], R]], R]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda x, fn: fn(x)"
+          "default_value": "lambda x, fn: fn(x)",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "data": {
           "type_name": "T",
           "required": true,
           "port_role": "data_input",
-          "default_value": "None"
+          "default_value": "None",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
         "result": {
-          "type_name": "R"
+          "type_name": "R",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_templates": {
@@ -224,42 +304,70 @@
           "type_name": "str",
           "required": true,
           "port_role": "literal_parameter",
-          "default_value": "synthesized_fn"
+          "default_value": "synthesized_fn",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "base_predicate": {
           "type_name": "Callable[[T], bool]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda x: False"
+          "default_value": "lambda x: False",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "base_action": {
           "type_name": "Callable[[T], R]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda x: x"
+          "default_value": "lambda x: x",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "split_fn": {
           "type_name": "Callable[[T], List[T]]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda d: [d]"
+          "default_value": "lambda d: [d]",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "combine_fn": {
           "type_name": "Callable[[T, List[R]], R]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda d, subs: subs"
+          "default_value": "lambda d, subs: subs",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "data": {
           "type_name": "T",
           "required": true,
           "port_role": "data_input",
-          "default_value": "None"
+          "default_value": "None",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
         "result": {
-          "type_name": "R"
+          "type_name": "R",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_templates": {
@@ -288,24 +396,40 @@
         "branch_table": {
           "type_name": "List[Tuple[Callable[[T], bool], Callable[[T], R]]]",
           "required": true,
-          "port_role": "functional_operator"
+          "port_role": "functional_operator",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "default_action": {
           "type_name": "Callable[[T], R]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda d: d"
+          "default_value": "lambda d: d",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "data": {
           "type_name": "T",
           "required": true,
           "port_role": "data_input",
-          "default_value": "None"
+          "default_value": "None",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
         "result": {
-          "type_name": "R"
+          "type_name": "R",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_templates": {
@@ -336,30 +460,50 @@
           "type_name": "List[T]",
           "required": true,
           "port_role": "data_input",
-          "default_value": "[]"
+          "default_value": "[]",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "inner_generator": {
           "type_name": "Callable[[T], List[U]]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda x: [x]"
+          "default_value": "lambda x: [x]",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "body_fn": {
           "type_name": "Callable[[T, U, State], State]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda item, s: s"
+          "default_value": "lambda item, s: s",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "init_state": {
           "type_name": "State",
           "required": true,
           "port_role": "data_input",
-          "default_value": "None"
+          "default_value": "None",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
         "final_state": {
-          "type_name": "State"
+          "type_name": "State",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_templates": {
@@ -389,24 +533,40 @@
           "type_name": "List[T]",
           "required": true,
           "port_role": "data_input",
-          "default_value": "[]"
+          "default_value": "[]",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "key_fn": {
           "type_name": "Callable[[T], Comparable]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda x: x"
+          "default_value": "lambda x: x",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "k": {
           "type_name": "int",
           "required": true,
           "port_role": "literal_parameter",
-          "default_value": 3
+          "default_value": 3,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
         "output_collection": {
-          "type_name": "List[T]"
+          "type_name": "List[T]",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_templates": {
@@ -442,24 +602,40 @@
           "type_name": "List[T]",
           "required": true,
           "port_role": "data_input",
-          "default_value": "[]"
+          "default_value": "[]",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "key_fn": {
           "type_name": "Callable[[T], Comparable]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda x: x"
+          "default_value": "lambda x: x",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "k": {
           "type_name": "int",
           "required": true,
           "port_role": "literal_parameter",
-          "default_value": 3
+          "default_value": 3,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
         "output_collection": {
-          "type_name": "List[T]"
+          "type_name": "List[T]",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_templates": {
@@ -492,18 +668,30 @@
           "type_name": "List[T]",
           "required": true,
           "port_role": "data_input",
-          "default_value": "[]"
+          "default_value": "[]",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "transform": {
           "type_name": "Callable[[T], U]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda x: x"
+          "default_value": "lambda x: x",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
         "output_collection": {
-          "type_name": "List[U]"
+          "type_name": "List[U]",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_templates": {
@@ -535,18 +723,30 @@
           "type_name": "List[T]",
           "required": true,
           "port_role": "data_input",
-          "default_value": "[]"
+          "default_value": "[]",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "predicate": {
           "type_name": "Callable[[T], bool]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda x: bool(x)"
+          "default_value": "lambda x: bool(x)",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
         "output_collection": {
-          "type_name": "List[T]"
+          "type_name": "List[T]",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_templates": {
@@ -578,18 +778,30 @@
           "type_name": "List[T]",
           "required": true,
           "port_role": "data_input",
-          "default_value": "[]"
+          "default_value": "[]",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "transform": {
           "type_name": "Callable[[T], List[U]]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda x: x"
+          "default_value": "lambda x: x",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
         "output_collection": {
-          "type_name": "List[U]"
+          "type_name": "List[U]",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_templates": {
@@ -619,18 +831,30 @@
           "type_name": "List[T]",
           "required": true,
           "port_role": "data_input",
-          "default_value": "[]"
+          "default_value": "[]",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "accumulator": {
           "type_name": "Callable[[State, T], State]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda s, x: s"
+          "default_value": "lambda s, x: s",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "initial": {
           "type_name": "State",
           "required": true,
-          "port_role": "data_input"
+          "port_role": "data_input",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "dependencies": [
@@ -638,7 +862,11 @@
       ],
       "outputs": {
         "accumulated_state": {
-          "type_name": "State"
+          "type_name": "State",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_templates": {
@@ -670,24 +898,40 @@
           "type_name": "List[T]",
           "required": true,
           "port_role": "data_input",
-          "default_value": "[]"
+          "default_value": "[]",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "collection_b": {
           "type_name": "List[U]",
           "required": true,
           "port_role": "data_input",
-          "default_value": "[]"
+          "default_value": "[]",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "zipper": {
           "type_name": "Callable[[T, U], V]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda a, b: (a, b)"
+          "default_value": "lambda a, b: (a, b)",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
         "output_collection": {
-          "type_name": "List[V]"
+          "type_name": "List[V]",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_templates": {
@@ -726,24 +970,40 @@
           "type_name": "List[T]",
           "required": true,
           "port_role": "data_input",
-          "default_value": "[]"
+          "default_value": "[]",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "body_fn": {
           "type_name": "Callable[[T, State], State]",
           "required": false,
           "port_role": "functional_operator",
-          "default_value": "lambda item, s: s"
+          "default_value": "lambda item, s: s",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "init_state": {
           "type_name": "State",
           "required": true,
           "port_role": "data_input",
-          "default_value": "None"
+          "default_value": "None",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
         "final_state": {
-          "type_name": "State"
+          "type_name": "State",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_templates": {
@@ -774,36 +1034,60 @@
           "type_name": "int",
           "required": true,
           "port_role": "literal_parameter",
-          "default_value": 0
+          "default_value": 0,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "stop": {
           "type_name": "int",
           "required": true,
           "port_role": "literal_parameter",
-          "default_value": 10
+          "default_value": 10,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "step": {
           "type_name": "int",
           "required": false,
           "default_value": 1,
-          "port_role": "literal_parameter"
+          "port_role": "literal_parameter",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "body_fn": {
           "type_name": "Callable[[int, State], State]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda item, s: s"
+          "default_value": "lambda item, s: s",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "init_state": {
           "type_name": "State",
           "required": true,
           "port_role": "data_input",
-          "default_value": "None"
+          "default_value": "None",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
         "final_state": {
-          "type_name": "State"
+          "type_name": "State",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_templates": {
@@ -834,24 +1118,40 @@
           "type_name": "List[T]",
           "required": true,
           "port_role": "data_input",
-          "default_value": "[]"
+          "default_value": "[]",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "transform": {
           "type_name": "Callable[[int, T], U]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda x: x"
+          "default_value": "lambda x: x",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "start_index": {
           "type_name": "int",
           "required": false,
           "default_value": 0,
-          "port_role": "literal_parameter"
+          "port_role": "literal_parameter",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
         "output_collection": {
-          "type_name": "List[U]"
+          "type_name": "List[U]",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_templates": {
@@ -889,24 +1189,40 @@
           "type_name": "State",
           "required": true,
           "port_role": "data_input",
-          "default_value": "None"
+          "default_value": "None",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "cond_fn": {
           "type_name": "Callable[[State], bool]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda s: True"
+          "default_value": "lambda s: True",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "body_fn": {
           "type_name": "Callable[[State], State]",
           "required": false,
           "port_role": "functional_operator",
-          "default_value": "lambda item, s: s"
+          "default_value": "lambda item, s: s",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
         "final_state": {
-          "type_name": "State"
+          "type_name": "State",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_templates": {
@@ -947,30 +1263,50 @@
           "type_name": "State",
           "required": true,
           "port_role": "data_input",
-          "default_value": "None"
+          "default_value": "None",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "cond_fn": {
           "type_name": "Callable[[State], bool]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda s: True"
+          "default_value": "lambda s: True",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "body_fn": {
           "type_name": "Callable[[State], State]",
           "required": false,
           "port_role": "functional_operator",
-          "default_value": "lambda item, s: s"
+          "default_value": "lambda item, s: s",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "max_iters": {
           "type_name": "int",
           "required": true,
           "port_role": "literal_parameter",
-          "default_value": 100
+          "default_value": 100,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
         "final_state": {
-          "type_name": "State"
+          "type_name": "State",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_templates": {
@@ -1008,24 +1344,40 @@
           "type_name": "State",
           "required": true,
           "port_role": "data_input",
-          "default_value": "None"
+          "default_value": "None",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "body_fn": {
           "type_name": "Callable[[State], State]",
           "required": false,
           "port_role": "functional_operator",
-          "default_value": "lambda item, s: s"
+          "default_value": "lambda item, s: s",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "until_cond_fn": {
           "type_name": "Callable[[State], bool]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda s: True"
+          "default_value": "lambda s: True",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
         "final_state": {
-          "type_name": "State"
+          "type_name": "State",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_templates": {
@@ -1060,30 +1412,50 @@
           "type_name": "bool",
           "required": true,
           "port_role": "data_input",
-          "default_value": true
+          "default_value": true,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         },
         "on_true": {
           "type_name": "Callable[[T], U]",
           "required": false,
           "port_role": "functional_operator",
-          "default_value": "lambda d: d"
+          "default_value": "lambda d: d",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "on_false": {
           "type_name": "Callable[[T], U]",
           "required": false,
           "port_role": "functional_operator",
-          "default_value": "lambda d: d"
+          "default_value": "lambda d: d",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "data": {
           "type_name": "T",
           "required": true,
           "port_role": "data_input",
-          "default_value": "None"
+          "default_value": "None",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
         "result": {
-          "type_name": "U"
+          "type_name": "U",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_templates": {
@@ -1115,42 +1487,70 @@
           "type_name": "bool",
           "required": true,
           "port_role": "data_input",
-          "default_value": true
+          "default_value": true,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         },
         "branch_1": {
           "type_name": "Callable[[T], U]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda d: d"
+          "default_value": "lambda d: d",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "cond_2": {
           "type_name": "bool",
           "required": true,
           "port_role": "data_input",
-          "default_value": false
+          "default_value": false,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         },
         "branch_2": {
           "type_name": "Callable[[T], U]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda d: d"
+          "default_value": "lambda d: d",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "default_branch": {
           "type_name": "Callable[[T], U]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda d: d"
+          "default_value": "lambda d: d",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "data": {
           "type_name": "T",
           "required": true,
           "port_role": "data_input",
-          "default_value": "None"
+          "default_value": "None",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
         "result": {
-          "type_name": "U"
+          "type_name": "U",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_templates": {
@@ -1180,48 +1580,80 @@
           "type_name": "str",
           "required": true,
           "port_role": "data_input",
-          "default_value": "'default'"
+          "default_value": "'default'",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "case_a_val": {
           "type_name": "str",
           "required": true,
           "port_role": "literal_parameter",
-          "default_value": "'case_a'"
+          "default_value": "'case_a'",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "action_a": {
           "type_name": "Callable[[T], U]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda d: d"
+          "default_value": "lambda d: d",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "case_b_val": {
           "type_name": "str",
           "required": true,
           "port_role": "literal_parameter",
-          "default_value": "'case_b'"
+          "default_value": "'case_b'",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "action_b": {
           "type_name": "Callable[[T], U]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda d: d"
+          "default_value": "lambda d: d",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "default_action": {
           "type_name": "Callable[[T], U]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda d: d"
+          "default_value": "lambda d: d",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "data": {
           "type_name": "T",
           "required": true,
           "port_role": "data_input",
-          "default_value": "None"
+          "default_value": "None",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
         "result": {
-          "type_name": "U"
+          "type_name": "U",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_templates": {
@@ -1257,30 +1689,50 @@
           "type_name": "Callable[[T], U]",
           "required": false,
           "port_role": "functional_operator",
-          "default_value": "lambda d: d"
+          "default_value": "lambda d: d",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "fallback": {
           "type_name": "Callable[[Exception, T], U]",
           "required": false,
           "port_role": "functional_operator",
-          "default_value": "lambda err, d: d"
+          "default_value": "lambda err, d: d",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "exception_type": {
           "type_name": "str",
           "required": false,
           "default_value": "Exception",
-          "port_role": "literal_parameter"
+          "port_role": "literal_parameter",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "data": {
           "type_name": "T",
           "required": true,
           "port_role": "data_input",
-          "default_value": "None"
+          "default_value": "None",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
         "result": {
-          "type_name": "U"
+          "type_name": "U",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_templates": {
@@ -1314,36 +1766,60 @@
           "type_name": "Callable[[T], U]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda d: d"
+          "default_value": "lambda d: d",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "fallback": {
           "type_name": "Callable[[Exception, T], U]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda err, d: d"
+          "default_value": "lambda err, d: d",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "finalizer": {
           "type_name": "Callable[[T], None]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda d: None"
+          "default_value": "lambda d: None",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "exception_type": {
           "type_name": "str",
           "required": false,
           "default_value": "Exception",
-          "port_role": "literal_parameter"
+          "port_role": "literal_parameter",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "data": {
           "type_name": "T",
           "required": true,
           "port_role": "data_input",
-          "default_value": "None"
+          "default_value": "None",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
         "result": {
-          "type_name": "U"
+          "type_name": "U",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_templates": {
@@ -1374,36 +1850,60 @@
           "type_name": "Callable[[T], U]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda d: d"
+          "default_value": "lambda d: d",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "success_continuation": {
           "type_name": "Callable[[U], V]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda res: res"
+          "default_value": "lambda res: res",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "fallback": {
           "type_name": "Callable[[Exception, T], V]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda err, d: d"
+          "default_value": "lambda err, d: d",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "exception_type": {
           "type_name": "str",
           "required": false,
           "default_value": "Exception",
-          "port_role": "literal_parameter"
+          "port_role": "literal_parameter",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "data": {
           "type_name": "T",
           "required": true,
           "port_role": "data_input",
-          "default_value": "None"
+          "default_value": "None",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
         "result": {
-          "type_name": "V"
+          "type_name": "V",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_templates": {
@@ -1433,31 +1933,51 @@
           "type_name": "Callable[[T], U]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda d: d"
+          "default_value": "lambda d: d",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "fallback": {
           "type_name": "Callable[[Exception, T], U]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda err, d: d"
+          "default_value": "lambda err, d: d",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "max_retries": {
           "type_name": "int",
           "required": false,
           "default_value": 3,
-          "port_role": "literal_parameter"
+          "port_role": "literal_parameter",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "backoff_sec": {
           "type_name": "float",
           "required": false,
           "default_value": 0.5,
-          "port_role": "literal_parameter"
+          "port_role": "literal_parameter",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "data": {
           "type_name": "T",
           "required": true,
           "port_role": "data_input",
-          "default_value": "None"
+          "default_value": "None",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "dependencies": [
@@ -1465,7 +1985,11 @@
       ],
       "outputs": {
         "result": {
-          "type_name": "U"
+          "type_name": "U",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_templates": {
@@ -1496,24 +2020,40 @@
           "type_name": "List[T]",
           "required": true,
           "port_role": "data_input",
-          "default_value": "[]"
+          "default_value": "[]",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "predicate": {
           "type_name": "Callable[[T], bool]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda x: bool(x)"
+          "default_value": "lambda x: bool(x)",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "default_val": {
           "type_name": "Optional[T]",
           "required": false,
           "default_value": "None",
-          "port_role": "literal_parameter"
+          "port_role": "literal_parameter",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
         "result": {
-          "type_name": "Optional[T]"
+          "type_name": "Optional[T]",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_templates": {
@@ -1543,18 +2083,30 @@
           "type_name": "List[T]",
           "required": true,
           "port_role": "data_input",
-          "default_value": "[]"
+          "default_value": "[]",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "predicate": {
           "type_name": "Callable[[T], bool]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda x: bool(x)"
+          "default_value": "lambda x: bool(x)",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
         "all_match": {
-          "type_name": "bool"
+          "type_name": "bool",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_templates": {
@@ -1583,18 +2135,30 @@
           "type_name": "List[T]",
           "required": true,
           "port_role": "data_input",
-          "default_value": "[]"
+          "default_value": "[]",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "predicate": {
           "type_name": "Callable[[T], bool]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda x: bool(x)"
+          "default_value": "lambda x: bool(x)",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
         "any_match": {
-          "type_name": "bool"
+          "type_name": "bool",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_templates": {
@@ -1623,21 +2187,37 @@
           "type_name": "List[T]",
           "required": true,
           "port_role": "data_input",
-          "default_value": "[]"
+          "default_value": "[]",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "predicate": {
           "type_name": "Callable[[T], bool]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda x: bool(x)"
+          "default_value": "lambda x: bool(x)",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
         "true_collection": {
-          "type_name": "List[T]"
+          "type_name": "List[T]",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "false_collection": {
-          "type_name": "List[T]"
+          "type_name": "List[T]",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_templates": {
@@ -1666,30 +2246,50 @@
           "type_name": "bool",
           "required": true,
           "port_role": "data_input",
-          "default_value": true
+          "default_value": true,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         },
         "action": {
           "type_name": "Callable[[T], U]",
           "required": true,
           "port_role": "functional_operator",
-          "default_value": "lambda d: d"
+          "default_value": "lambda d: d",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "fallback_val": {
           "type_name": "U",
           "required": true,
           "port_role": "data_input",
-          "default_value": "None"
+          "default_value": "None",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "data": {
           "type_name": "T",
           "required": true,
           "port_role": "data_input",
-          "default_value": "None"
+          "default_value": "None",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
         "result": {
-          "type_name": "U"
+          "type_name": "U",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_templates": {
@@ -1724,18 +2324,30 @@
           "type_name": "ContextManager[C]",
           "required": true,
           "port_role": "data_input",
-          "default_value": "open('/dev/null')"
+          "default_value": "open('/dev/null')",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "body_fn": {
           "type_name": "Callable[[C], U]",
           "required": false,
           "port_role": "functional_operator",
-          "default_value": "lambda item, s: s"
+          "default_value": "lambda item, s: s",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
         "result": {
-          "type_name": "U"
+          "type_name": "U",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_templates": {
@@ -1808,5 +2420,6 @@
       "newest",
       "latest"
     ]
-  }
+  },
+  "supported_formats": []
 }

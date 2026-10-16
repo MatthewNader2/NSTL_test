@@ -46,10 +46,12 @@ def _bridge_roles() -> frozenset:
 
 
 def is_terminal_sink(cell: Any, orch: Optional[Any] = None) -> bool:
-    """Check if cell is a terminal/sink morphism dynamically via LatticeVocabulary and TypeRegistry."""
+    """Check if cell is a terminal/sink morphism dynamically via LatticeVocabulary, TypeRegistry, or structure."""
     try:
         from planner import _active_vocab
-        return _active_vocab(orch).is_terminal(cell)
+        vocab = _active_vocab(orch)
+        if vocab is not None and vocab.is_terminal(cell):
+            return True
     except Exception:
         pass
     try:
@@ -67,16 +69,20 @@ def is_terminal_sink(cell: Any, orch: Optional[Any] = None) -> bool:
         pass
     if getattr(cell, "is_endable", False):
         return True
-    stage = getattr(cell, "stage", None)
+    outs = getattr(cell, "outputs", {}) or {}
+    if not outs:
+        return True
     role = str(getattr(cell, "node_role", "") or getattr(cell, "role", "") or "").lower()
-    return stage == 3 or role in ("sink", "terminal", "egress", "consumer")
+    return role in ("sink", "terminal", "egress", "consumer")
 
 
 def is_ingress_source(cell: Any, orch: Optional[Any] = None) -> bool:
-    """Check if cell is an ingress/source morphism dynamically via LatticeVocabulary and TypeRegistry."""
+    """Check if cell is an ingress/source morphism dynamically via LatticeVocabulary, TypeRegistry, or structure."""
     try:
         from planner import _active_vocab
-        return _active_vocab(orch).is_ingress(cell)
+        vocab = _active_vocab(orch)
+        if vocab is not None and vocab.is_ingress(cell):
+            return True
     except Exception:
         pass
     try:
@@ -92,16 +98,26 @@ def is_ingress_source(cell: Any, orch: Optional[Any] = None) -> bool:
             return True
     except Exception:
         pass
-    stage = getattr(cell, "stage", None)
+    if getattr(cell, "is_ingress", False):
+        return True
+    ins = getattr(cell, "inputs", {}) or {}
+    required_data_ins = [
+        p for p in ins.values()
+        if getattr(p, "required", True) and getattr(p, "structure_kind", None) != "scalar"
+    ]
+    if not required_data_ins:
+        return True
     role = str(getattr(cell, "node_role", "") or getattr(cell, "role", "") or "").lower()
-    return stage == 1 or role in ("source", "ingress", "producer")
+    return role in ("source", "ingress", "producer")
 
 
 def is_intermediate_transform(cell: Any, orch: Optional[Any] = None) -> bool:
-    """Check if cell is an intermediate/transform morphism dynamically via LatticeVocabulary and TypeRegistry."""
+    """Check if cell is an intermediate/transform morphism dynamically via LatticeVocabulary, TypeRegistry, or structure."""
     try:
         from planner import _active_vocab
-        return _active_vocab(orch).is_transform(cell)
+        vocab = _active_vocab(orch)
+        if vocab is not None and vocab.is_transform(cell):
+            return True
     except Exception:
         pass
     try:
@@ -116,9 +132,7 @@ def is_intermediate_transform(cell: Any, orch: Optional[Any] = None) -> bool:
             return True
     except Exception:
         pass
-    stage = getattr(cell, "stage", None)
-    role = str(getattr(cell, "node_role", "") or getattr(cell, "role", "") or "").lower()
-    return stage == 2 or role in ("transform", "operation", "intermediate")
+    return not is_ingress_source(cell, orch) and not is_terminal_sink(cell, orch)
 
 
 class RouteMethod(ABC):
@@ -513,7 +527,7 @@ class RouteMethod(ABC):
             try:
                 from dag_plan import TypedHoleCell
                 from inference import ModelManager
-                from preflight import PreFlightValidator
+                from preflight import PreflightLinter
                 from lattice import TypeRegistry
                 reg = TypeRegistry.get_instance()
 
@@ -521,9 +535,10 @@ class RouteMethod(ABC):
                 dst_in_role = str(getattr(dst_in, "port_role", "") or getattr(dst_in, "derived_role", "") or "").lower()
                 dst_in_type = str(getattr(dst_in, "type_name", "") or "").lower()
                 is_obj_receiver = (
-                    PreFlightValidator._is_object_receiver_role(dst_in_role)
-                    or (bool(dst_in_role) and bool(reg and reg.is_subtype(dst_in_role, "model")))
-                    or (bool(dst_in_type) and bool(reg and reg.is_subtype(dst_in_type, "model")))
+                    PreflightLinter._is_object_receiver_role(dst_in_role)
+                    or getattr(dst_in, "structure_kind", None) == "handle"
+                    or (bool(dst_in_role) and bool(reg and (reg.is_subtype(dst_in_role, "model") or reg.is_subtype(dst_in_role, "handle"))))
+                    or (bool(dst_in_type) and bool(reg and (reg.is_subtype(dst_in_type, "model") or reg.is_subtype(dst_in_type, "handle"))))
                 )
 
                 has_unmet_model_req = False
@@ -532,15 +547,18 @@ class RouteMethod(ABC):
                         p_role = str(getattr(p_sig, "port_role", "") or getattr(p_sig, "derived_role", "") or "").lower()
                         p_type = str(getattr(p_sig, "type_name", "") or "").lower()
                         if (
-                            PreFlightValidator._is_object_receiver_role(p_role)
-                            or (bool(p_role) and bool(reg and reg.is_subtype(p_role, "model")))
-                            or (bool(p_type) and bool(reg and reg.is_subtype(p_type, "model")))
+                            PreflightLinter._is_object_receiver_role(p_role)
+                            or getattr(p_sig, "structure_kind", None) == "handle"
+                            or (bool(p_role) and bool(reg and (reg.is_subtype(p_role, "model") or reg.is_subtype(p_role, "handle"))))
+                            or (bool(p_type) and bool(reg and (reg.is_subtype(p_type, "model") or reg.is_subtype(p_type, "handle"))))
                         ):
                             has_producer_in_scope = any(
                                 (
                                     bool(reg and reg.is_subtype(getattr(c, "node_role", ""), "model"))
+                                    or bool(getattr(getattr(c, "primary_output", None), "structure_kind", None) == "handle")
                                     or bool(reg and reg.is_subtype(str(getattr(getattr(c, "primary_output", None), "type_name", "")).lower(), "model"))
-                                    or PreFlightValidator._is_object_receiver_role(str(getattr(getattr(c, "primary_output", None), "port_role", "")).lower())
+                                    or bool(reg and reg.is_subtype(str(getattr(getattr(c, "primary_output", None), "type_name", "")).lower(), "handle"))
+                                    or PreflightLinter._is_object_receiver_role(str(getattr(getattr(c, "primary_output", None), "port_role", "")).lower())
                                 )
                                 for c in current_scope
                             )

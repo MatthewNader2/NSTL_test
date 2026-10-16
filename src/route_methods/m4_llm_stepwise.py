@@ -123,7 +123,7 @@ class M4LLMStepwiseRouteMethod(RouteMethod):
                 if not (self.step_unifies(curr, c, prev_path=path) or self.step_unifies_dag(c, path, ctx=ctx)):
                     drop_reasons["unification_failure"] = drop_reasons.get("unification_failure", 0) + 1
                     continue
-                if is_pred and (getattr(c, "node_role", "") in ("estimator", "model") or "fit" in c.cell_id.lower()):
+                if is_pred and (getattr(c, "node_role", "") in ("estimator", "model", "receiver") or getattr(c, "is_obj_receiver", False)):
                     drop_reasons["post_pred_estimator"] = drop_reasons.get("post_pred_estimator", 0) + 1
                     continue
                 valid.append(c)
@@ -142,7 +142,7 @@ class M4LLMStepwiseRouteMethod(RouteMethod):
                     + self.calculate_edge_affinity(curr, c, orch, relevance_map=relevance_map) * 5.0
                     + len(c.token_set & prompt_tokens) * 3.0
                 )
-                if not dest_file_literals and getattr(c, "stage", None) == 3:
+                if not dest_file_literals and (getattr(c, "node_role", "") in ("sink", "terminal", "egress") or not getattr(c, "outputs", None)):
                     is_pc = any(
                         getattr(p, "abstract_type", None) == "path"
                         or getattr(p, "port_role", None) in ("source_data", "model_sink")

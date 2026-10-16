@@ -341,9 +341,6 @@ class TypeRegistry:
         if entry not in self._artifact_readers[cat]:
             self._artifact_readers[cat].append(entry)
 
-    def get_artifact_readers(self, category: str) -> List[Tuple[str, str]]:
-        return list(self._artifact_readers.get(category.strip().lower(), []))
-
     @_locked
     def _bootstrap_plugin_types(self):
         """Dynamically ingests domain plugin types from trees/*.json without engine hardcoding.
@@ -550,9 +547,6 @@ class TypeRegistry:
             if s_:
                 self._top_level_carriers.add(s_)
 
-    def get_top_level_carriers(self) -> FrozenSet[str]:
-        return frozenset(self._top_level_carriers)
-
     @_locked
     def register_path_port_tokens(self, tokens: Any) -> None:
         """Roles / abstract types / carrier types / type names that mark a filesystem-path port."""
@@ -610,9 +604,6 @@ class TypeRegistry:
             s_ = str(st).strip().lower()
             if s_:
                 self._identifier_root_states.add(s_)
-
-    def get_identifier_root_states(self) -> FrozenSet[str]:
-        return frozenset(self._identifier_root_states)
 
     @_locked
     def register_egress_exclusion_tokens(self, tokens: Any) -> None:
@@ -1194,9 +1185,6 @@ class TypeRegistry:
                     "template": str(f["template"]),
                 })
 
-    def get_mock_probes(self) -> List[Dict[str, Any]]:
-        return list(self._mock_probes)
-
     @staticmethod
     def _name_parts(value: str) -> Set[str]:
         """Splits a type/domain name into alphanumeric word parts (zero regex)."""
@@ -1405,49 +1393,6 @@ class TypeRegistry:
 
     is_registered = is_known_type_name
 
-    def get_type_ancestors(self, type_name: str) -> List[str]:
-        """Returns all transitive ancestors of type_name in the poset in BFS order (including itself)."""
-        name = str(type_name).strip().lower()
-        if not name:
-            return []
-        visited: Set[str] = set()
-        order: List[str] = []
-        from collections import deque
-        queue = deque([name])
-        while queue:
-            curr = queue.popleft()
-            if curr in visited:
-                continue
-            visited.add(curr)
-            order.append(curr)
-            for parent in tuple(self._parents.get(curr, ())):
-                p_l = str(parent).strip().lower()
-                if p_l and p_l not in visited:
-                    queue.append(p_l)
-        return order
-
-    def get_type_descendants(self, root_type: str) -> Set[str]:
-        """Returns all types in the poset that have root_type as a transitive ancestor (excluding root_type itself)."""
-        root = str(root_type).strip().lower()
-        if not root:
-            return set()
-        children_map: Dict[str, Set[str]] = {}
-        for child, parents in tuple(self._parents.items()):
-            for p in parents:
-                children_map.setdefault(str(p).strip().lower(), set()).add(str(child).strip().lower())
-        descendants: Set[str] = set()
-        from collections import deque
-        queue = deque(children_map.get(root, ()))
-        while queue:
-            curr = queue.popleft()
-            if curr in descendants or curr == root:
-                continue
-            descendants.add(curr)
-            for ch in children_map.get(curr, ()):
-                if ch not in descendants:
-                    queue.append(ch)
-        return descendants
-
     def is_subtype(self, sub: str, super_: str) -> bool:
         """Memoised poset query. The cache is per-instance and generation-guarded:
         a result computed while a mutation was in flight is returned but never stored."""
@@ -1564,14 +1509,6 @@ class TypeRegistry:
     def get_state_parent(self, state: str) -> Optional[str]:
         """Returns the declared parent_state of a typestate, if any."""
         return self._state_parents.get(str(state).strip().lower())
-
-    def get_declared_state_names(self) -> FrozenSet[str]:
-        """All typestate names declared by the loaded trees."""
-        return frozenset(self._state_parents.keys()) | frozenset(getattr(self, "_state_carriers", {}).keys())
-
-    def get_state_carrier(self, state: str) -> Optional[str]:
-        """Returns the declared carrier_type of a typestate, if any."""
-        return self._state_carriers.get(str(state).strip().lower())
 
     def get_state_properties(self, state: str) -> Dict[str, Any]:
         """Returns the declared verifiable properties of a typestate.
@@ -2075,7 +2012,8 @@ class PortSignature:
         "abstract_type", "enum_values", "param_kind", "value_constraints", "shape_contract",
         "rejected_qualifiers",
         "accepted_states", "parent_state", "port_role", "_cached_term", "_cached_col_proj",
-        "_cached_derived_role", "_cached_is_path_port", "_cached_ndim", "binds"
+        "_cached_derived_role", "_cached_is_path_port", "_cached_ndim", "binds",
+        "structure_kind", "rank", "element_type", "supported_formats"
     ]
 
     def __init__(
@@ -2096,6 +2034,10 @@ class PortSignature:
         parent_state: Optional[str] = None,
         port_role: Optional[str] = None,
         binds: Optional[str] = None,
+        structure_kind: Optional[str] = None,
+        rank: Optional[int] = None,
+        element_type: Optional[str] = None,
+        supported_formats: Optional[List[str]] = None,
         **kwargs
     ):
         self.name = str(name)
@@ -2107,6 +2049,10 @@ class PortSignature:
         self.shape_contract = shape_contract if shape_contract is not None else kwargs.get("shape_contract")
         raw_binds = binds if binds is not None else kwargs.get("binds")
         self.binds = str(raw_binds).strip().lower() if raw_binds else None
+        self.structure_kind = structure_kind or kwargs.get("structure_kind") or None
+        self.rank = rank if rank is not None else kwargs.get("rank")
+        self.element_type = element_type or kwargs.get("element_type") or None
+        self.supported_formats = list(supported_formats or kwargs.get("supported_formats") or [])
         acc_rej = rejected_qualifiers if rejected_qualifiers is not None else kwargs.get("rejected_qualifiers", [])
         if isinstance(acc_rej, (set, frozenset, list, tuple)):
             self.rejected_qualifiers = frozenset(str(s).strip().lower() for s in acc_rej if str(s).strip())
@@ -2545,6 +2491,10 @@ class Cell(ABC):
                     parent_state=p_s,
                     port_role=v.get("port_role") or v.get("role"),
                     binds=v.get("binds"),
+                    structure_kind=v.get("structure_kind"),
+                    rank=v.get("rank"),
+                    element_type=v.get("element_type"),
+                    supported_formats=v.get("supported_formats"),
                 )
             else:
                 port_sig = PortSignature(name=k, signature=AlgebraicSignature("any", "any"))
@@ -2613,6 +2563,10 @@ class Cell(ABC):
                     parent_state=p_s,
                     port_role=v.get("port_role") or v.get("role"),
                     binds=v.get("binds"),
+                    structure_kind=v.get("structure_kind"),
+                    rank=v.get("rank"),
+                    element_type=v.get("element_type"),
+                    supported_formats=v.get("supported_formats"),
                 )
             else:
                 self.outputs[k] = PortSignature(name=k, signature=AlgebraicSignature("any", "any"))
@@ -2752,7 +2706,7 @@ class Cell(ABC):
         """
         Determines whether this node can validly terminate an execution pipeline:
         - Explicit node-level endable override if declared.
-        - Stage 3 terminal/egress/sink/consumer/evaluator nodes.
+        - Terminal/egress/sink/consumer/evaluator nodes.
         - Display/visualization/cleanup/destructor nodes.
         - Otherwise, intermediate data transformers require downstream closure.
         """
@@ -2767,13 +2721,41 @@ class Cell(ABC):
         try:
             from .planner import _active_vocab
             vocab = _active_vocab()
-            if vocab.terminal_stage is not None and self.stage == vocab.terminal_stage:
-                return True
-            if t_role and t_role in vocab.terminal_roles:
+            if vocab is not None:
+                if vocab.is_terminal(self):
+                    return True
+                if vocab.terminal_stage is not None and self.stage == vocab.terminal_stage:
+                    return True
+                if t_role and t_role in vocab.terminal_roles:
+                    return True
+        except Exception:
+            pass
+        if not self.outputs:
+            return True
+        return False
+
+    @property
+    def is_ingress(self) -> bool:
+        """Determines whether this node is an ingress/source morphism."""
+        try:
+            from .planner import _active_vocab
+            vocab = _active_vocab()
+            if vocab is not None and vocab.is_ingress(self):
                 return True
         except Exception:
             pass
-        return False
+        reg = TypeRegistry.get_instance()
+        ing_roles = set(r.lower() for r in reg.get_verification_semantics("ingress_roles"))
+        ing_roles.update(r.lower() for r in reg.get_verification_semantics("source_roles"))
+        i_role = str(self.node_role or "").lower()
+        if i_role and i_role in ing_roles:
+            return True
+        ins = self.inputs or {}
+        req_data = [
+            p for p in ins.values()
+            if p.required and getattr(p, "structure_kind", None) != "scalar"
+        ]
+        return not req_data
 
     @property
     def role(self) -> str:
@@ -2793,7 +2775,7 @@ class Cell(ABC):
     def primary_input(self) -> PortSignature:
         """
         Identifies the primary data-bearing input port.
-        Categorically stage-aware: a Stage 1 ingestion morphism consumes an
+        Categorically stage-aware: an ingestion morphism consumes an
         environmental asset, so its textual/path-typed carrier port is primary;
         otherwise the first required non-scalar data port wins, falling back to
         the first declared non-scalar port.
@@ -2828,10 +2810,9 @@ class Cell(ABC):
                 or registry.is_subtype(tn, "uri")
             )
 
-        stage = getattr(self, "stage", None)
         res = None
-        if stage == 1:
-            # Stage 1 (Env -> C): the asset carrier is the categorical input.
+        if self.is_ingress:
+            # Ingestion morphism (Env -> C): the asset carrier is the categorical input.
             asset_ports = [p for p in self.inputs.values() if _is_asset_carrier(p)]
             if asset_ports:
                 res = asset_ports[0]
@@ -3671,6 +3652,10 @@ class LatticeOrchestrator:
                                         accepted_states=acc_s,
                                         parent_state=p_s,
                                         port_role=p_val.get("port_role"),
+                                        structure_kind=p_val.get("structure_kind"),
+                                        rank=p_val.get("rank"),
+                                        element_type=p_val.get("element_type"),
+                                        supported_formats=p_val.get("supported_formats"),
                                     )
                             for p_name, p_val in cfg.get("outputs", {}).items():
                                 if isinstance(p_val, dict):
@@ -3701,6 +3686,10 @@ class LatticeOrchestrator:
                                         accepted_states=acc_s,
                                         parent_state=p_s,
                                         port_role=p_val.get("port_role"),
+                                        structure_kind=p_val.get("structure_kind"),
+                                        rank=p_val.get("rank"),
+                                        element_type=p_val.get("element_type"),
+                                        supported_formats=p_val.get("supported_formats"),
                                     )
 
                         if not inputs and (not isinstance(cfg, dict) or "inputs" not in cfg):

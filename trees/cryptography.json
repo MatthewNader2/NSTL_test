@@ -2,6 +2,14 @@
   "domain": "cryptography",
   "version": "1.0.0",
   "description": "Symmetric/asymmetric encryption, SHA/HMAC cryptographic hashing, key derivation, and token verification morphisms.",
+  "supported_formats": [
+    "pem",
+    "der",
+    "key",
+    "crt",
+    "cer",
+    "bin"
+  ],
   "types": [
     {
       "name": "cipher",
@@ -73,7 +81,11 @@
           "state": "fernet_key_bytes",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Generated Fernet symmetric key."
+          "description": "Generated Fernet symmetric key.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{key} = Fernet.generate_key()",
@@ -104,7 +116,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Base64-encoded 32-byte Fernet key."
+          "description": "Base64-encoded 32-byte Fernet key.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -113,7 +129,11 @@
           "state": "fernet_instance",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Initialized Fernet cipher instance."
+          "description": "Initialized Fernet cipher instance.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{cipher} = Fernet({key})",
@@ -144,7 +164,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Initialized Fernet cipher instance."
+          "description": "Initialized Fernet cipher instance.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "data": {
           "type_name": "plaintext",
@@ -152,7 +176,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Plaintext bytes to encrypt."
+          "description": "Plaintext bytes to encrypt.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -161,7 +189,11 @@
           "state": "encrypted_token",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Authenticated encrypted ciphertext token."
+          "description": "Authenticated encrypted ciphertext token.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{ciphertext} = {cipher}.encrypt({data})",
@@ -192,7 +224,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Initialized Fernet cipher instance."
+          "description": "Initialized Fernet cipher instance.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "ciphertext": {
           "type_name": "ciphertext",
@@ -200,7 +236,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Encrypted Fernet token to decrypt."
+          "description": "Encrypted Fernet token to decrypt.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -209,7 +249,11 @@
           "state": "raw_bytes",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Decrypted plaintext bytes."
+          "description": "Decrypted plaintext bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{plaintext} = {cipher}.decrypt({ciphertext})",
@@ -240,7 +284,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Initialized Fernet cipher instance."
+          "description": "Initialized Fernet cipher instance.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "data": {
           "type_name": "plaintext",
@@ -248,7 +296,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Plaintext bytes to encrypt."
+          "description": "Plaintext bytes to encrypt.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "current_time": {
           "type_name": "int",
@@ -256,7 +308,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "parameter",
-          "description": "Explicit integer Unix timestamp."
+          "description": "Explicit integer Unix timestamp.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -265,7 +321,11 @@
           "state": "encrypted_token",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Timestamped authenticated ciphertext token."
+          "description": "Timestamped authenticated ciphertext token.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{ciphertext} = {cipher}.encrypt_at_time({data}, current_time={current_time})",
@@ -295,7 +355,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Initialized Fernet cipher instance."
+          "description": "Initialized Fernet cipher instance.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "ciphertext": {
           "type_name": "ciphertext",
@@ -303,7 +367,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Fernet token containing timestamp header."
+          "description": "Fernet token containing timestamp header.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -312,7 +380,11 @@
           "state": "timestamp",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Extracted Unix epoch creation timestamp."
+          "description": "Extracted Unix epoch creation timestamp.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "code_template": "{timestamp} = {cipher}.extract_timestamp({ciphertext})",
@@ -343,7 +415,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Initialized Fernet cipher instance."
+          "description": "Initialized Fernet cipher instance.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "ciphertext": {
           "type_name": "ciphertext",
@@ -351,7 +427,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Ciphertext token to decrypt with TTL check."
+          "description": "Ciphertext token to decrypt with TTL check.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "ttl": {
           "type_name": "int",
@@ -359,7 +439,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "parameter",
-          "description": "Maximum allowed token lifetime in seconds."
+          "description": "Maximum allowed token lifetime in seconds.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "current_time": {
           "type_name": "int",
@@ -367,7 +451,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "parameter",
-          "description": "Reference Unix timestamp for evaluation."
+          "description": "Reference Unix timestamp for evaluation.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -376,7 +464,11 @@
           "state": "raw_bytes",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Decrypted plaintext bytes if token is still valid."
+          "description": "Decrypted plaintext bytes if token is still valid.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{plaintext} = {cipher}.decrypt_at_time({ciphertext}, ttl={ttl}, current_time={current_time})",
@@ -407,7 +499,11 @@
           "abstract_type": "collection",
           "required": true,
           "port_role": "data_input",
-          "description": "List of initialized Fernet instances ordered from newest to oldest."
+          "description": "List of initialized Fernet instances ordered from newest to oldest.",
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -416,7 +512,11 @@
           "state": "multi_fernet_instance",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "MultiFernet cipher instance."
+          "description": "MultiFernet cipher instance.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{multi_cipher} = MultiFernet({fernet_instances})",
@@ -447,7 +547,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "MultiFernet cipher handle."
+          "description": "MultiFernet cipher handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "ciphertext": {
           "type_name": "ciphertext",
@@ -455,7 +559,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Ciphertext encrypted under previous key."
+          "description": "Ciphertext encrypted under previous key.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -464,7 +572,11 @@
           "state": "encrypted_token",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Rotated ciphertext encrypted under current primary key."
+          "description": "Rotated ciphertext encrypted under current primary key.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{rotated_token} = {multi_cipher}.rotate({ciphertext})",
@@ -495,7 +607,11 @@
           "state": "sha256_state",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Initialized SHA-256 hash context."
+          "description": "Initialized SHA-256 hash context.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{hasher} = hashlib.sha256()",
@@ -526,7 +642,11 @@
           "state": "sha512_state",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Initialized SHA-512 hash context."
+          "description": "Initialized SHA-512 hash context.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{hasher} = hashlib.sha512()",
@@ -558,7 +678,11 @@
           "state": "sha3_256_state",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Initialized SHA3-256 hash context."
+          "description": "Initialized SHA3-256 hash context.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{hasher} = hashlib.sha3_256()",
@@ -590,7 +714,11 @@
           "state": "blake2b_state",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Initialized BLAKE2b hash context."
+          "description": "Initialized BLAKE2b hash context.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{hasher} = hashlib.blake2b()",
@@ -622,7 +750,11 @@
           "state": "md5_state",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Initialized MD5 hash context."
+          "description": "Initialized MD5 hash context.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{hasher} = hashlib.md5()",
@@ -653,7 +785,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Active hash context."
+          "description": "Active hash context.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "chunk": {
           "type_name": "bytes",
@@ -661,7 +797,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Byte chunk to absorb into hash computation."
+          "description": "Byte chunk to absorb into hash computation.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -670,7 +810,11 @@
           "state": "updated",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Updated hash context."
+          "description": "Updated hash context.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{hasher}.update({chunk})\n{updated_hasher} = {hasher}",
@@ -701,7 +845,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Active hash context."
+          "description": "Active hash context.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -710,11 +858,15 @@
           "state": "hex_string",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Finalized hash digest as hexadecimal string."
+          "description": "Finalized hash digest as hexadecimal string.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
-      "code_template": "{hexdigest} = {hasher}.hexdigest()"
-      ,"dependencies": [
+      "code_template": "{hexdigest} = {hasher}.hexdigest()",
+      "dependencies": [
         "import hashlib"
       ],
       "primary_in": "hasher",
@@ -741,7 +893,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Active hash context."
+          "description": "Active hash context.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -750,7 +906,11 @@
           "state": "raw_bytes",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Finalized hash digest as raw byte sequence."
+          "description": "Finalized hash digest as raw byte sequence.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{digest} = {hasher}.digest()",
@@ -781,7 +941,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Input bytes to hash."
+          "description": "Input bytes to hash.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -790,7 +954,11 @@
           "state": "hex_string",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Calculated SHA-256 hexadecimal string."
+          "description": "Calculated SHA-256 hexadecimal string.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{hexdigest} = hashlib.sha256({data}).hexdigest()",
@@ -821,7 +989,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Input bytes to hash."
+          "description": "Input bytes to hash.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -830,7 +1002,11 @@
           "state": "hex_string",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Calculated SHA-512 hexadecimal string."
+          "description": "Calculated SHA-512 hexadecimal string.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{hexdigest} = hashlib.sha512({data}).hexdigest()",
@@ -861,7 +1037,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Input bytes to hash."
+          "description": "Input bytes to hash.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -870,7 +1050,11 @@
           "state": "raw_bytes",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Raw 32-byte SHA-256 digest."
+          "description": "Raw 32-byte SHA-256 digest.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{digest} = hashlib.sha256({data}).digest()",
@@ -901,7 +1085,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Input bytes to hash."
+          "description": "Input bytes to hash.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -910,7 +1098,11 @@
           "state": "raw_bytes",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Raw 64-byte SHA-512 digest."
+          "description": "Raw 64-byte SHA-512 digest.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{digest} = hashlib.sha512({data}).digest()",
@@ -941,7 +1133,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Secret key bytes for HMAC."
+          "description": "Secret key bytes for HMAC.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "digestmod": {
           "type_name": "str",
@@ -949,7 +1145,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "parameter",
-          "description": "Digest algorithm identifier string (e.g., 'sha256')."
+          "description": "Digest algorithm identifier string (e.g., 'sha256').",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -958,7 +1158,11 @@
           "state": "initialized",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Initialized HMAC context object."
+          "description": "Initialized HMAC context object.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{hmac_signer} = hmac.new({key}, digestmod={digestmod})",
@@ -989,7 +1193,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Active HMAC context object."
+          "description": "Active HMAC context object.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "data": {
           "type_name": "bytes",
@@ -997,7 +1205,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Data chunk to authenticate."
+          "description": "Data chunk to authenticate.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1006,7 +1218,11 @@
           "state": "updated",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Updated HMAC context."
+          "description": "Updated HMAC context.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{hmac_signer}.update({data})\n{updated_signer} = {hmac_signer}",
@@ -1037,7 +1253,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Active HMAC context object."
+          "description": "Active HMAC context object.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1046,7 +1266,11 @@
           "state": "hex_string",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Authentication tag as hexadecimal string."
+          "description": "Authentication tag as hexadecimal string.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{mac_hex} = {hmac_signer}.hexdigest()",
@@ -1077,7 +1301,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Active HMAC context object."
+          "description": "Active HMAC context object.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1086,7 +1314,11 @@
           "state": "raw_bytes",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Authentication tag as raw bytes."
+          "description": "Authentication tag as raw bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{mac_bytes} = {hmac_signer}.digest()",
@@ -1117,7 +1349,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "First byte sequence or signature."
+          "description": "First byte sequence or signature.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "b": {
           "type_name": "bytes",
@@ -1125,7 +1361,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Second byte sequence or signature."
+          "description": "Second byte sequence or signature.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1134,7 +1374,11 @@
           "state": "comparison_result",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Boolean flag indicating constant-time equality."
+          "description": "Boolean flag indicating constant-time equality.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "{is_equal} = hmac.compare_digest({a}, {b})",
@@ -1166,7 +1410,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "parameter",
-          "description": "Number of cryptographically secure random bytes to generate."
+          "description": "Number of cryptographically secure random bytes to generate.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1175,7 +1423,11 @@
           "state": "random_entropy",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Generated cryptographically secure random bytes."
+          "description": "Generated cryptographically secure random bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{random_bytes} = os.urandom({n_bytes})",
@@ -1207,7 +1459,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "parameter",
-          "description": "Number of random bytes providing entropy for token."
+          "description": "Number of random bytes providing entropy for token.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1216,7 +1472,11 @@
           "state": "hex_token",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Cryptographically secure random hex string."
+          "description": "Cryptographically secure random hex string.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "code_template": "{token_hex} = secrets.token_hex({n_bytes})",
@@ -1248,7 +1508,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "parameter",
-          "description": "Number of random bytes providing entropy for token."
+          "description": "Number of random bytes providing entropy for token.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1257,7 +1521,11 @@
           "state": "urlsafe_token",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Cryptographically secure random URL-safe string."
+          "description": "Cryptographically secure random URL-safe string.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "code_template": "{token_urlsafe} = secrets.token_urlsafe({n_bytes})",
@@ -1288,7 +1556,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Cryptographic salt bytes."
+          "description": "Cryptographic salt bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "length": {
           "type_name": "int",
@@ -1296,7 +1568,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "parameter",
-          "description": "Desired derived key length in bytes."
+          "description": "Desired derived key length in bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "iterations": {
           "type_name": "int",
@@ -1304,7 +1580,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "parameter",
-          "description": "Number of PBKDF2 iterations."
+          "description": "Number of PBKDF2 iterations.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1313,7 +1593,11 @@
           "state": "pbkdf2_instance",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Configured PBKDF2HMAC key derivation handle."
+          "description": "Configured PBKDF2HMAC key derivation handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{kdf} = PBKDF2HMAC(algorithm=hashes.SHA256(), length={length}, salt={salt}, iterations={iterations})",
@@ -1345,7 +1629,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Configured PBKDF2HMAC key derivation handle."
+          "description": "Configured PBKDF2HMAC key derivation handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "password": {
           "type_name": "bytes",
@@ -1353,7 +1641,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Raw password bytes to stretch."
+          "description": "Raw password bytes to stretch.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1362,7 +1654,11 @@
           "state": "derived_bytes",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Derived secret key bytes."
+          "description": "Derived secret key bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{derived_key} = {kdf}.derive({password})",
@@ -1393,7 +1689,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Configured PBKDF2HMAC instance."
+          "description": "Configured PBKDF2HMAC instance.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "password": {
           "type_name": "bytes",
@@ -1401,7 +1701,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Candidate password bytes to verify."
+          "description": "Candidate password bytes to verify.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "expected_key": {
           "type_name": "secret_key",
@@ -1409,7 +1713,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Reference key bytes to verify against."
+          "description": "Reference key bytes to verify against.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1418,7 +1726,11 @@
           "state": "verification_status",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "True if password derives to expected key, False otherwise."
+          "description": "True if password derives to expected key, False otherwise.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "try:\n    {kdf}.verify({password}, {expected_key})\n    {is_valid} = True\nexcept Exception:\n    {is_valid} = False",
@@ -1449,7 +1761,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Salt bytes for HKDF extraction."
+          "description": "Salt bytes for HKDF extraction.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "length": {
           "type_name": "int",
@@ -1457,7 +1773,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "parameter",
-          "description": "Output key length in bytes."
+          "description": "Output key length in bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "info": {
           "type_name": "bytes",
@@ -1465,7 +1785,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "parameter",
-          "description": "Application-specific context information bytes."
+          "description": "Application-specific context information bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1474,7 +1798,11 @@
           "state": "hkdf_instance",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Initialized HKDF instance."
+          "description": "Initialized HKDF instance.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{hkdf} = HKDF(algorithm=hashes.SHA256(), length={length}, salt={salt}, info={info})",
@@ -1506,7 +1834,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Configured HKDF instance."
+          "description": "Configured HKDF instance.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "key_material": {
           "type_name": "bytes",
@@ -1514,7 +1846,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Raw input keying material bytes."
+          "description": "Raw input keying material bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1523,7 +1859,11 @@
           "state": "derived_bytes",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Derived sub-key bytes."
+          "description": "Derived sub-key bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{derived_key} = {hkdf}.derive({key_material})",
@@ -1554,7 +1894,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Configured HKDF instance."
+          "description": "Configured HKDF instance.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "key_material": {
           "type_name": "bytes",
@@ -1562,7 +1906,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Candidate input keying material."
+          "description": "Candidate input keying material.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "expected_key": {
           "type_name": "secret_key",
@@ -1570,7 +1918,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Reference key bytes to verify against."
+          "description": "Reference key bytes to verify against.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1579,7 +1931,11 @@
           "state": "verification_status",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "True if derived key matches expected, False otherwise."
+          "description": "True if derived key matches expected, False otherwise.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "try:\n    {hkdf}.verify({key_material}, {expected_key})\n    {is_valid} = True\nexcept Exception:\n    {is_valid} = False",
@@ -1610,7 +1966,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Raw binary bytes to encode."
+          "description": "Raw binary bytes to encode.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1619,7 +1979,11 @@
           "state": "base64_encoded",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Standard Base64-encoded bytes."
+          "description": "Standard Base64-encoded bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{b64_bytes} = base64.b64encode({data})",
@@ -1650,7 +2014,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Standard Base64 bytes to decode."
+          "description": "Standard Base64 bytes to decode.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1659,7 +2027,11 @@
           "state": "raw_bytes",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Decoded binary bytes."
+          "description": "Decoded binary bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{data} = base64.b64decode({b64_data})",
@@ -1690,7 +2062,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Raw binary bytes to encode."
+          "description": "Raw binary bytes to encode.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1699,7 +2075,11 @@
           "state": "urlsafe_base64_encoded",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "URL-safe Base64-encoded bytes."
+          "description": "URL-safe Base64-encoded bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{b64_bytes} = base64.urlsafe_b64encode({data})",
@@ -1730,7 +2110,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "URL-safe Base64 bytes to decode."
+          "description": "URL-safe Base64 bytes to decode.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1739,7 +2123,11 @@
           "state": "raw_bytes",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Decoded binary bytes."
+          "description": "Decoded binary bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{data} = base64.urlsafe_b64decode({b64_data})",
@@ -1770,7 +2158,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Hexadecimal string to parse."
+          "description": "Hexadecimal string to parse.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1779,7 +2171,11 @@
           "state": "raw_bytes",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Parsed raw binary bytes."
+          "description": "Parsed raw binary bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{raw_bytes} = bytes.fromhex({hex_str})",
@@ -1808,7 +2204,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Raw bytes to serialize to hex."
+          "description": "Raw bytes to serialize to hex.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1817,7 +2217,11 @@
           "state": "hex_string",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Hexadecimal string representation."
+          "description": "Hexadecimal string representation.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "code_template": "{hex_str} = {raw_bytes}.hex()",
@@ -1846,7 +2250,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "parameter",
-          "description": "Number of salt bytes (typically 16 or 32)."
+          "description": "Number of salt bytes (typically 16 or 32).",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1855,7 +2263,11 @@
           "state": "salt_bytes",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Fresh cryptographically strong random salt."
+          "description": "Fresh cryptographically strong random salt.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{salt} = os.urandom({n_bytes})",
@@ -1886,7 +2298,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Password bytes to hash."
+          "description": "Password bytes to hash.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "salt": {
           "type_name": "salt",
@@ -1894,7 +2310,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Cryptographic salt bytes."
+          "description": "Cryptographic salt bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "n": {
           "type_name": "int",
@@ -1902,7 +2322,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "parameter",
-          "description": "CPU/memory cost parameter (must be power of 2, e.g., 16384)."
+          "description": "CPU/memory cost parameter (must be power of 2, e.g., 16384).",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "r": {
           "type_name": "int",
@@ -1910,7 +2334,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "parameter",
-          "description": "Block size parameter (e.g., 8)."
+          "description": "Block size parameter (e.g., 8).",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "p": {
           "type_name": "int",
@@ -1918,7 +2346,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "parameter",
-          "description": "Parallelization parameter (e.g., 1)."
+          "description": "Parallelization parameter (e.g., 1).",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "maxmem": {
           "type_name": "int",
@@ -1926,7 +2358,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "parameter",
-          "description": "Maximum memory limit in bytes."
+          "description": "Maximum memory limit in bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "dklen": {
           "type_name": "int",
@@ -1934,7 +2370,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "parameter",
-          "description": "Desired derived key length in bytes."
+          "description": "Desired derived key length in bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1943,7 +2383,11 @@
           "state": "derived_bytes",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Derived scrypt key bytes."
+          "description": "Derived scrypt key bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{key} = hashlib.scrypt({password}, salt={salt}, n={n}, r={r}, p={p}, maxmem={maxmem}, dklen={dklen})",
@@ -1975,7 +2419,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Key bytes to store."
+          "description": "Key bytes to store.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "key_path": {
           "type_name": "File[key_file]",
@@ -1983,7 +2431,13 @@
           "abstract_type": "path",
           "required": true,
           "port_role": "destination",
-          "description": "Destination file path on disk."
+          "description": "Destination file path on disk.",
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "*"
+          ]
         }
       },
       "outputs": {
@@ -1992,7 +2446,13 @@
           "state": "written",
           "abstract_type": "path",
           "port_role": "result",
-          "description": "Path to the persisted key file."
+          "description": "Path to the persisted key file.",
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "*"
+          ]
         }
       },
       "code_template": "with open({key_path}, 'wb') as _f:\n    _f.write({key})\n{out_path} = {key_path}",
@@ -2022,7 +2482,13 @@
           "abstract_type": "path",
           "required": true,
           "port_role": "data_input",
-          "description": "Path to the existing key file."
+          "description": "Path to the existing key file.",
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "*"
+          ]
         }
       },
       "outputs": {
@@ -2031,7 +2497,11 @@
           "state": "raw_bytes",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Key bytes loaded from file."
+          "description": "Key bytes loaded from file.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "with open({key_path}, 'rb') as _f:\n    {key} = _f.read()",
@@ -2060,7 +2530,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Encrypted ciphertext bytes to write."
+          "description": "Encrypted ciphertext bytes to write.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "dest_path": {
           "type_name": "File[ciphertext_file]",
@@ -2068,7 +2542,13 @@
           "abstract_type": "path",
           "required": true,
           "port_role": "destination",
-          "description": "Destination file path for ciphertext."
+          "description": "Destination file path for ciphertext.",
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "*"
+          ]
         }
       },
       "outputs": {
@@ -2077,7 +2557,13 @@
           "state": "written",
           "abstract_type": "path",
           "port_role": "result",
-          "description": "Path to saved ciphertext file."
+          "description": "Path to saved ciphertext file.",
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "*"
+          ]
         }
       },
       "code_template": "with open({dest_path}, 'wb') as _f:\n    _f.write({ciphertext})\n{out_path} = {dest_path}",
@@ -2106,7 +2592,13 @@
           "abstract_type": "path",
           "required": true,
           "port_role": "data_input",
-          "description": "Path to the ciphertext file on disk."
+          "description": "Path to the ciphertext file on disk.",
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "*"
+          ]
         }
       },
       "outputs": {
@@ -2115,1475 +2607,1827 @@
           "state": "encrypted_token",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Ciphertext bytes read from file."
+          "description": "Ciphertext bytes read from file.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
-          },
-          "code_template": "with open({src_path}, 'rb') as _f:\n    {ciphertext} = _f.read()",
-          "dependencies": [],
-          "primary_in": "src_path",
-          "primary_out": "ciphertext"
-        },
-        {
-          "cell_id": "CRYPTO_COMPARE_DIGEST_RESULT",
-          "stage": 3,
-          "domain_name": "cryptography",
-          "node_type": "function",
-          "node_role": "sink",
-          "topology_type": "sequential",
-          "docstring": "Evaluates constant-time verification boolean, writing status to output destination.",
-          "semantic_tags": [
-            "verify_result",
-            "digest_status",
-            "auth_check",
-            "verification_sink"
-          ],
-          "inputs": {
-            "is_equal": {
-              "type_name": "bool",
-              "state": "comparison_result",
-              "abstract_type": "scalar",
-              "required": true,
-              "port_role": "data_input",
-              "description": "Boolean result of constant-time digest comparison."
-            }
-          },
-          "outputs": {
-            "status": {
-              "type_name": "bool",
-              "state": "verified",
-              "abstract_type": "scalar",
-              "port_role": "result",
-              "description": "Evaluated verification status boolean."
-            }
-          },
-          "code_template": "{status} = bool({is_equal})",
-          "dependencies": [],
-          "primary_in": "is_equal",
-          "primary_out": "status"
-        },
-        {
-          "cell_id": "CRYPTO_AESGCM_KEY_GEN",
-          "stage": 1,
-          "domain_name": "cryptography",
-          "node_type": "function",
-          "node_role": "source",
-          "topology_type": "sequential",
-          "docstring": "Generates a fresh cryptographically secure random 256-bit symmetric key for AES-GCM.",
-          "semantic_tags": [
-            "aesgcm_key",
-            "key_generation",
-            "aead",
-            "symmetric_key"
-          ],
-          "inputs": {},
-          "outputs": {
-            "key": {
-              "type_name": "secret_key",
-              "state": "aes_key_bytes",
-              "abstract_type": "scalar",
-              "port_role": "data_output",
-              "description": "Generated 256-bit AES-GCM key bytes."
-            }
-          },
-          "code_template": "{key} = AESGCM.generate_key(bit_length=256)",
-          "dependencies": [
-            "from cryptography.hazmat.primitives.ciphers.aead import AESGCM"
-          ],
-          "primary_in": null,
-          "primary_out": "key"
-        },
-        {
-          "cell_id": "CRYPTO_AESGCM_INIT",
-          "stage": 1,
-          "domain_name": "cryptography",
-          "node_type": "function",
-          "node_role": "source",
-          "topology_type": "sequential",
-          "docstring": "Constructs an AES-GCM authenticated cipher handle from key bytes.",
-          "semantic_tags": [
-            "aesgcm_init",
-            "cipher_init",
-            "aead_cipher",
-            "gcm_handle"
-          ],
-          "inputs": {
-            "key": {
-              "type_name": "secret_key",
-              "state": "aes_key_bytes",
-              "abstract_type": "scalar",
-              "required": true,
-              "port_role": "data_input",
-              "description": "AES key bytes (128, 192, or 256 bits)."
-            }
-          },
-          "outputs": {
-            "cipher": {
-              "type_name": "cipher",
-              "state": "aesgcm_instance",
-              "abstract_type": "handle",
-              "port_role": "data_output",
-              "description": "Initialized AESGCM cipher handle."
-            }
-          },
-          "code_template": "{cipher} = AESGCM({key})",
-          "dependencies": [
-            "from cryptography.hazmat.primitives.ciphers.aead import AESGCM"
-          ],
-          "primary_in": "key",
-          "primary_out": "cipher"
-        },
-        {
-          "cell_id": "CRYPTO_AESGCM_ENCRYPT",
-          "stage": 2,
-          "domain_name": "cryptography",
-          "node_type": "method",
-          "node_role": "transformer",
-          "topology_type": "sequential",
-          "docstring": "Encrypts and authenticates plaintext with AES-GCM using nonce and associated data.",
-          "semantic_tags": [
-            "aesgcm_encrypt",
-            "aead_encrypt",
-            "authenticated_encryption",
-            "gcm"
-          ],
-          "inputs": {
-            "cipher": {
-              "type_name": "cipher",
-              "state": "aesgcm_instance",
-              "abstract_type": "handle",
-              "required": true,
-              "port_role": "data_input",
-              "description": "Initialized AESGCM cipher handle."
-            },
-            "nonce": {
-              "type_name": "bytes",
-              "state": "nonce_bytes",
-              "abstract_type": "scalar",
-              "required": true,
-              "port_role": "data_input",
-              "description": "12-byte initialization vector or nonce (never reused per key)."
-            },
-            "data": {
-              "type_name": "plaintext",
-              "state": "raw_bytes",
-              "abstract_type": "scalar",
-              "required": true,
-              "port_role": "data_input",
-              "description": "Plaintext bytes to encrypt."
-            },
-            "associated_data": {
-              "type_name": "bytes",
-              "state": "aad_bytes",
-              "abstract_type": "scalar",
-              "required": true,
-              "port_role": "data_input",
-              "description": "Additional authenticated data (AAD) or empty bytes."
-            }
-          },
-          "outputs": {
-            "ciphertext": {
-              "type_name": "ciphertext",
-              "state": "authenticated_ciphertext",
-              "abstract_type": "scalar",
-              "port_role": "data_output",
-              "description": "Encrypted ciphertext with appended 16-byte authentication tag."
-            }
-          },
-          "code_template": "{ciphertext} = {cipher}.encrypt({nonce}, {data}, {associated_data})",
-          "dependencies": [
-            "from cryptography.hazmat.primitives.ciphers.aead import AESGCM"
-          ],
-          "primary_in": "data",
-          "primary_out": "ciphertext"
-        },
-        {
-          "cell_id": "CRYPTO_AESGCM_DECRYPT",
-          "stage": 2,
-          "domain_name": "cryptography",
-          "node_type": "method",
-          "node_role": "transformer",
-          "topology_type": "sequential",
-          "docstring": "Decrypts and verifies authenticated AES-GCM ciphertext, returning plaintext.",
-          "semantic_tags": [
-            "aesgcm_decrypt",
-            "aead_decrypt",
-            "authenticated_decryption",
-            "gcm"
-          ],
-          "inputs": {
-            "cipher": {
-              "type_name": "cipher",
-              "state": "aesgcm_instance",
-              "abstract_type": "handle",
-              "required": true,
-              "port_role": "data_input",
-              "description": "Initialized AESGCM cipher handle."
-            },
-            "nonce": {
-              "type_name": "bytes",
-              "state": "nonce_bytes",
-              "abstract_type": "scalar",
-              "required": true,
-              "port_role": "data_input",
-              "description": "12-byte nonce used during encryption."
-            },
-            "ciphertext": {
-              "type_name": "ciphertext",
-              "state": "authenticated_ciphertext",
-              "abstract_type": "scalar",
-              "required": true,
-              "port_role": "data_input",
-              "description": "Encrypted ciphertext including 16-byte tag."
-            },
-            "associated_data": {
-              "type_name": "bytes",
-              "state": "aad_bytes",
-              "abstract_type": "scalar",
-              "required": true,
-              "port_role": "data_input",
-              "description": "Additional authenticated data (AAD) matched against encryption."
-            }
-          },
-          "outputs": {
-            "plaintext": {
-              "type_name": "plaintext",
-              "state": "raw_bytes",
-              "abstract_type": "scalar",
-              "port_role": "data_output",
-              "description": "Decrypted and authenticated plaintext bytes."
-            }
-          },
-          "code_template": "{plaintext} = {cipher}.decrypt({nonce}, {ciphertext}, {associated_data})",
-          "dependencies": [
-            "from cryptography.hazmat.primitives.ciphers.aead import AESGCM"
-          ],
-          "primary_in": "ciphertext",
-          "primary_out": "plaintext"
-        },
-        {
-          "cell_id": "CRYPTO_CHACHA20_KEY_GEN",
-          "stage": 1,
-          "domain_name": "cryptography",
-          "node_type": "function",
-          "node_role": "source",
-          "topology_type": "sequential",
-          "docstring": "Generates a 256-bit symmetric key for ChaCha20-Poly1305 AEAD cipher.",
-          "semantic_tags": [
-            "chacha20_key",
-            "key_generation",
-            "poly1305",
-            "symmetric_key"
-          ],
-          "inputs": {},
-          "outputs": {
-            "key": {
-              "type_name": "secret_key",
-              "state": "chacha_key_bytes",
-              "abstract_type": "scalar",
-              "port_role": "data_output",
-              "description": "Generated 256-bit ChaCha20-Poly1305 key bytes."
-            }
-          },
-          "code_template": "{key} = ChaCha20Poly1305.generate_key()",
-          "dependencies": [
-            "from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305"
-          ],
-          "primary_in": null,
-          "primary_out": "key"
-        },
-        {
-          "cell_id": "CRYPTO_CHACHA20_INIT",
-          "stage": 1,
-          "domain_name": "cryptography",
-          "node_type": "function",
-          "node_role": "source",
-          "topology_type": "sequential",
-          "docstring": "Initializes a ChaCha20Poly1305 AEAD cipher handle from 256-bit key bytes.",
-          "semantic_tags": [
-            "chacha20_init",
-            "cipher_init",
-            "poly1305_init",
-            "aead_cipher"
-          ],
-          "inputs": {
-            "key": {
-              "type_name": "secret_key",
-              "state": "chacha_key_bytes",
-              "abstract_type": "scalar",
-              "required": true,
-              "port_role": "data_input",
-              "description": "256-bit key bytes."
-            }
-          },
-          "outputs": {
-            "cipher": {
-              "type_name": "cipher",
-              "state": "chacha_instance",
-              "abstract_type": "handle",
-              "port_role": "data_output",
-              "description": "Initialized ChaCha20Poly1305 cipher handle."
-            }
-          },
-          "code_template": "{cipher} = ChaCha20Poly1305({key})",
-          "dependencies": [
-            "from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305"
-          ],
-          "primary_in": "key",
-          "primary_out": "cipher"
-        },
-        {
-          "cell_id": "CRYPTO_CHACHA20_ENCRYPT",
-          "stage": 2,
-          "domain_name": "cryptography",
-          "node_type": "method",
-          "node_role": "transformer",
-          "topology_type": "sequential",
-          "docstring": "Encrypts and authenticates plaintext using ChaCha20-Poly1305 with nonce and associated data.",
-          "semantic_tags": [
-            "chacha20_encrypt",
-            "poly1305_encrypt",
-            "aead_encrypt",
-            "stream_cipher"
-          ],
-          "inputs": {
-            "cipher": {
-              "type_name": "cipher",
-              "state": "chacha_instance",
-              "abstract_type": "handle",
-              "required": true,
-              "port_role": "data_input",
-              "description": "Initialized ChaCha20Poly1305 cipher handle."
-            },
-            "nonce": {
-              "type_name": "bytes",
-              "state": "nonce_bytes",
-              "abstract_type": "scalar",
-              "required": true,
-              "port_role": "data_input",
-              "description": "12-byte nonce."
-            },
-            "data": {
-              "type_name": "plaintext",
-              "state": "raw_bytes",
-              "abstract_type": "scalar",
-              "required": true,
-              "port_role": "data_input",
-              "description": "Plaintext bytes to encrypt."
-            },
-            "associated_data": {
-              "type_name": "bytes",
-              "state": "aad_bytes",
-              "abstract_type": "scalar",
-              "required": true,
-              "port_role": "data_input",
-              "description": "Additional authenticated data."
-            }
-          },
-          "outputs": {
-            "ciphertext": {
-              "type_name": "ciphertext",
-              "state": "authenticated_ciphertext",
-              "abstract_type": "scalar",
-              "port_role": "data_output",
-              "description": "Encrypted ciphertext with appended 16-byte Poly1305 MAC tag."
-            }
-          },
-          "code_template": "{ciphertext} = {cipher}.encrypt({nonce}, {data}, {associated_data})",
-          "dependencies": [
-            "from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305"
-          ],
-          "primary_in": "data",
-          "primary_out": "ciphertext"
-        },
-        {
-          "cell_id": "CRYPTO_CHACHA20_DECRYPT",
-          "stage": 2,
-          "domain_name": "cryptography",
-          "node_type": "method",
-          "node_role": "transformer",
-          "topology_type": "sequential",
-          "docstring": "Decrypts and verifies ChaCha20-Poly1305 authenticated ciphertext, returning plaintext.",
-          "semantic_tags": [
-            "chacha20_decrypt",
-            "poly1305_decrypt",
-            "aead_decrypt",
-            "stream_cipher"
-          ],
-          "inputs": {
-            "cipher": {
-              "type_name": "cipher",
-              "state": "chacha_instance",
-              "abstract_type": "handle",
-              "required": true,
-              "port_role": "data_input",
-              "description": "Initialized ChaCha20Poly1305 cipher handle."
-            },
-            "nonce": {
-              "type_name": "bytes",
-              "state": "nonce_bytes",
-              "abstract_type": "scalar",
-              "required": true,
-              "port_role": "data_input",
-              "description": "12-byte nonce used during encryption."
-            },
-            "ciphertext": {
-              "type_name": "ciphertext",
-              "state": "authenticated_ciphertext",
-              "abstract_type": "scalar",
-              "required": true,
-              "port_role": "data_input",
-              "description": "Ciphertext with Poly1305 tag."
-            },
-            "associated_data": {
-              "type_name": "bytes",
-              "state": "aad_bytes",
-              "abstract_type": "scalar",
-              "required": true,
-              "port_role": "data_input",
-              "description": "Additional authenticated data."
-            }
-          },
-          "outputs": {
-            "plaintext": {
-              "type_name": "plaintext",
-              "state": "raw_bytes",
-              "abstract_type": "scalar",
-              "port_role": "data_output",
-              "description": "Decrypted plaintext bytes."
-            }
-          },
-          "code_template": "{plaintext} = {cipher}.decrypt({nonce}, {ciphertext}, {associated_data})",
-          "dependencies": [
-            "from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305"
-          ],
-          "primary_in": "ciphertext",
-          "primary_out": "plaintext"
-        },
-        {
-          "cell_id": "CRYPTO_RSA_GENERATE_KEY",
-          "stage": 1,
-          "domain_name": "cryptography",
-          "node_type": "function",
-          "node_role": "source",
-          "topology_type": "sequential",
-          "docstring": "Generates a fresh RSA asymmetric private key of specified bit size with public exponent 65537.",
-          "semantic_tags": [
-            "rsa_generate",
-            "asymmetric_key",
-            "private_key",
-            "key_generation"
-          ],
-          "inputs": {
-            "key_size": {
-              "type_name": "int",
-              "state": "bit_size",
-              "abstract_type": "scalar",
-              "required": true,
-              "port_role": "parameter",
-              "description": "Key size in bits (e.g., 2048, 3072, 4096)."
-            }
-          },
-          "outputs": {
-            "private_key": {
-              "type_name": "object",
-              "state": "rsa_private_key",
-              "abstract_type": "handle",
-              "port_role": "data_output",
-              "description": "Generated RSA private key handle."
-            }
-          },
-          "code_template": "{private_key} = rsa.generate_private_key(public_exponent=65537, key_size={key_size})",
-          "dependencies": [
-            "from cryptography.hazmat.primitives.asymmetric import rsa"
-          ],
-          "primary_in": "key_size",
-          "primary_out": "private_key"
-        },
-        {
-          "cell_id": "CRYPTO_RSA_GET_PUBLIC_KEY",
-          "stage": 1,
-          "domain_name": "cryptography",
-          "node_type": "method",
-          "node_role": "source",
-          "topology_type": "sequential",
-          "docstring": "Derives the corresponding RSA public key handle from an RSA private key object.",
-          "semantic_tags": [
-            "rsa_public_key",
-            "extract_public_key",
-            "asymmetric",
-            "public_key"
-          ],
-          "inputs": {
-            "private_key": {
-              "type_name": "object",
-              "state": "rsa_private_key",
-              "abstract_type": "handle",
-              "required": true,
-              "port_role": "data_input",
-              "description": "RSA private key handle."
-            }
-          },
-          "outputs": {
-            "public_key": {
-              "type_name": "object",
-              "state": "rsa_public_key",
-              "abstract_type": "handle",
-              "port_role": "data_output",
-              "description": "Corresponding RSA public key handle."
-            }
-          },
-          "code_template": "{public_key} = {private_key}.public_key()",
-          "dependencies": [
-            "from cryptography.hazmat.primitives.asymmetric import rsa"
-          ],
-          "primary_in": "private_key",
-          "primary_out": "public_key"
-        },
-        {
-          "cell_id": "CRYPTO_RSA_ENCRYPT_OAEP",
-          "stage": 2,
-          "domain_name": "cryptography",
-          "node_type": "method",
-          "node_role": "transformer",
-          "topology_type": "sequential",
-          "docstring": "Encrypts plaintext bytes with an RSA public key using OAEP padding and SHA-256.",
-          "semantic_tags": [
-            "rsa_encrypt",
-            "oaep",
-            "asymmetric_encryption",
-            "public_key_encrypt"
-          ],
-          "inputs": {
-            "public_key": {
-              "type_name": "object",
-              "state": "rsa_public_key",
-              "abstract_type": "handle",
-              "required": true,
-              "port_role": "data_input",
-              "description": "Recipient RSA public key."
-            },
-            "data": {
-              "type_name": "plaintext",
-              "state": "raw_bytes",
-              "abstract_type": "scalar",
-              "required": true,
-              "port_role": "data_input",
-              "description": "Plaintext bytes to encrypt (bounded by key size)."
-            }
-          },
-          "outputs": {
-            "ciphertext": {
-              "type_name": "ciphertext",
-              "state": "rsa_ciphertext",
-              "abstract_type": "scalar",
-              "port_role": "data_output",
-              "description": "Encrypted RSA ciphertext bytes."
-            }
-          },
-          "code_template": "{ciphertext} = {public_key}.encrypt({data}, padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None))",
-          "dependencies": [
-            "from cryptography.hazmat.primitives.asymmetric import padding",
-            "from cryptography.hazmat.primitives import hashes"
-          ],
-          "primary_in": "data",
-          "primary_out": "ciphertext"
-        },
-        {
-          "cell_id": "CRYPTO_RSA_DECRYPT_OAEP",
-          "stage": 2,
-          "domain_name": "cryptography",
-          "node_type": "method",
-          "node_role": "transformer",
-          "topology_type": "sequential",
-          "docstring": "Decrypts RSA ciphertext with private key using OAEP padding and SHA-256.",
-          "semantic_tags": [
-            "rsa_decrypt",
-            "oaep",
-            "asymmetric_decryption",
-            "private_key_decrypt"
-          ],
-          "inputs": {
-            "private_key": {
-              "type_name": "object",
-              "state": "rsa_private_key",
-              "abstract_type": "handle",
-              "required": true,
-              "port_role": "data_input",
-              "description": "RSA private key handle."
-            },
-            "ciphertext": {
-              "type_name": "ciphertext",
-              "state": "rsa_ciphertext",
-              "abstract_type": "scalar",
-              "required": true,
-              "port_role": "data_input",
-              "description": "Encrypted RSA ciphertext bytes."
-            }
-          },
-          "outputs": {
-            "plaintext": {
-              "type_name": "plaintext",
-              "state": "raw_bytes",
-              "abstract_type": "scalar",
-              "port_role": "data_output",
-              "description": "Decrypted plaintext bytes."
-            }
-          },
-          "code_template": "{plaintext} = {private_key}.decrypt({ciphertext}, padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None))",
-          "dependencies": [
-            "from cryptography.hazmat.primitives.asymmetric import padding",
-            "from cryptography.hazmat.primitives import hashes"
-          ],
-          "primary_in": "ciphertext",
-          "primary_out": "plaintext"
-        },
-        {
-          "cell_id": "CRYPTO_RSA_SIGN_PSS",
-          "stage": 2,
-          "domain_name": "cryptography",
-          "node_type": "method",
-          "node_role": "transformer",
-          "topology_type": "sequential",
-          "docstring": "Signs message bytes with RSA private key using PSS padding and SHA-256.",
-          "semantic_tags": [
-            "rsa_sign",
-            "pss",
-            "digital_signature",
-            "asymmetric_sign"
-          ],
-          "inputs": {
-            "private_key": {
-              "type_name": "object",
-              "state": "rsa_private_key",
-              "abstract_type": "handle",
-              "required": true,
-              "port_role": "data_input",
-              "description": "Signer RSA private key."
-            },
-            "data": {
-              "type_name": "bytes",
-              "state": "raw_bytes",
-              "abstract_type": "scalar",
-              "required": true,
-              "port_role": "data_input",
-              "description": "Message bytes to sign."
-            }
-          },
-          "outputs": {
-            "signature": {
-              "type_name": "signature",
-              "state": "rsa_pss_signature",
-              "abstract_type": "scalar",
-              "port_role": "data_output",
-              "description": "RSA-PSS signature bytes."
-            }
-          },
-          "code_template": "{signature} = {private_key}.sign({data}, padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH), hashes.SHA256())",
-          "dependencies": [
-            "from cryptography.hazmat.primitives.asymmetric import padding",
-            "from cryptography.hazmat.primitives import hashes"
-          ],
-          "primary_in": "data",
-          "primary_out": "signature"
-        },
-        {
-          "cell_id": "CRYPTO_RSA_VERIFY_PSS",
-          "stage": 2,
-          "domain_name": "cryptography",
-          "node_type": "method",
-          "node_role": "transformer",
-          "topology_type": "sequential",
-          "docstring": "Verifies RSA-PSS signature against original message bytes using public key.",
-          "semantic_tags": [
-            "rsa_verify",
-            "pss_verify",
-            "signature_verification",
-            "asymmetric_verify"
-          ],
-          "inputs": {
-            "public_key": {
-              "type_name": "object",
-              "state": "rsa_public_key",
-              "abstract_type": "handle",
-              "required": true,
-              "port_role": "data_input",
-              "description": "Signer RSA public key."
-            },
-            "signature": {
-              "type_name": "signature",
-              "state": "rsa_pss_signature",
-              "abstract_type": "scalar",
-              "required": true,
-              "port_role": "data_input",
-              "description": "Signature bytes to verify."
-            },
-            "data": {
-              "type_name": "bytes",
-              "state": "raw_bytes",
-              "abstract_type": "scalar",
-              "required": true,
-              "port_role": "data_input",
-              "description": "Original message bytes."
-            }
-          },
-          "outputs": {
-            "is_valid": {
-              "type_name": "bool",
-              "state": "verification_status",
-              "abstract_type": "scalar",
-              "port_role": "data_output",
-              "description": "True if signature is valid, False otherwise."
-            }
-          },
-          "code_template": "try:\n    {public_key}.verify({signature}, {data}, padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH), hashes.SHA256())\n    {is_valid} = True\nexcept Exception:\n    {is_valid} = False",
-          "dependencies": [
-            "from cryptography.hazmat.primitives.asymmetric import padding",
-            "from cryptography.hazmat.primitives import hashes"
-          ],
-          "primary_in": "signature",
-          "primary_out": "is_valid"
-        },
-        {
-          "cell_id": "CRYPTO_RSA_EXPORT_PRIVATE_PEM",
-          "stage": 2,
-          "domain_name": "cryptography",
-          "node_type": "method",
-          "node_role": "transformer",
-          "topology_type": "sequential",
-          "docstring": "Serializes an RSA private key object into unencrypted PKCS8 PEM format bytes.",
-          "semantic_tags": [
-            "rsa_export",
-            "pem_export",
-            "serialize_key",
-            "pkcs8"
-          ],
-          "inputs": {
-            "private_key": {
-              "type_name": "object",
-              "state": "rsa_private_key",
-              "abstract_type": "handle",
-              "required": true,
-              "port_role": "data_input",
-              "description": "RSA private key object."
-            }
-          },
-          "outputs": {
-            "pem_bytes": {
-              "type_name": "bytes",
-              "state": "pem_encoded_private",
-              "abstract_type": "scalar",
-              "port_role": "data_output",
-              "description": "PKCS8 PEM-formatted private key bytes."
-            }
-          },
-          "code_template": "{pem_bytes} = {private_key}.private_bytes(encoding=serialization.Encoding.PEM, format=serialization.PrivateFormat.PKCS8, encryption_algorithm=serialization.NoEncryption())",
-          "dependencies": [
-            "from cryptography.hazmat.primitives import serialization"
-          ],
-          "primary_in": "private_key",
-          "primary_out": "pem_bytes"
-        },
-        {
-          "cell_id": "CRYPTO_RSA_EXPORT_PUBLIC_PEM",
-          "stage": 2,
-          "domain_name": "cryptography",
-          "node_type": "method",
-          "node_role": "transformer",
-          "topology_type": "sequential",
-          "docstring": "Serializes an RSA public key object into SubjectPublicKeyInfo PEM format bytes.",
-          "semantic_tags": [
-            "rsa_export_public",
-            "pem_export",
-            "public_key_pem",
-            "spki"
-          ],
-          "inputs": {
-            "public_key": {
-              "type_name": "object",
-              "state": "rsa_public_key",
-              "abstract_type": "handle",
-              "required": true,
-              "port_role": "data_input",
-              "description": "RSA public key object."
-            }
-          },
-          "outputs": {
-            "pem_bytes": {
-              "type_name": "bytes",
-              "state": "pem_encoded_public",
-              "abstract_type": "scalar",
-              "port_role": "data_output",
-              "description": "SubjectPublicKeyInfo PEM-formatted public key bytes."
-            }
-          },
-          "code_template": "{pem_bytes} = {public_key}.public_bytes(encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.SubjectPublicKeyInfo)",
-          "dependencies": [
-            "from cryptography.hazmat.primitives import serialization"
-          ],
-          "primary_in": "public_key",
-          "primary_out": "pem_bytes"
-        },
-        {
-          "cell_id": "CRYPTO_RSA_LOAD_PRIVATE_PEM",
-          "stage": 1,
-          "domain_name": "cryptography",
-          "node_type": "function",
-          "node_role": "source",
-          "topology_type": "sequential",
-          "docstring": "Deserializes an unencrypted PEM byte string into an RSA private key object.",
-          "semantic_tags": [
-            "rsa_load_private",
-            "load_pem",
-            "deserialize_key",
-            "import_private_key"
-          ],
-          "inputs": {
-            "pem_bytes": {
-              "type_name": "bytes",
-              "state": "pem_encoded_private",
-              "abstract_type": "scalar",
-              "required": true,
-              "port_role": "data_input",
-              "description": "PEM-encoded private key bytes."
-            }
-          },
-          "outputs": {
-            "private_key": {
-              "type_name": "object",
-              "state": "rsa_private_key",
-              "abstract_type": "handle",
-              "port_role": "data_output",
-              "description": "Loaded RSA private key handle."
-            }
-          },
-          "code_template": "{private_key} = serialization.load_pem_private_key({pem_bytes}, password=None)",
-          "dependencies": [
-            "from cryptography.hazmat.primitives import serialization"
-          ],
-          "primary_in": "pem_bytes",
-          "primary_out": "private_key"
-        },
-        {
-          "cell_id": "CRYPTO_RSA_LOAD_PUBLIC_PEM",
-          "stage": 1,
-          "domain_name": "cryptography",
-          "node_type": "function",
-          "node_role": "source",
-          "topology_type": "sequential",
-          "docstring": "Deserializes a PEM byte string into an RSA public key object.",
-          "semantic_tags": [
-            "rsa_load_public",
-            "load_pem",
-            "deserialize_key",
-            "import_public_key"
-          ],
-          "inputs": {
-            "pem_bytes": {
-              "type_name": "bytes",
-              "state": "pem_encoded_public",
-              "abstract_type": "scalar",
-              "required": true,
-              "port_role": "data_input",
-              "description": "PEM-encoded public key bytes."
-            }
-          },
-          "outputs": {
-            "public_key": {
-              "type_name": "object",
-              "state": "rsa_public_key",
-              "abstract_type": "handle",
-              "port_role": "data_output",
-              "description": "Loaded RSA public key handle."
-            }
-          },
-          "code_template": "{public_key} = serialization.load_pem_public_key({pem_bytes})",
-          "dependencies": [
-            "from cryptography.hazmat.primitives import serialization"
-          ],
-          "primary_in": "pem_bytes",
-          "primary_out": "public_key"
-        },
-        {
-          "cell_id": "CRYPTO_ED25519_GENERATE_KEY",
-          "stage": 1,
-          "domain_name": "cryptography",
-          "node_type": "function",
-          "node_role": "source",
-          "topology_type": "sequential",
-          "docstring": "Generates a fresh Ed25519 Edwards-curve digital signature private key.",
-          "semantic_tags": [
-            "ed25519_generate",
-            "curve25519",
-            "eddsa",
-            "key_generation",
-            "signature_key"
-          ],
-          "inputs": {},
-          "outputs": {
-            "private_key": {
-              "type_name": "object",
-              "state": "ed25519_private_key",
-              "abstract_type": "handle",
-              "port_role": "data_output",
-              "description": "Generated Ed25519 private key handle."
-            }
-          },
-          "code_template": "{private_key} = ed25519.Ed25519PrivateKey.generate()",
-          "dependencies": [
-            "from cryptography.hazmat.primitives.asymmetric import ed25519"
-          ],
-          "primary_in": null,
-          "primary_out": "private_key"
-        },
-        {
-          "cell_id": "CRYPTO_ED25519_GET_PUBLIC_KEY",
-          "stage": 1,
-          "domain_name": "cryptography",
-          "node_type": "method",
-          "node_role": "source",
-          "topology_type": "sequential",
-          "docstring": "Derives the corresponding Ed25519 public key handle from an Ed25519 private key.",
-          "semantic_tags": [
-            "ed25519_public",
-            "extract_public_key",
-            "eddsa",
-            "verification_key"
-          ],
-          "inputs": {
-            "private_key": {
-              "type_name": "object",
-              "state": "ed25519_private_key",
-              "abstract_type": "handle",
-              "required": true,
-              "port_role": "data_input",
-              "description": "Ed25519 private key handle."
-            }
-          },
-          "outputs": {
-            "public_key": {
-              "type_name": "object",
-              "state": "ed25519_public_key",
-              "abstract_type": "handle",
-              "port_role": "data_output",
-              "description": "Corresponding Ed25519 public key handle."
-            }
-          },
-          "code_template": "{public_key} = {private_key}.public_key()",
-          "dependencies": [
-            "from cryptography.hazmat.primitives.asymmetric import ed25519"
-          ],
-          "primary_in": "private_key",
-          "primary_out": "public_key"
-        },
-        {
-          "cell_id": "CRYPTO_ED25519_SIGN",
-          "stage": 2,
-          "domain_name": "cryptography",
-          "node_type": "method",
-          "node_role": "transformer",
-          "topology_type": "sequential",
-          "docstring": "Signs message bytes using an Ed25519 private key producing a 64-byte signature.",
-          "semantic_tags": [
-            "ed25519_sign",
-            "eddsa_sign",
-            "sign_message",
-            "digital_signature"
-          ],
-          "inputs": {
-            "private_key": {
-              "type_name": "object",
-              "state": "ed25519_private_key",
-              "abstract_type": "handle",
-              "required": true,
-              "port_role": "data_input",
-              "description": "Ed25519 private key handle."
-            },
-            "data": {
-              "type_name": "bytes",
-              "state": "raw_bytes",
-              "abstract_type": "scalar",
-              "required": true,
-              "port_role": "data_input",
-              "description": "Message bytes to sign."
-            }
-          },
-          "outputs": {
-            "signature": {
-              "type_name": "signature",
-              "state": "ed25519_signature",
-              "abstract_type": "scalar",
-              "port_role": "data_output",
-              "description": "64-byte Ed25519 signature."
-            }
-          },
-          "code_template": "{signature} = {private_key}.sign({data})",
-          "dependencies": [
-            "from cryptography.hazmat.primitives.asymmetric import ed25519"
-          ],
-          "primary_in": "data",
-          "primary_out": "signature"
-        },
-        {
-          "cell_id": "CRYPTO_ED25519_VERIFY",
-          "stage": 2,
-          "domain_name": "cryptography",
-          "node_type": "method",
-          "node_role": "transformer",
-          "topology_type": "sequential",
-          "docstring": "Verifies a 64-byte Ed25519 signature against message bytes using an Ed25519 public key.",
-          "semantic_tags": [
-            "ed25519_verify",
-            "eddsa_verify",
-            "verify_signature",
-            "signature_check"
-          ],
-          "inputs": {
-            "public_key": {
-              "type_name": "object",
-              "state": "ed25519_public_key",
-              "abstract_type": "handle",
-              "required": true,
-              "port_role": "data_input",
-              "description": "Signer Ed25519 public key handle."
-            },
-            "signature": {
-              "type_name": "signature",
-              "state": "ed25519_signature",
-              "abstract_type": "scalar",
-              "required": true,
-              "port_role": "data_input",
-              "description": "64-byte Ed25519 signature."
-            },
-            "data": {
-              "type_name": "bytes",
-              "state": "raw_bytes",
-              "abstract_type": "scalar",
-              "required": true,
-              "port_role": "data_input",
-              "description": "Original message bytes."
-            }
-          },
-          "outputs": {
-            "is_valid": {
-              "type_name": "bool",
-              "state": "verification_status",
-              "abstract_type": "scalar",
-              "port_role": "data_output",
-              "description": "True if signature is valid, False otherwise."
-            }
-          },
-          "code_template": "try:\n    {public_key}.verify({signature}, {data})\n    {is_valid} = True\nexcept Exception:\n    {is_valid} = False",
-          "dependencies": [
-            "from cryptography.hazmat.primitives.asymmetric import ed25519"
-          ],
-          "primary_in": "signature",
-          "primary_out": "is_valid"
-        },
-        {
-          "cell_id": "CRYPTO_ED25519_EXPORT_RAW_PRIVATE",
-          "stage": 2,
-          "domain_name": "cryptography",
-          "node_type": "method",
-          "node_role": "transformer",
-          "topology_type": "sequential",
-          "docstring": "Exports raw 32-byte private seed bytes from an Ed25519 private key.",
-          "semantic_tags": [
-            "ed25519_export_raw",
-            "raw_private_key",
-            "seed_export"
-          ],
-          "inputs": {
-            "private_key": {
-              "type_name": "object",
-              "state": "ed25519_private_key",
-              "abstract_type": "handle",
-              "required": true,
-              "port_role": "data_input",
-              "description": "Ed25519 private key handle."
-            }
-          },
-          "outputs": {
-            "raw_bytes": {
-              "type_name": "secret_key",
-              "state": "raw_ed25519_seed",
-              "abstract_type": "scalar",
-              "port_role": "data_output",
-              "description": "Raw 32-byte private key seed."
-            }
-          },
-          "code_template": "{raw_bytes} = {private_key}.private_bytes_raw()",
-          "dependencies": [
-            "from cryptography.hazmat.primitives.asymmetric import ed25519"
-          ],
-          "primary_in": "private_key",
-          "primary_out": "raw_bytes"
-        },
-        {
-          "cell_id": "CRYPTO_ED25519_EXPORT_RAW_PUBLIC",
-          "stage": 2,
-          "domain_name": "cryptography",
-          "node_type": "method",
-          "node_role": "transformer",
-          "topology_type": "sequential",
-          "docstring": "Exports raw 32-byte public key bytes from an Ed25519 public key.",
-          "semantic_tags": [
-            "ed25519_export_public_raw",
-            "raw_public_key",
-            "public_bytes"
-          ],
-          "inputs": {
-            "public_key": {
-              "type_name": "object",
-              "state": "ed25519_public_key",
-              "abstract_type": "handle",
-              "required": true,
-              "port_role": "data_input",
-              "description": "Ed25519 public key handle."
-            }
-          },
-          "outputs": {
-            "raw_bytes": {
-              "type_name": "bytes",
-              "state": "raw_ed25519_pub",
-              "abstract_type": "scalar",
-              "port_role": "data_output",
-              "description": "Raw 32-byte public key bytes."
-            }
-          },
-          "code_template": "{raw_bytes} = {public_key}.public_bytes_raw()",
-          "dependencies": [
-            "from cryptography.hazmat.primitives.asymmetric import ed25519"
-          ],
-          "primary_in": "public_key",
-          "primary_out": "raw_bytes"
-        },
-        {
-          "cell_id": "CRYPTO_ED25519_LOAD_RAW_PRIVATE",
-          "stage": 1,
-          "domain_name": "cryptography",
-          "node_type": "function",
-          "node_role": "source",
-          "topology_type": "sequential",
-          "docstring": "Instantiates an Ed25519 private key from raw 32-byte seed bytes.",
-          "semantic_tags": [
-            "ed25519_load_raw",
-            "import_private_key",
-            "seed_import"
-          ],
-          "inputs": {
-            "raw_bytes": {
-              "type_name": "secret_key",
-              "state": "raw_ed25519_seed",
-              "abstract_type": "scalar",
-              "required": true,
-              "port_role": "data_input",
-              "description": "32-byte raw seed sequence."
-            }
-          },
-          "outputs": {
-            "private_key": {
-              "type_name": "object",
-              "state": "ed25519_private_key",
-              "abstract_type": "handle",
-              "port_role": "data_output",
-              "description": "Reconstructed Ed25519 private key."
-            }
-          },
-          "code_template": "{private_key} = ed25519.Ed25519PrivateKey.from_private_bytes({raw_bytes})",
-          "dependencies": [
-            "from cryptography.hazmat.primitives.asymmetric import ed25519"
-          ],
-          "primary_in": "raw_bytes",
-          "primary_out": "private_key"
-        },
-        {
-          "cell_id": "CRYPTO_ED25519_LOAD_RAW_PUBLIC",
-          "stage": 1,
-          "domain_name": "cryptography",
-          "node_type": "function",
-          "node_role": "source",
-          "topology_type": "sequential",
-          "docstring": "Instantiates an Ed25519 public key from raw 32-byte public key bytes.",
-          "semantic_tags": [
-            "ed25519_load_public",
-            "import_public_key",
-            "public_bytes"
-          ],
-          "inputs": {
-            "raw_bytes": {
-              "type_name": "bytes",
-              "state": "raw_ed25519_pub",
-              "abstract_type": "scalar",
-              "required": true,
-              "port_role": "data_input",
-              "description": "32-byte raw public key."
-            }
-          },
-          "outputs": {
-            "public_key": {
-              "type_name": "object",
-              "state": "ed25519_public_key",
-              "abstract_type": "handle",
-              "port_role": "data_output",
-              "description": "Reconstructed Ed25519 public key."
-            }
-          },
-          "code_template": "{public_key} = ed25519.Ed25519PublicKey.from_public_bytes({raw_bytes})",
-          "dependencies": [
-            "from cryptography.hazmat.primitives.asymmetric import ed25519"
-          ],
-          "primary_in": "raw_bytes",
-          "primary_out": "public_key"
-        },
-        {
-          "cell_id": "CRYPTO_X25519_GENERATE_KEY",
-          "stage": 1,
-          "domain_name": "cryptography",
-          "node_type": "function",
-          "node_role": "source",
-          "topology_type": "sequential",
-          "docstring": "Generates a fresh X25519 Montgomery-curve keypair private key for Diffie-Hellman key exchange.",
-          "semantic_tags": [
-            "x25519_generate",
-            "ecdh",
-            "diffie_hellman",
-            "key_exchange",
-            "curve25519"
-          ],
-          "inputs": {},
-          "outputs": {
-            "private_key": {
-              "type_name": "object",
-              "state": "x25519_private_key",
-              "abstract_type": "handle",
-              "port_role": "data_output",
-              "description": "Generated X25519 private key handle."
-            }
-          },
-          "code_template": "{private_key} = x25519.X25519PrivateKey.generate()",
-          "dependencies": [
-            "from cryptography.hazmat.primitives.asymmetric import x25519"
-          ],
-          "primary_in": null,
-          "primary_out": "private_key"
-        },
-        {
-          "cell_id": "CRYPTO_X25519_GET_PUBLIC_KEY",
-          "stage": 1,
-          "domain_name": "cryptography",
-          "node_type": "method",
-          "node_role": "source",
-          "topology_type": "sequential",
-          "docstring": "Derives corresponding X25519 public key from X25519 private key.",
-          "semantic_tags": [
-            "x25519_public",
-            "extract_public_key",
-            "ecdh",
-            "public_key"
-          ],
-          "inputs": {
-            "private_key": {
-              "type_name": "object",
-              "state": "x25519_private_key",
-              "abstract_type": "handle",
-              "required": true,
-              "port_role": "data_input",
-              "description": "X25519 private key handle."
-            }
-          },
-          "outputs": {
-            "public_key": {
-              "type_name": "object",
-              "state": "x25519_public_key",
-              "abstract_type": "handle",
-              "port_role": "data_output",
-              "description": "Corresponding X25519 public key handle."
-            }
-          },
-          "code_template": "{public_key} = {private_key}.public_key()",
-          "dependencies": [
-            "from cryptography.hazmat.primitives.asymmetric import x25519"
-          ],
-          "primary_in": "private_key",
-          "primary_out": "public_key"
-        },
-        {
-          "cell_id": "CRYPTO_X25519_EXCHANGE",
-          "stage": 2,
-          "domain_name": "cryptography",
-          "node_type": "method",
-          "node_role": "transformer",
-          "topology_type": "sequential",
-          "docstring": "Computes Diffie-Hellman shared secret key between private key and peer public key.",
-          "semantic_tags": [
-            "x25519_exchange",
-            "shared_secret",
-            "ecdh",
-            "key_agreement"
-          ],
-          "inputs": {
-            "private_key": {
-              "type_name": "object",
-              "state": "x25519_private_key",
-              "abstract_type": "handle",
-              "required": true,
-              "port_role": "data_input",
-              "description": "Local X25519 private key handle."
-            },
-            "peer_public_key": {
-              "type_name": "object",
-              "state": "x25519_public_key",
-              "abstract_type": "handle",
-              "required": true,
-              "port_role": "data_input",
-              "description": "Remote peer X25519 public key handle."
-            }
-          },
-          "outputs": {
-            "shared_key": {
-              "type_name": "secret_key",
-              "state": "shared_secret_bytes",
-              "abstract_type": "scalar",
-              "port_role": "data_output",
-              "description": "32-byte shared secret key bytes."
-            }
-          },
-          "code_template": "{shared_key} = {private_key}.exchange({peer_public_key})",
-          "dependencies": [
-            "from cryptography.hazmat.primitives.asymmetric import x25519"
-          ],
-          "primary_in": "peer_public_key",
-          "primary_out": "shared_key"
-        },
-        {
-          "cell_id": "CRYPTO_SAVE_SIGNATURE_TO_FILE",
-          "stage": 3,
-          "domain_name": "cryptography",
-          "node_type": "function",
-          "node_role": "sink",
-          "topology_type": "sequential",
-          "docstring": "Persists cryptographic digital signature bytes to a designated file path.",
-          "semantic_tags": [
-            "save_signature",
-            "write_signature",
-            "signature_sink",
-            "store_signature"
-          ],
-          "inputs": {
-            "signature": {
-              "type_name": "signature",
-              "state": "any",
-              "abstract_type": "scalar",
-              "required": true,
-              "port_role": "data_input",
-              "description": "Digital signature bytes to persist."
-            },
-            "sig_path": {
-              "type_name": "File[sig_file]",
-              "state": "destination_path",
-              "abstract_type": "path",
-              "required": true,
-              "port_role": "destination",
-              "description": "Destination file path on disk."
-            }
-          },
-          "outputs": {
-            "out_path": {
-              "type_name": "File[sig_file]",
-              "state": "written",
-              "abstract_type": "path",
-              "port_role": "result",
-              "description": "Path to the persisted signature file."
-            }
-          },
-          "code_template": "with open({sig_path}, 'wb') as _f:\n    _f.write({signature})\n{out_path} = {sig_path}",
-          "dependencies": [],
-          "primary_in": "signature",
-          "primary_out": "out_path"
-        },
-        {
-          "cell_id": "CRYPTO_SAVE_PEM_TO_FILE",
-          "stage": 3,
-          "domain_name": "cryptography",
-          "node_type": "function",
-          "node_role": "sink",
-          "topology_type": "sequential",
-          "docstring": "Writes PEM-formatted key bytes to a designated file path on disk.",
-          "semantic_tags": [
-            "save_pem",
-            "write_pem",
-            "export_pem",
-            "key_sink"
-          ],
-          "inputs": {
-            "pem_bytes": {
-              "type_name": "bytes",
-              "state": "pem_encoded",
-              "abstract_type": "scalar",
-              "required": true,
-              "port_role": "data_input",
-              "description": "PEM key bytes to persist."
-            },
-            "dest_path": {
-              "type_name": "File[pem_file]",
-              "state": "destination_path",
-              "abstract_type": "path",
-              "required": true,
-              "port_role": "destination",
-              "description": "Destination file path on disk."
-            }
-          },
-          "outputs": {
-            "out_path": {
-              "type_name": "File[pem_file]",
-              "state": "written",
-              "abstract_type": "path",
-              "port_role": "result",
-              "description": "Path to the written PEM file."
-            }
-          },
-          "code_template": "with open({dest_path}, 'wb') as _f:\n    _f.write({pem_bytes})\n{out_path} = {dest_path}",
-          "dependencies": [],
-          "primary_in": "pem_bytes",
-          "primary_out": "out_path"
-        },
-        {
-          "cell_id": "CRYPTO_ASSERT_VERIFICATION",
-          "stage": 3,
-          "domain_name": "cryptography",
-          "node_type": "function",
-          "node_role": "sink",
-          "topology_type": "sequential",
-          "docstring": "Terminal assertion sink verifying that a verification flag is True, raising ValueError if invalid.",
-          "semantic_tags": [
-            "assert_verification",
-            "integrity_sink",
-            "validation_guard",
-            "terminal_verification"
-          ],
-          "inputs": {
-            "is_valid": {
-              "type_name": "bool",
-              "state": "verification_status",
-              "abstract_type": "scalar",
-              "required": true,
-              "port_role": "data_input",
-              "description": "Verification outcome flag."
-            }
-          },
-          "outputs": {
-            "status": {
-              "type_name": "bool",
-              "state": "verified",
-              "abstract_type": "scalar",
-              "port_role": "result",
-              "description": "Successful terminal verification boolean confirmation."
-            }
-          },
-          "code_template": "if not {is_valid}:\n    raise ValueError('Cryptographic verification failed.')\n{status} = True",
-          "dependencies": [],
-          "primary_in": "is_valid",
-          "primary_out": "status"
+      },
+      "code_template": "with open({src_path}, 'rb') as _f:\n    {ciphertext} = _f.read()",
+      "dependencies": [],
+      "primary_in": "src_path",
+      "primary_out": "ciphertext"
+    },
+    {
+      "cell_id": "CRYPTO_COMPARE_DIGEST_RESULT",
+      "stage": 3,
+      "domain_name": "cryptography",
+      "node_type": "function",
+      "node_role": "sink",
+      "topology_type": "sequential",
+      "docstring": "Evaluates constant-time verification boolean, writing status to output destination.",
+      "semantic_tags": [
+        "verify_result",
+        "digest_status",
+        "auth_check",
+        "verification_sink"
+      ],
+      "inputs": {
+        "is_equal": {
+          "type_name": "bool",
+          "state": "comparison_result",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Boolean result of constant-time digest comparison.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
-        ]
+      },
+      "outputs": {
+        "status": {
+          "type_name": "bool",
+          "state": "verified",
+          "abstract_type": "scalar",
+          "port_role": "result",
+          "description": "Evaluated verification status boolean.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
+      },
+      "code_template": "{status} = bool({is_equal})",
+      "dependencies": [],
+      "primary_in": "is_equal",
+      "primary_out": "status"
+    },
+    {
+      "cell_id": "CRYPTO_AESGCM_KEY_GEN",
+      "stage": 1,
+      "domain_name": "cryptography",
+      "node_type": "function",
+      "node_role": "source",
+      "topology_type": "sequential",
+      "docstring": "Generates a fresh cryptographically secure random 256-bit symmetric key for AES-GCM.",
+      "semantic_tags": [
+        "aesgcm_key",
+        "key_generation",
+        "aead",
+        "symmetric_key"
+      ],
+      "inputs": {},
+      "outputs": {
+        "key": {
+          "type_name": "secret_key",
+          "state": "aes_key_bytes",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "Generated 256-bit AES-GCM key bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        }
+      },
+      "code_template": "{key} = AESGCM.generate_key(bit_length=256)",
+      "dependencies": [
+        "from cryptography.hazmat.primitives.ciphers.aead import AESGCM"
+      ],
+      "primary_in": null,
+      "primary_out": "key"
+    },
+    {
+      "cell_id": "CRYPTO_AESGCM_INIT",
+      "stage": 1,
+      "domain_name": "cryptography",
+      "node_type": "function",
+      "node_role": "source",
+      "topology_type": "sequential",
+      "docstring": "Constructs an AES-GCM authenticated cipher handle from key bytes.",
+      "semantic_tags": [
+        "aesgcm_init",
+        "cipher_init",
+        "aead_cipher",
+        "gcm_handle"
+      ],
+      "inputs": {
+        "key": {
+          "type_name": "secret_key",
+          "state": "aes_key_bytes",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "AES key bytes (128, 192, or 256 bits).",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        }
+      },
+      "outputs": {
+        "cipher": {
+          "type_name": "cipher",
+          "state": "aesgcm_instance",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Initialized AESGCM cipher handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
+        }
+      },
+      "code_template": "{cipher} = AESGCM({key})",
+      "dependencies": [
+        "from cryptography.hazmat.primitives.ciphers.aead import AESGCM"
+      ],
+      "primary_in": "key",
+      "primary_out": "cipher"
+    },
+    {
+      "cell_id": "CRYPTO_AESGCM_ENCRYPT",
+      "stage": 2,
+      "domain_name": "cryptography",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Encrypts and authenticates plaintext with AES-GCM using nonce and associated data.",
+      "semantic_tags": [
+        "aesgcm_encrypt",
+        "aead_encrypt",
+        "authenticated_encryption",
+        "gcm"
+      ],
+      "inputs": {
+        "cipher": {
+          "type_name": "cipher",
+          "state": "aesgcm_instance",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Initialized AESGCM cipher handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
+        },
+        "nonce": {
+          "type_name": "bytes",
+          "state": "nonce_bytes",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "12-byte initialization vector or nonce (never reused per key).",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        },
+        "data": {
+          "type_name": "plaintext",
+          "state": "raw_bytes",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Plaintext bytes to encrypt.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        },
+        "associated_data": {
+          "type_name": "bytes",
+          "state": "aad_bytes",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Additional authenticated data (AAD) or empty bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        }
+      },
+      "outputs": {
+        "ciphertext": {
+          "type_name": "ciphertext",
+          "state": "authenticated_ciphertext",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "Encrypted ciphertext with appended 16-byte authentication tag.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        }
+      },
+      "code_template": "{ciphertext} = {cipher}.encrypt({nonce}, {data}, {associated_data})",
+      "dependencies": [
+        "from cryptography.hazmat.primitives.ciphers.aead import AESGCM"
+      ],
+      "primary_in": "data",
+      "primary_out": "ciphertext"
+    },
+    {
+      "cell_id": "CRYPTO_AESGCM_DECRYPT",
+      "stage": 2,
+      "domain_name": "cryptography",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Decrypts and verifies authenticated AES-GCM ciphertext, returning plaintext.",
+      "semantic_tags": [
+        "aesgcm_decrypt",
+        "aead_decrypt",
+        "authenticated_decryption",
+        "gcm"
+      ],
+      "inputs": {
+        "cipher": {
+          "type_name": "cipher",
+          "state": "aesgcm_instance",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Initialized AESGCM cipher handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
+        },
+        "nonce": {
+          "type_name": "bytes",
+          "state": "nonce_bytes",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "12-byte nonce used during encryption.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        },
+        "ciphertext": {
+          "type_name": "ciphertext",
+          "state": "authenticated_ciphertext",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Encrypted ciphertext including 16-byte tag.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        },
+        "associated_data": {
+          "type_name": "bytes",
+          "state": "aad_bytes",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Additional authenticated data (AAD) matched against encryption.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        }
+      },
+      "outputs": {
+        "plaintext": {
+          "type_name": "plaintext",
+          "state": "raw_bytes",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "Decrypted and authenticated plaintext bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        }
+      },
+      "code_template": "{plaintext} = {cipher}.decrypt({nonce}, {ciphertext}, {associated_data})",
+      "dependencies": [
+        "from cryptography.hazmat.primitives.ciphers.aead import AESGCM"
+      ],
+      "primary_in": "ciphertext",
+      "primary_out": "plaintext"
+    },
+    {
+      "cell_id": "CRYPTO_CHACHA20_KEY_GEN",
+      "stage": 1,
+      "domain_name": "cryptography",
+      "node_type": "function",
+      "node_role": "source",
+      "topology_type": "sequential",
+      "docstring": "Generates a 256-bit symmetric key for ChaCha20-Poly1305 AEAD cipher.",
+      "semantic_tags": [
+        "chacha20_key",
+        "key_generation",
+        "poly1305",
+        "symmetric_key"
+      ],
+      "inputs": {},
+      "outputs": {
+        "key": {
+          "type_name": "secret_key",
+          "state": "chacha_key_bytes",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "Generated 256-bit ChaCha20-Poly1305 key bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        }
+      },
+      "code_template": "{key} = ChaCha20Poly1305.generate_key()",
+      "dependencies": [
+        "from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305"
+      ],
+      "primary_in": null,
+      "primary_out": "key"
+    },
+    {
+      "cell_id": "CRYPTO_CHACHA20_INIT",
+      "stage": 1,
+      "domain_name": "cryptography",
+      "node_type": "function",
+      "node_role": "source",
+      "topology_type": "sequential",
+      "docstring": "Initializes a ChaCha20Poly1305 AEAD cipher handle from 256-bit key bytes.",
+      "semantic_tags": [
+        "chacha20_init",
+        "cipher_init",
+        "poly1305_init",
+        "aead_cipher"
+      ],
+      "inputs": {
+        "key": {
+          "type_name": "secret_key",
+          "state": "chacha_key_bytes",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "256-bit key bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        }
+      },
+      "outputs": {
+        "cipher": {
+          "type_name": "cipher",
+          "state": "chacha_instance",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Initialized ChaCha20Poly1305 cipher handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
+        }
+      },
+      "code_template": "{cipher} = ChaCha20Poly1305({key})",
+      "dependencies": [
+        "from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305"
+      ],
+      "primary_in": "key",
+      "primary_out": "cipher"
+    },
+    {
+      "cell_id": "CRYPTO_CHACHA20_ENCRYPT",
+      "stage": 2,
+      "domain_name": "cryptography",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Encrypts and authenticates plaintext using ChaCha20-Poly1305 with nonce and associated data.",
+      "semantic_tags": [
+        "chacha20_encrypt",
+        "poly1305_encrypt",
+        "aead_encrypt",
+        "stream_cipher"
+      ],
+      "inputs": {
+        "cipher": {
+          "type_name": "cipher",
+          "state": "chacha_instance",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Initialized ChaCha20Poly1305 cipher handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
+        },
+        "nonce": {
+          "type_name": "bytes",
+          "state": "nonce_bytes",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "12-byte nonce.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        },
+        "data": {
+          "type_name": "plaintext",
+          "state": "raw_bytes",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Plaintext bytes to encrypt.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        },
+        "associated_data": {
+          "type_name": "bytes",
+          "state": "aad_bytes",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Additional authenticated data.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        }
+      },
+      "outputs": {
+        "ciphertext": {
+          "type_name": "ciphertext",
+          "state": "authenticated_ciphertext",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "Encrypted ciphertext with appended 16-byte Poly1305 MAC tag.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        }
+      },
+      "code_template": "{ciphertext} = {cipher}.encrypt({nonce}, {data}, {associated_data})",
+      "dependencies": [
+        "from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305"
+      ],
+      "primary_in": "data",
+      "primary_out": "ciphertext"
+    },
+    {
+      "cell_id": "CRYPTO_CHACHA20_DECRYPT",
+      "stage": 2,
+      "domain_name": "cryptography",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Decrypts and verifies ChaCha20-Poly1305 authenticated ciphertext, returning plaintext.",
+      "semantic_tags": [
+        "chacha20_decrypt",
+        "poly1305_decrypt",
+        "aead_decrypt",
+        "stream_cipher"
+      ],
+      "inputs": {
+        "cipher": {
+          "type_name": "cipher",
+          "state": "chacha_instance",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Initialized ChaCha20Poly1305 cipher handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
+        },
+        "nonce": {
+          "type_name": "bytes",
+          "state": "nonce_bytes",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "12-byte nonce used during encryption.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        },
+        "ciphertext": {
+          "type_name": "ciphertext",
+          "state": "authenticated_ciphertext",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Ciphertext with Poly1305 tag.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        },
+        "associated_data": {
+          "type_name": "bytes",
+          "state": "aad_bytes",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Additional authenticated data.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        }
+      },
+      "outputs": {
+        "plaintext": {
+          "type_name": "plaintext",
+          "state": "raw_bytes",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "Decrypted plaintext bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        }
+      },
+      "code_template": "{plaintext} = {cipher}.decrypt({nonce}, {ciphertext}, {associated_data})",
+      "dependencies": [
+        "from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305"
+      ],
+      "primary_in": "ciphertext",
+      "primary_out": "plaintext"
+    },
+    {
+      "cell_id": "CRYPTO_RSA_GENERATE_KEY",
+      "stage": 1,
+      "domain_name": "cryptography",
+      "node_type": "function",
+      "node_role": "source",
+      "topology_type": "sequential",
+      "docstring": "Generates a fresh RSA asymmetric private key of specified bit size with public exponent 65537.",
+      "semantic_tags": [
+        "rsa_generate",
+        "asymmetric_key",
+        "private_key",
+        "key_generation"
+      ],
+      "inputs": {
+        "key_size": {
+          "type_name": "int",
+          "state": "bit_size",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "parameter",
+          "description": "Key size in bits (e.g., 2048, 3072, 4096).",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
+        }
+      },
+      "outputs": {
+        "private_key": {
+          "type_name": "object",
+          "state": "rsa_private_key",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Generated RSA private key handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
+        }
+      },
+      "code_template": "{private_key} = rsa.generate_private_key(public_exponent=65537, key_size={key_size})",
+      "dependencies": [
+        "from cryptography.hazmat.primitives.asymmetric import rsa"
+      ],
+      "primary_in": "key_size",
+      "primary_out": "private_key"
+    },
+    {
+      "cell_id": "CRYPTO_RSA_GET_PUBLIC_KEY",
+      "stage": 1,
+      "domain_name": "cryptography",
+      "node_type": "method",
+      "node_role": "source",
+      "topology_type": "sequential",
+      "docstring": "Derives the corresponding RSA public key handle from an RSA private key object.",
+      "semantic_tags": [
+        "rsa_public_key",
+        "extract_public_key",
+        "asymmetric",
+        "public_key"
+      ],
+      "inputs": {
+        "private_key": {
+          "type_name": "object",
+          "state": "rsa_private_key",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "RSA private key handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
+        }
+      },
+      "outputs": {
+        "public_key": {
+          "type_name": "object",
+          "state": "rsa_public_key",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Corresponding RSA public key handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
+        }
+      },
+      "code_template": "{public_key} = {private_key}.public_key()",
+      "dependencies": [
+        "from cryptography.hazmat.primitives.asymmetric import rsa"
+      ],
+      "primary_in": "private_key",
+      "primary_out": "public_key"
+    },
+    {
+      "cell_id": "CRYPTO_RSA_ENCRYPT_OAEP",
+      "stage": 2,
+      "domain_name": "cryptography",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Encrypts plaintext bytes with an RSA public key using OAEP padding and SHA-256.",
+      "semantic_tags": [
+        "rsa_encrypt",
+        "oaep",
+        "asymmetric_encryption",
+        "public_key_encrypt"
+      ],
+      "inputs": {
+        "public_key": {
+          "type_name": "object",
+          "state": "rsa_public_key",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Recipient RSA public key.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
+        },
+        "data": {
+          "type_name": "plaintext",
+          "state": "raw_bytes",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Plaintext bytes to encrypt (bounded by key size).",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        }
+      },
+      "outputs": {
+        "ciphertext": {
+          "type_name": "ciphertext",
+          "state": "rsa_ciphertext",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "Encrypted RSA ciphertext bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        }
+      },
+      "code_template": "{ciphertext} = {public_key}.encrypt({data}, padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None))",
+      "dependencies": [
+        "from cryptography.hazmat.primitives.asymmetric import padding",
+        "from cryptography.hazmat.primitives import hashes"
+      ],
+      "primary_in": "data",
+      "primary_out": "ciphertext"
+    },
+    {
+      "cell_id": "CRYPTO_RSA_DECRYPT_OAEP",
+      "stage": 2,
+      "domain_name": "cryptography",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Decrypts RSA ciphertext with private key using OAEP padding and SHA-256.",
+      "semantic_tags": [
+        "rsa_decrypt",
+        "oaep",
+        "asymmetric_decryption",
+        "private_key_decrypt"
+      ],
+      "inputs": {
+        "private_key": {
+          "type_name": "object",
+          "state": "rsa_private_key",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "RSA private key handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
+        },
+        "ciphertext": {
+          "type_name": "ciphertext",
+          "state": "rsa_ciphertext",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Encrypted RSA ciphertext bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        }
+      },
+      "outputs": {
+        "plaintext": {
+          "type_name": "plaintext",
+          "state": "raw_bytes",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "Decrypted plaintext bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        }
+      },
+      "code_template": "{plaintext} = {private_key}.decrypt({ciphertext}, padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None))",
+      "dependencies": [
+        "from cryptography.hazmat.primitives.asymmetric import padding",
+        "from cryptography.hazmat.primitives import hashes"
+      ],
+      "primary_in": "ciphertext",
+      "primary_out": "plaintext"
+    },
+    {
+      "cell_id": "CRYPTO_RSA_SIGN_PSS",
+      "stage": 2,
+      "domain_name": "cryptography",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Signs message bytes with RSA private key using PSS padding and SHA-256.",
+      "semantic_tags": [
+        "rsa_sign",
+        "pss",
+        "digital_signature",
+        "asymmetric_sign"
+      ],
+      "inputs": {
+        "private_key": {
+          "type_name": "object",
+          "state": "rsa_private_key",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Signer RSA private key.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
+        },
+        "data": {
+          "type_name": "bytes",
+          "state": "raw_bytes",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Message bytes to sign.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        }
+      },
+      "outputs": {
+        "signature": {
+          "type_name": "signature",
+          "state": "rsa_pss_signature",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "RSA-PSS signature bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        }
+      },
+      "code_template": "{signature} = {private_key}.sign({data}, padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH), hashes.SHA256())",
+      "dependencies": [
+        "from cryptography.hazmat.primitives.asymmetric import padding",
+        "from cryptography.hazmat.primitives import hashes"
+      ],
+      "primary_in": "data",
+      "primary_out": "signature"
+    },
+    {
+      "cell_id": "CRYPTO_RSA_VERIFY_PSS",
+      "stage": 2,
+      "domain_name": "cryptography",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Verifies RSA-PSS signature against original message bytes using public key.",
+      "semantic_tags": [
+        "rsa_verify",
+        "pss_verify",
+        "signature_verification",
+        "asymmetric_verify"
+      ],
+      "inputs": {
+        "public_key": {
+          "type_name": "object",
+          "state": "rsa_public_key",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Signer RSA public key.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
+        },
+        "signature": {
+          "type_name": "signature",
+          "state": "rsa_pss_signature",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Signature bytes to verify.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        },
+        "data": {
+          "type_name": "bytes",
+          "state": "raw_bytes",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Original message bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        }
+      },
+      "outputs": {
+        "is_valid": {
+          "type_name": "bool",
+          "state": "verification_status",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "True if signature is valid, False otherwise.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
+        }
+      },
+      "code_template": "try:\n    {public_key}.verify({signature}, {data}, padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH), hashes.SHA256())\n    {is_valid} = True\nexcept Exception:\n    {is_valid} = False",
+      "dependencies": [
+        "from cryptography.hazmat.primitives.asymmetric import padding",
+        "from cryptography.hazmat.primitives import hashes"
+      ],
+      "primary_in": "signature",
+      "primary_out": "is_valid"
+    },
+    {
+      "cell_id": "CRYPTO_RSA_EXPORT_PRIVATE_PEM",
+      "stage": 2,
+      "domain_name": "cryptography",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Serializes an RSA private key object into unencrypted PKCS8 PEM format bytes.",
+      "semantic_tags": [
+        "rsa_export",
+        "pem_export",
+        "serialize_key",
+        "pkcs8"
+      ],
+      "inputs": {
+        "private_key": {
+          "type_name": "object",
+          "state": "rsa_private_key",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "RSA private key object.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
+        }
+      },
+      "outputs": {
+        "pem_bytes": {
+          "type_name": "bytes",
+          "state": "pem_encoded_private",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "PKCS8 PEM-formatted private key bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        }
+      },
+      "code_template": "{pem_bytes} = {private_key}.private_bytes(encoding=serialization.Encoding.PEM, format=serialization.PrivateFormat.PKCS8, encryption_algorithm=serialization.NoEncryption())",
+      "dependencies": [
+        "from cryptography.hazmat.primitives import serialization"
+      ],
+      "primary_in": "private_key",
+      "primary_out": "pem_bytes"
+    },
+    {
+      "cell_id": "CRYPTO_RSA_EXPORT_PUBLIC_PEM",
+      "stage": 2,
+      "domain_name": "cryptography",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Serializes an RSA public key object into SubjectPublicKeyInfo PEM format bytes.",
+      "semantic_tags": [
+        "rsa_export_public",
+        "pem_export",
+        "public_key_pem",
+        "spki"
+      ],
+      "inputs": {
+        "public_key": {
+          "type_name": "object",
+          "state": "rsa_public_key",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "RSA public key object.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
+        }
+      },
+      "outputs": {
+        "pem_bytes": {
+          "type_name": "bytes",
+          "state": "pem_encoded_public",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "SubjectPublicKeyInfo PEM-formatted public key bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        }
+      },
+      "code_template": "{pem_bytes} = {public_key}.public_bytes(encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.SubjectPublicKeyInfo)",
+      "dependencies": [
+        "from cryptography.hazmat.primitives import serialization"
+      ],
+      "primary_in": "public_key",
+      "primary_out": "pem_bytes"
+    },
+    {
+      "cell_id": "CRYPTO_RSA_LOAD_PRIVATE_PEM",
+      "stage": 1,
+      "domain_name": "cryptography",
+      "node_type": "function",
+      "node_role": "source",
+      "topology_type": "sequential",
+      "docstring": "Deserializes an unencrypted PEM byte string into an RSA private key object.",
+      "semantic_tags": [
+        "rsa_load_private",
+        "load_pem",
+        "deserialize_key",
+        "import_private_key"
+      ],
+      "inputs": {
+        "pem_bytes": {
+          "type_name": "bytes",
+          "state": "pem_encoded_private",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "PEM-encoded private key bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        }
+      },
+      "outputs": {
+        "private_key": {
+          "type_name": "object",
+          "state": "rsa_private_key",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Loaded RSA private key handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
+        }
+      },
+      "code_template": "{private_key} = serialization.load_pem_private_key({pem_bytes}, password=None)",
+      "dependencies": [
+        "from cryptography.hazmat.primitives import serialization"
+      ],
+      "primary_in": "pem_bytes",
+      "primary_out": "private_key"
+    },
+    {
+      "cell_id": "CRYPTO_RSA_LOAD_PUBLIC_PEM",
+      "stage": 1,
+      "domain_name": "cryptography",
+      "node_type": "function",
+      "node_role": "source",
+      "topology_type": "sequential",
+      "docstring": "Deserializes a PEM byte string into an RSA public key object.",
+      "semantic_tags": [
+        "rsa_load_public",
+        "load_pem",
+        "deserialize_key",
+        "import_public_key"
+      ],
+      "inputs": {
+        "pem_bytes": {
+          "type_name": "bytes",
+          "state": "pem_encoded_public",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "PEM-encoded public key bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        }
+      },
+      "outputs": {
+        "public_key": {
+          "type_name": "object",
+          "state": "rsa_public_key",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Loaded RSA public key handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
+        }
+      },
+      "code_template": "{public_key} = serialization.load_pem_public_key({pem_bytes})",
+      "dependencies": [
+        "from cryptography.hazmat.primitives import serialization"
+      ],
+      "primary_in": "pem_bytes",
+      "primary_out": "public_key"
+    },
+    {
+      "cell_id": "CRYPTO_ED25519_GENERATE_KEY",
+      "stage": 1,
+      "domain_name": "cryptography",
+      "node_type": "function",
+      "node_role": "source",
+      "topology_type": "sequential",
+      "docstring": "Generates a fresh Ed25519 Edwards-curve digital signature private key.",
+      "semantic_tags": [
+        "ed25519_generate",
+        "curve25519",
+        "eddsa",
+        "key_generation",
+        "signature_key"
+      ],
+      "inputs": {},
+      "outputs": {
+        "private_key": {
+          "type_name": "object",
+          "state": "ed25519_private_key",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Generated Ed25519 private key handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
+        }
+      },
+      "code_template": "{private_key} = ed25519.Ed25519PrivateKey.generate()",
+      "dependencies": [
+        "from cryptography.hazmat.primitives.asymmetric import ed25519"
+      ],
+      "primary_in": null,
+      "primary_out": "private_key"
+    },
+    {
+      "cell_id": "CRYPTO_ED25519_GET_PUBLIC_KEY",
+      "stage": 1,
+      "domain_name": "cryptography",
+      "node_type": "method",
+      "node_role": "source",
+      "topology_type": "sequential",
+      "docstring": "Derives the corresponding Ed25519 public key handle from an Ed25519 private key.",
+      "semantic_tags": [
+        "ed25519_public",
+        "extract_public_key",
+        "eddsa",
+        "verification_key"
+      ],
+      "inputs": {
+        "private_key": {
+          "type_name": "object",
+          "state": "ed25519_private_key",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Ed25519 private key handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
+        }
+      },
+      "outputs": {
+        "public_key": {
+          "type_name": "object",
+          "state": "ed25519_public_key",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Corresponding Ed25519 public key handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
+        }
+      },
+      "code_template": "{public_key} = {private_key}.public_key()",
+      "dependencies": [
+        "from cryptography.hazmat.primitives.asymmetric import ed25519"
+      ],
+      "primary_in": "private_key",
+      "primary_out": "public_key"
+    },
+    {
+      "cell_id": "CRYPTO_ED25519_SIGN",
+      "stage": 2,
+      "domain_name": "cryptography",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Signs message bytes using an Ed25519 private key producing a 64-byte signature.",
+      "semantic_tags": [
+        "ed25519_sign",
+        "eddsa_sign",
+        "sign_message",
+        "digital_signature"
+      ],
+      "inputs": {
+        "private_key": {
+          "type_name": "object",
+          "state": "ed25519_private_key",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Ed25519 private key handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
+        },
+        "data": {
+          "type_name": "bytes",
+          "state": "raw_bytes",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Message bytes to sign.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        }
+      },
+      "outputs": {
+        "signature": {
+          "type_name": "signature",
+          "state": "ed25519_signature",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "64-byte Ed25519 signature.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        }
+      },
+      "code_template": "{signature} = {private_key}.sign({data})",
+      "dependencies": [
+        "from cryptography.hazmat.primitives.asymmetric import ed25519"
+      ],
+      "primary_in": "data",
+      "primary_out": "signature"
+    },
+    {
+      "cell_id": "CRYPTO_ED25519_VERIFY",
+      "stage": 2,
+      "domain_name": "cryptography",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Verifies a 64-byte Ed25519 signature against message bytes using an Ed25519 public key.",
+      "semantic_tags": [
+        "ed25519_verify",
+        "eddsa_verify",
+        "verify_signature",
+        "signature_check"
+      ],
+      "inputs": {
+        "public_key": {
+          "type_name": "object",
+          "state": "ed25519_public_key",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Signer Ed25519 public key handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
+        },
+        "signature": {
+          "type_name": "signature",
+          "state": "ed25519_signature",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "64-byte Ed25519 signature.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        },
+        "data": {
+          "type_name": "bytes",
+          "state": "raw_bytes",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Original message bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        }
+      },
+      "outputs": {
+        "is_valid": {
+          "type_name": "bool",
+          "state": "verification_status",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "True if signature is valid, False otherwise.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
+        }
+      },
+      "code_template": "try:\n    {public_key}.verify({signature}, {data})\n    {is_valid} = True\nexcept Exception:\n    {is_valid} = False",
+      "dependencies": [
+        "from cryptography.hazmat.primitives.asymmetric import ed25519"
+      ],
+      "primary_in": "signature",
+      "primary_out": "is_valid"
+    },
+    {
+      "cell_id": "CRYPTO_ED25519_EXPORT_RAW_PRIVATE",
+      "stage": 2,
+      "domain_name": "cryptography",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Exports raw 32-byte private seed bytes from an Ed25519 private key.",
+      "semantic_tags": [
+        "ed25519_export_raw",
+        "raw_private_key",
+        "seed_export"
+      ],
+      "inputs": {
+        "private_key": {
+          "type_name": "object",
+          "state": "ed25519_private_key",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Ed25519 private key handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
+        }
+      },
+      "outputs": {
+        "raw_bytes": {
+          "type_name": "secret_key",
+          "state": "raw_ed25519_seed",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "Raw 32-byte private key seed.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        }
+      },
+      "code_template": "{raw_bytes} = {private_key}.private_bytes_raw()",
+      "dependencies": [
+        "from cryptography.hazmat.primitives.asymmetric import ed25519"
+      ],
+      "primary_in": "private_key",
+      "primary_out": "raw_bytes"
+    },
+    {
+      "cell_id": "CRYPTO_ED25519_EXPORT_RAW_PUBLIC",
+      "stage": 2,
+      "domain_name": "cryptography",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Exports raw 32-byte public key bytes from an Ed25519 public key.",
+      "semantic_tags": [
+        "ed25519_export_public_raw",
+        "raw_public_key",
+        "public_bytes"
+      ],
+      "inputs": {
+        "public_key": {
+          "type_name": "object",
+          "state": "ed25519_public_key",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Ed25519 public key handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
+        }
+      },
+      "outputs": {
+        "raw_bytes": {
+          "type_name": "bytes",
+          "state": "raw_ed25519_pub",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "Raw 32-byte public key bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        }
+      },
+      "code_template": "{raw_bytes} = {public_key}.public_bytes_raw()",
+      "dependencies": [
+        "from cryptography.hazmat.primitives.asymmetric import ed25519"
+      ],
+      "primary_in": "public_key",
+      "primary_out": "raw_bytes"
+    },
+    {
+      "cell_id": "CRYPTO_ED25519_LOAD_RAW_PRIVATE",
+      "stage": 1,
+      "domain_name": "cryptography",
+      "node_type": "function",
+      "node_role": "source",
+      "topology_type": "sequential",
+      "docstring": "Instantiates an Ed25519 private key from raw 32-byte seed bytes.",
+      "semantic_tags": [
+        "ed25519_load_raw",
+        "import_private_key",
+        "seed_import"
+      ],
+      "inputs": {
+        "raw_bytes": {
+          "type_name": "secret_key",
+          "state": "raw_ed25519_seed",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "32-byte raw seed sequence.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        }
+      },
+      "outputs": {
+        "private_key": {
+          "type_name": "object",
+          "state": "ed25519_private_key",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Reconstructed Ed25519 private key.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
+        }
+      },
+      "code_template": "{private_key} = ed25519.Ed25519PrivateKey.from_private_bytes({raw_bytes})",
+      "dependencies": [
+        "from cryptography.hazmat.primitives.asymmetric import ed25519"
+      ],
+      "primary_in": "raw_bytes",
+      "primary_out": "private_key"
+    },
+    {
+      "cell_id": "CRYPTO_ED25519_LOAD_RAW_PUBLIC",
+      "stage": 1,
+      "domain_name": "cryptography",
+      "node_type": "function",
+      "node_role": "source",
+      "topology_type": "sequential",
+      "docstring": "Instantiates an Ed25519 public key from raw 32-byte public key bytes.",
+      "semantic_tags": [
+        "ed25519_load_public",
+        "import_public_key",
+        "public_bytes"
+      ],
+      "inputs": {
+        "raw_bytes": {
+          "type_name": "bytes",
+          "state": "raw_ed25519_pub",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "32-byte raw public key.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        }
+      },
+      "outputs": {
+        "public_key": {
+          "type_name": "object",
+          "state": "ed25519_public_key",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Reconstructed Ed25519 public key.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
+        }
+      },
+      "code_template": "{public_key} = ed25519.Ed25519PublicKey.from_public_bytes({raw_bytes})",
+      "dependencies": [
+        "from cryptography.hazmat.primitives.asymmetric import ed25519"
+      ],
+      "primary_in": "raw_bytes",
+      "primary_out": "public_key"
+    },
+    {
+      "cell_id": "CRYPTO_X25519_GENERATE_KEY",
+      "stage": 1,
+      "domain_name": "cryptography",
+      "node_type": "function",
+      "node_role": "source",
+      "topology_type": "sequential",
+      "docstring": "Generates a fresh X25519 Montgomery-curve keypair private key for Diffie-Hellman key exchange.",
+      "semantic_tags": [
+        "x25519_generate",
+        "ecdh",
+        "diffie_hellman",
+        "key_exchange",
+        "curve25519"
+      ],
+      "inputs": {},
+      "outputs": {
+        "private_key": {
+          "type_name": "object",
+          "state": "x25519_private_key",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Generated X25519 private key handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
+        }
+      },
+      "code_template": "{private_key} = x25519.X25519PrivateKey.generate()",
+      "dependencies": [
+        "from cryptography.hazmat.primitives.asymmetric import x25519"
+      ],
+      "primary_in": null,
+      "primary_out": "private_key"
+    },
+    {
+      "cell_id": "CRYPTO_X25519_GET_PUBLIC_KEY",
+      "stage": 1,
+      "domain_name": "cryptography",
+      "node_type": "method",
+      "node_role": "source",
+      "topology_type": "sequential",
+      "docstring": "Derives corresponding X25519 public key from X25519 private key.",
+      "semantic_tags": [
+        "x25519_public",
+        "extract_public_key",
+        "ecdh",
+        "public_key"
+      ],
+      "inputs": {
+        "private_key": {
+          "type_name": "object",
+          "state": "x25519_private_key",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "X25519 private key handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
+        }
+      },
+      "outputs": {
+        "public_key": {
+          "type_name": "object",
+          "state": "x25519_public_key",
+          "abstract_type": "handle",
+          "port_role": "data_output",
+          "description": "Corresponding X25519 public key handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
+        }
+      },
+      "code_template": "{public_key} = {private_key}.public_key()",
+      "dependencies": [
+        "from cryptography.hazmat.primitives.asymmetric import x25519"
+      ],
+      "primary_in": "private_key",
+      "primary_out": "public_key"
+    },
+    {
+      "cell_id": "CRYPTO_X25519_EXCHANGE",
+      "stage": 2,
+      "domain_name": "cryptography",
+      "node_type": "method",
+      "node_role": "transformer",
+      "topology_type": "sequential",
+      "docstring": "Computes Diffie-Hellman shared secret key between private key and peer public key.",
+      "semantic_tags": [
+        "x25519_exchange",
+        "shared_secret",
+        "ecdh",
+        "key_agreement"
+      ],
+      "inputs": {
+        "private_key": {
+          "type_name": "object",
+          "state": "x25519_private_key",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Local X25519 private key handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
+        },
+        "peer_public_key": {
+          "type_name": "object",
+          "state": "x25519_public_key",
+          "abstract_type": "handle",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Remote peer X25519 public key handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
+        }
+      },
+      "outputs": {
+        "shared_key": {
+          "type_name": "secret_key",
+          "state": "shared_secret_bytes",
+          "abstract_type": "scalar",
+          "port_role": "data_output",
+          "description": "32-byte shared secret key bytes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        }
+      },
+      "code_template": "{shared_key} = {private_key}.exchange({peer_public_key})",
+      "dependencies": [
+        "from cryptography.hazmat.primitives.asymmetric import x25519"
+      ],
+      "primary_in": "peer_public_key",
+      "primary_out": "shared_key"
+    },
+    {
+      "cell_id": "CRYPTO_SAVE_SIGNATURE_TO_FILE",
+      "stage": 3,
+      "domain_name": "cryptography",
+      "node_type": "function",
+      "node_role": "sink",
+      "topology_type": "sequential",
+      "docstring": "Persists cryptographic digital signature bytes to a designated file path.",
+      "semantic_tags": [
+        "save_signature",
+        "write_signature",
+        "signature_sink",
+        "store_signature"
+      ],
+      "inputs": {
+        "signature": {
+          "type_name": "signature",
+          "state": "any",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Digital signature bytes to persist.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        },
+        "sig_path": {
+          "type_name": "File[sig_file]",
+          "state": "destination_path",
+          "abstract_type": "path",
+          "required": true,
+          "port_role": "destination",
+          "description": "Destination file path on disk.",
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "*"
+          ]
+        }
+      },
+      "outputs": {
+        "out_path": {
+          "type_name": "File[sig_file]",
+          "state": "written",
+          "abstract_type": "path",
+          "port_role": "result",
+          "description": "Path to the persisted signature file.",
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "*"
+          ]
+        }
+      },
+      "code_template": "with open({sig_path}, 'wb') as _f:\n    _f.write({signature})\n{out_path} = {sig_path}",
+      "dependencies": [],
+      "primary_in": "signature",
+      "primary_out": "out_path"
+    },
+    {
+      "cell_id": "CRYPTO_SAVE_PEM_TO_FILE",
+      "stage": 3,
+      "domain_name": "cryptography",
+      "node_type": "function",
+      "node_role": "sink",
+      "topology_type": "sequential",
+      "docstring": "Writes PEM-formatted key bytes to a designated file path on disk.",
+      "semantic_tags": [
+        "save_pem",
+        "write_pem",
+        "export_pem",
+        "key_sink"
+      ],
+      "inputs": {
+        "pem_bytes": {
+          "type_name": "bytes",
+          "state": "pem_encoded",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "PEM key bytes to persist.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
+        },
+        "dest_path": {
+          "type_name": "File[pem_file]",
+          "state": "destination_path",
+          "abstract_type": "path",
+          "required": true,
+          "port_role": "destination",
+          "description": "Destination file path on disk.",
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "*"
+          ]
+        }
+      },
+      "outputs": {
+        "out_path": {
+          "type_name": "File[pem_file]",
+          "state": "written",
+          "abstract_type": "path",
+          "port_role": "result",
+          "description": "Path to the written PEM file.",
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "*"
+          ]
+        }
+      },
+      "code_template": "with open({dest_path}, 'wb') as _f:\n    _f.write({pem_bytes})\n{out_path} = {dest_path}",
+      "dependencies": [],
+      "primary_in": "pem_bytes",
+      "primary_out": "out_path"
+    },
+    {
+      "cell_id": "CRYPTO_ASSERT_VERIFICATION",
+      "stage": 3,
+      "domain_name": "cryptography",
+      "node_type": "function",
+      "node_role": "sink",
+      "topology_type": "sequential",
+      "docstring": "Terminal assertion sink verifying that a verification flag is True, raising ValueError if invalid.",
+      "semantic_tags": [
+        "assert_verification",
+        "integrity_sink",
+        "validation_guard",
+        "terminal_verification"
+      ],
+      "inputs": {
+        "is_valid": {
+          "type_name": "bool",
+          "state": "verification_status",
+          "abstract_type": "scalar",
+          "required": true,
+          "port_role": "data_input",
+          "description": "Verification outcome flag.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
+        }
+      },
+      "outputs": {
+        "status": {
+          "type_name": "bool",
+          "state": "verified",
+          "abstract_type": "scalar",
+          "port_role": "result",
+          "description": "Successful terminal verification boolean confirmation.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
+        }
+      },
+      "code_template": "if not {is_valid}:\n    raise ValueError('Cryptographic verification failed.')\n{status} = True",
+      "dependencies": [],
+      "primary_in": "is_valid",
+      "primary_out": "status"
+    }
+  ]
+}

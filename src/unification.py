@@ -759,8 +759,10 @@ def _update_variable_provenance(
 
 # English sentence-connective function words (LANGUAGE-level primitives, not
 # domain vocabulary): a capitalized occurrence of one of these mid-prompt is a
-class DynamicSentenceConnectives(frozenset):
+class DynamicSentenceConnectives:
     """Dynamic sentence connectives backed by TypeRegistry declared connectives."""
+    def _get(self) -> Set[str]:
+        return set(TypeRegistry.get_instance().get_sentence_connectives())
     def __contains__(self, item):
         return item in TypeRegistry.get_instance().get_sentence_connectives()
     def __iter__(self):
@@ -768,20 +770,26 @@ class DynamicSentenceConnectives(frozenset):
     def __len__(self):
         return len(TypeRegistry.get_instance().get_sentence_connectives())
     def __sub__(self, other):
-        return TypeRegistry.get_instance().get_sentence_connectives() - (set(other) if not isinstance(other, set) else other)
+        return self._get() - (set(other) if not isinstance(other, (set, frozenset)) else other)
     def __rsub__(self, other):
-        return set(other) - TypeRegistry.get_instance().get_sentence_connectives()
+        return (set(other) if not isinstance(other, (set, frozenset)) else other) - self._get()
     def __and__(self, other):
-        return TypeRegistry.get_instance().get_sentence_connectives() & (set(other) if not isinstance(other, set) else other)
+        return self._get() & (set(other) if not isinstance(other, (set, frozenset)) else other)
     def __rand__(self, other):
-        return (set(other) if not isinstance(other, set) else other) & TypeRegistry.get_instance().get_sentence_connectives()
+        return (set(other) if not isinstance(other, (set, frozenset)) else other) & self._get()
+    def __or__(self, other):
+        return self._get() | (set(other) if not isinstance(other, (set, frozenset)) else other)
+    def __ror__(self, other):
+        return (set(other) if not isinstance(other, (set, frozenset)) else other) | self._get()
 
 _SENTENCE_CONNECTIVES = DynamicSentenceConnectives()
 
-class DynamicPolarityHints(frozenset):
+class DynamicPolarityHints:
     """Dynamic ordering polarity hints harvested from domain trees and order flags."""
     def __init__(self, direction: str):
         self.direction = direction
+    def _get(self) -> Set[str]:
+        return set(TypeRegistry.get_instance().get_polarity_hints(self.direction))
     def __contains__(self, item):
         return item in TypeRegistry.get_instance().get_polarity_hints(self.direction)
     def __iter__(self):
@@ -789,80 +797,93 @@ class DynamicPolarityHints(frozenset):
     def __len__(self):
         return len(TypeRegistry.get_instance().get_polarity_hints(self.direction))
     def __and__(self, other):
-        return (set(other) if not isinstance(other, set) else other) & TypeRegistry.get_instance().get_polarity_hints(self.direction)
+        return self._get() & (set(other) if not isinstance(other, (set, frozenset)) else other)
     def __rand__(self, other):
-        return (set(other) if not isinstance(other, set) else other) & TypeRegistry.get_instance().get_polarity_hints(self.direction)
+        return (set(other) if not isinstance(other, (set, frozenset)) else other) & self._get()
     def __or__(self, other):
-        return set(self) | (set(other) if not isinstance(other, (set, frozenset)) else other)
+        return self._get() | (set(other) if not isinstance(other, (set, frozenset)) else other)
     def __ror__(self, other):
-        return (set(other) if not isinstance(other, (set, frozenset)) else other) | set(self)
+        return (set(other) if not isinstance(other, (set, frozenset)) else other) | self._get()
 
 _ASCENDING_HINTS = DynamicPolarityHints("ascending")
 _DESCENDING_HINTS = DynamicPolarityHints("descending")
 # Port names/states that carry an ordering polarity (generic, not domain names).
-class DynamicOrderFlagNames(frozenset):
+class DynamicOrderFlagNames:
     """Dynamic order flag port names registered in TypeRegistry."""
+    def _get(self) -> Set[str]:
+        try:
+            return {str(n).lower() for n in TypeRegistry.get_instance().get_verification_semantics("order_flag_names")}
+        except Exception:
+            return set()
     def __contains__(self, item):
-        try:
-            return str(item).lower() in {str(n).lower() for n in TypeRegistry.get_instance().get_verification_semantics("order_flag_names")}
-        except Exception:
-            return False
+        return str(item).lower() in self._get()
     def __iter__(self):
-        try:
-            return iter({str(n).lower() for n in TypeRegistry.get_instance().get_verification_semantics("order_flag_names")})
-        except Exception:
-            return iter(())
+        return iter(self._get())
     def __len__(self):
-        try:
-            return len(TypeRegistry.get_instance().get_verification_semantics("order_flag_names"))
-        except Exception:
-            return 0
+        return len(self._get())
+    def __and__(self, other):
+        return self._get() & (set(other) if not isinstance(other, (set, frozenset)) else other)
+    def __rand__(self, other):
+        return (set(other) if not isinstance(other, (set, frozenset)) else other) & self._get()
 
-class DynamicOrderFlagStates(frozenset):
+class DynamicOrderFlagStates:
     """Dynamic order flag typestates registered in TypeRegistry."""
+    def _get(self) -> Set[str]:
+        try:
+            return {str(s).lower() for s in TypeRegistry.get_instance().get_verification_semantics("order_flag_states")}
+        except Exception:
+            return set()
     def __contains__(self, item):
-        try:
-            return str(item).lower() in {str(s).lower() for s in TypeRegistry.get_instance().get_verification_semantics("order_flag_states")}
-        except Exception:
-            return False
+        return str(item).lower() in self._get()
     def __iter__(self):
-        try:
-            return iter({str(s).lower() for s in TypeRegistry.get_instance().get_verification_semantics("order_flag_states")})
-        except Exception:
-            return iter(())
+        return iter(self._get())
     def __len__(self):
-        try:
-            return len(TypeRegistry.get_instance().get_verification_semantics("order_flag_states"))
-        except Exception:
-            return 0
+        return len(self._get())
+    def __and__(self, other):
+        return self._get() & (set(other) if not isinstance(other, (set, frozenset)) else other)
+    def __rand__(self, other):
+        return (set(other) if not isinstance(other, (set, frozenset)) else other) & self._get()
 
 _ORDER_FLAG_NAMES = DynamicOrderFlagNames()
 _ORDER_FLAG_STATES = DynamicOrderFlagStates()
-class DynamicPrepositionTriggers(frozenset):
+class DynamicPrepositionTriggers:
     """Dynamic relational preposition triggers harvested from domain trees."""
+    def _get(self) -> Set[str]:
+        try:
+            return {str(s).lower() for s in TypeRegistry.get_instance().get_preposition_triggers()}
+        except Exception:
+            return set()
     def __contains__(self, item):
-        return str(item).lower() in TypeRegistry.get_instance().get_preposition_triggers()
+        return str(item).lower() in self._get()
     def __iter__(self):
-        return iter(TypeRegistry.get_instance().get_preposition_triggers())
+        return iter(self._get())
     def __len__(self):
-        return len(TypeRegistry.get_instance().get_preposition_triggers())
+        return len(self._get())
+    def __and__(self, other):
+        return self._get() & (set(other) if not isinstance(other, (set, frozenset)) else other)
+    def __rand__(self, other):
+        return (set(other) if not isinstance(other, (set, frozenset)) else other) & self._get()
 
 _PREPOSITION_TRIGGERS = DynamicPrepositionTriggers()
 
-class DynamicCueWords(frozenset):
+class DynamicCueWords:
     """Dynamic cue tokens combining egress, dest_port, and column_projection tokens."""
-    def _tokens(self) -> FrozenSet[str]:
+    def _tokens(self) -> Set[str]:
         try:
             reg = TypeRegistry.get_instance()
-            return reg.get_egress_tokens() | reg.get_dest_port_tokens() | reg.get_column_projection_tokens()
+            return set(reg.get_egress_tokens() | reg.get_dest_port_tokens() | reg.get_column_projection_tokens())
         except Exception:
-            return frozenset()
+            return set()
     def __contains__(self, item: Any) -> bool:
         return str(item).lower() in self._tokens()
     def __iter__(self):
         return iter(self._tokens())
     def __len__(self) -> int:
         return len(self._tokens())
+    def __and__(self, other):
+        return self._tokens() & (set(other) if not isinstance(other, (set, frozenset)) else other)
+    def __rand__(self, other):
+        return (set(other) if not isinstance(other, (set, frozenset)) else other) & self._tokens()
 
 _CUE_WORDS = DynamicCueWords()
 
@@ -1107,15 +1128,7 @@ def _is_sink_cell(cell: Any) -> bool:
     term_roles = _declared_role_semantics("terminal_roles") | _declared_role_semantics("sink_roles")
     if role in term_roles:
         return True
-    try:
-        from lattice import TypeRegistry
-        term_stages = TypeRegistry.get_instance().get_verification_semantics("terminal_stages")
-        if term_stages and getattr(cell, "stage", None) in term_stages:
-            return True
-    except Exception:
-        pass
-    stage = getattr(cell, "stage", None)
-    if stage == 3 or role in ("sink", "terminal", "egress", "consumer"):
+    if role in ("sink", "terminal", "egress", "consumer"):
         return True
 
     outputs = getattr(cell, "outputs", None)
@@ -2130,6 +2143,26 @@ class ExecutionContext:
             self.target_literals.add(self.target_key)
         self.written_keys: Set[str] = set()
         self.current_cell_clause_idx: Optional[int] = None
+        self.clause_spans: List[Tuple[int, int]] = []
+        if self._prompt:
+            try:
+                from tokenizer import CellTokenizer
+                clauses = CellTokenizer.split_prompt_clauses(self._prompt)
+            except Exception:
+                clauses = [self._prompt]
+            cur_search = 0
+            for cl in clauses:
+                start = self._prompt.find(cl, cur_search)
+                if start != -1:
+                    end = start + len(cl)
+                    self.clause_spans.append((start, end))
+                    cur_search = end
+                else:
+                    start = self._prompt.find(cl)
+                    if start != -1:
+                        self.clause_spans.append((start, start + len(cl)))
+        if not self.clause_spans and self._prompt:
+            self.clause_spans = [(0, len(self._prompt))]
         # Bare-identifier role map: char position -> stemmed role context tokens
         # (e.g. pos(X) -> {"column"}). Drives role-conditioned identifier binding
         # and for-each multiplicity detection.
@@ -2469,12 +2502,9 @@ class ExecutionContext:
             projection_roles = set()
         cols = []
         for pos, kind, val in self.ordered_literals:
-            if kind == "quoted_str" and "." not in val:
+            roles = self.identifier_roles.get(pos, frozenset())
+            if roles and (roles & projection_roles):
                 cols.append(val)
-            elif kind in ("identifier", "bare_id"):
-                roles = self.identifier_roles.get(pos, frozenset())
-                if projection_roles and (roles & projection_roles):
-                    cols.append(val)
         return cols
 
     @columns.setter
@@ -2979,6 +3009,15 @@ class ExecutionContext:
             for pos, _tok in group.members:
                 role_map[pos] = group.role_tokens
         return role_map
+
+    def _get_clause_idx_for_pos(self, pos: int) -> int:
+        """Map a character position in the prompt to its enclosing clause index."""
+        if not getattr(self, "clause_spans", None):
+            return 0
+        for c_i, (s, e) in enumerate(self.clause_spans):
+            if s <= pos <= e or (pos >= s and c_i == len(self.clause_spans) - 1):
+                return c_i
+        return 0
 
     def declare_variable(self, name: str, port_sig: Union[PortSignature, AlgebraicSignature, Any], expr: str = "", cell: Optional[Any] = None):
         if not name:
@@ -3502,6 +3541,24 @@ class ExecutionContext:
                 self.used_indices.add(idx)
                 return val
 
+        # Structural Morphism Context
+        port_role = str(getattr(port_sig, "port_role", None) or getattr(port_sig, "role", None) or "").strip().lower()
+        is_path = _lattice_is_path_port(port_sig)
+        is_path_role = port_role in ("path", "file", "filepath", "filename", "pathlike")
+        is_sink_ctx = (
+            getattr(cell, "node_role", "") in ("sink", "terminal", "egress")
+            or not getattr(cell, "outputs", None)
+            or port_role in ("model_sink", "destination", "output_file", "dest_identifier", "sink")
+            or str(getattr(port_sig, "state", "")).lower() in ("dest_identifier", "filepath_written", "destination_written")
+        )
+        is_source_ctx = (
+            getattr(cell, "node_role", "") in ("source", "ingress")
+            or len(getattr(cell, "inputs", {})) == 0
+            or port_role in ("source_data", "source", "input_file", "source_identifier")
+            or str(getattr(port_sig, "state", "")).lower() in ("source_identifier", "file_path")
+        )
+        is_operational = not is_source_ctx and not is_sink_ctx
+
         # 4b. Predicate / boolean expression arguments, grounded by the DECLARED
         # typestate role (state) of the port — never by the port's identifier string.
         # Fallback: an expression literal (comparison syntax) can only ever ground
@@ -3516,13 +3573,13 @@ class ExecutionContext:
                 if idx not in self.used_indices and kind in ("expr", "quoted_str"):
                     self.used_indices.add(idx)
                     return json.dumps(val)
-        elif _is_str_port and cell_stage == 2 and port_sig.required:
+        elif _is_str_port and is_operational and port_sig.required:
             for idx, (_, kind, val) in enumerate(self.ordered_literals):
                 if idx not in self.used_indices and kind == "expr":
                     self.used_indices.add(idx)
                     return json.dumps(val)
 
-        # 5. Stage 1 and Stage 3 Morphisms: Environmental Asset Grounding
+        # 5. Environmental Asset Grounding (Ingress / Egress)
         # file_asset literals flow only into path-typed ports. Plain str ports may
         # receive assets only when the cell declares NO dedicated path port, so that
         # auxiliary string parameters can never steal file assets from the sink/source.
@@ -3534,13 +3591,12 @@ class ExecutionContext:
         def _asset_direction(pos: int) -> str:
             return ExecutionContext._asset_direction(self.prompt or "", pos)
 
-        is_path = _lattice_is_path_port(port_sig)
-        port_role = str(getattr(port_sig, "port_role", None) or getattr(port_sig, "role", None) or "").strip().lower()
-        is_path_role = port_role in ("path", "file", "filepath", "filename", "pathlike")
-
         def _take_asset(prefer: str) -> Optional[str]:
             fallback: Optional[Tuple[int, str]] = None
             path_candidates: List[Tuple[int, str]] = []
+            clause_match_candidate: Optional[Tuple[int, str]] = None
+            current_c_idx = getattr(self, "current_cell_clause_idx", None)
+
             for idx, (lit_pos, kind, val) in enumerate(self.ordered_literals):
                 if idx in self.used_indices:
                     continue
@@ -3559,6 +3615,9 @@ class ExecutionContext:
                     val_str = str(val).strip()
                     if "." in val_str:
                         ext = val_str.rsplit(".", 1)[1].lower()
+                        port_fmts = getattr(port_sig, "supported_formats", None)
+                        if port_fmts and ext not in {f.lower() for f in port_fmts}:
+                            continue
                         reg = TypeRegistry.get_instance()
                         port_t = str(getattr(port_sig, "type_name", "")).strip()
 
@@ -3615,6 +3674,16 @@ class ExecutionContext:
                                         continue
                 if is_file_or_quoted or (is_path_role and matches_path):
                     direction = _asset_direction(lit_pos) if kind == "file_asset" else ""
+                    lit_clause = self._get_clause_idx_for_pos(lit_pos)
+                    in_current_clause = (current_c_idx is not None and lit_clause == current_c_idx)
+
+                    if in_current_clause and (not prefer or direction == prefer or not direction):
+                        self.used_indices.add(idx)
+                        return json.dumps(val)
+
+                    if in_current_clause and clause_match_candidate is None:
+                        clause_match_candidate = (idx, val)
+
                     if prefer and direction == prefer:
                         self.used_indices.add(idx)
                         return json.dumps(val)
@@ -3622,6 +3691,10 @@ class ExecutionContext:
                         fallback = (idx, val)
                     if matches_path:
                         path_candidates.append((idx, val))
+
+            if clause_match_candidate is not None:
+                self.used_indices.add(clause_match_candidate[0])
+                return json.dumps(clause_match_candidate[1])
 
             if is_path_role and len(path_candidates) == 1:
                 idx, val = path_candidates[0]
@@ -3633,19 +3706,8 @@ class ExecutionContext:
                 return json.dumps(fallback[1])
             return None
 
-        is_sink_ctx = (
-            cell_stage == 3
-            or port_role in ("model_sink", "destination", "output_file", "dest_identifier", "sink")
-            or str(getattr(port_sig, "state", "")).lower() in ("dest_identifier", "filepath_written", "destination_written")
-        )
-        is_source_ctx = (
-            cell_stage == 1
-            or port_role in ("source_data", "source", "input_file", "source_identifier")
-            or str(getattr(port_sig, "state", "")).lower() in ("source_identifier", "file_path")
-        )
-
         allow_str_asset = (
-            (cell_stage in (1, 3) or is_sink_ctx or is_source_ctx)
+            (is_sink_ctx or is_source_ctx or (cell_stage is not None and cell_stage in (1, 3)))
             and is_str
             and not getattr(port_sig, "enum_values", None)
             and not _cell_has_path_port()
@@ -3695,8 +3757,8 @@ class ExecutionContext:
                 placeholder = registry.get_output_asset_placeholder(modality)
                 return json.dumps(placeholder)
 
-        # 6. Stage 2 Morphism: Operational Parameter Extraction
-        if (cell_stage == 2 or cell_stage is None) and is_str:
+        # 6. Operational Parameter Extraction
+        if is_operational and is_str:
             enum_vals = {str(e).strip().lower() for e in port_sig.enum_values} if getattr(port_sig, "enum_values", None) else None
             p_state = str(getattr(port_sig, "state", "") or "").lower()
             p_role = str(getattr(port_sig, "port_role", "") or getattr(port_sig, "derived_role", "") or "").lower()
@@ -3772,7 +3834,7 @@ class ExecutionContext:
                 return json.dumps(val)
 
         # 6b. Referential identifier grounding (role-conditioned).
-        if (cell_stage == 2 or cell_stage is None) and port_sig.required and port_sig.default_value is None:
+        if is_operational and port_sig.required and port_sig.default_value is None:
             _tn = t_name
             _is_collection = (
                 registry.is_subtype(_tn, "list")
@@ -3828,7 +3890,7 @@ class ExecutionContext:
                 )
             )
         )
-        if (cell_stage == 2 or cell_stage is None) and is_collection:
+        if is_operational and is_collection:
             _raw_state = str(getattr(port_sig, "state", "") or "")
             _raw_state_low = _raw_state.lower()
             p_role_low = str(getattr(port_sig, "port_role", "") or getattr(port_sig, "derived_role", "") or "").lower()
@@ -3942,7 +4004,7 @@ class ExecutionContext:
         # value's meaning). Words morphologically related to the port's own
         # name are excluded outright ("a file NAMED data.csv" must not feed a
         # port called `name` because they are near-identical strings).
-        if (cell_stage == 2 or cell_stage is None) and is_str and self.prompt:
+        if is_operational and is_str and self.prompt:
             _raw_state = str(getattr(port_sig, "state", "") or "")
             role_label = _raw_state if _raw_state.lower() not in ("any", "default", "") else ""
             projected = self._project_semantic_slot(port_sig.name, role_label=role_label)
@@ -4203,14 +4265,16 @@ class UnificationGate:
             return seen
 
         _, _, k_name, _ = self._find_fibered_carrier_bridge(ctx, registry, is_multi_key=False)
-        proj_port = k_name if k_name else "column"
-        if not k_name:
+        proj_port = k_name if k_name else ""
+        if not proj_port:
             try:
                 p_names = registry.get_verification_semantics("projection_port_names")
                 if p_names:
                     proj_port = p_names[0]
             except Exception:
-                proj_port = "column"
+                pass
+        if not proj_port:
+            return None
 
         abstract_carriers = set(registry.get_abstract_carriers())
 
@@ -4575,20 +4639,22 @@ class UnificationGate:
         if t_col:
             ctx.target_col = str(t_col)
 
-        # Helper to find the freshest in-scope composite/table carrier df_var
-        def _find_df_var() -> Tuple[Optional[str], str]:
+        # Helper to find the freshest in-scope composite/structural carrier
+        def _find_df_var() -> Tuple[Optional[str], Optional[str]]:
             abstract_carriers = set(registry.get_abstract_carriers())
             for v_name, (v_sig, _) in reversed(list(ctx.variables.items())):
                 sig_obj = getattr(v_sig, "signature", v_sig)
                 v_tn = str(getattr(sig_obj, "type_name", "") or "").lower()
+                sk = getattr(sig_obj, "structure_kind", None)
                 if (
-                    registry.is_subtype(v_tn, "table")
+                    sk in ("composite", "tensor", "handle")
                     or v_tn in abstract_carriers
                     or any(registry.is_subtype(v_tn, ac) for ac in abstract_carriers)
                     or registry.is_abstract_carrier(v_tn)
+                    or (not registry.is_subtype(v_tn, "scalar") and not registry.is_subtype(v_tn, "str"))
                 ):
                     return v_name, v_tn
-            return None, "table"
+            return None, None
 
         # ---------------------------------------------------------
         # Case A: target_roles ("target_input")
@@ -4848,7 +4914,7 @@ class UnificationGate:
                     continue
                 bound_val = bindings.get(p_name)
                 unquoted = _quoted_literal(bound_val)
-                if unquoted and (is_terminal or stage == 2 or node_role in ("transform", "operation", "intermediate")):
+                if unquoted and (is_terminal or not is_source):
                     egress.append(unquoted)
 
         return egress
@@ -6501,7 +6567,7 @@ class UnificationGate:
                 role = str(getattr(cell, "node_role", "") or "").lower()
                 outputs = getattr(cell, "outputs", {}) or {}
                 # The final cell produces the terminal pipeline result and must never be pruned
-                if idx == len(current) - 1 or stage == 3 or role in _declared_role_semantics("terminal_roles") or not outputs:
+                if idx == len(current) - 1 or role in ("sink", "terminal", "egress", "consumer") or role in _declared_role_semantics("terminal_roles") or not outputs:
                     continue
                 # Protect explicit calculations/metrics (e.g. mean, metrics, aggregations) that witness a clause,
                 # but pure intermediate projections/slices (like PD_SELECT_COLUMN) whose output is never used
@@ -6869,7 +6935,7 @@ class UnificationGate:
         self,
         cells: Union[List[Cell], List[Tuple[Cell, Dict[str, str]]]],
         context: Optional[ExecutionContext] = None,
-        extract_llm_slots: bool = True,
+        extract_llm_slots: Optional[bool] = None,
         accum_sigma: Optional[Substitution] = None,
     ) -> str:
         """
@@ -6877,6 +6943,12 @@ class UnificationGate:
         Replaces port placeholders strictly from unified variable bindings.
         """
         ctx = context or self.context
+        if extract_llm_slots is None:
+            extract_llm_slots = (
+                (os.environ.get("NSTL_LLM_FEEDBACK") == "1")
+                or bool(getattr(ctx, "llm_feedback", False))
+                or bool(getattr(self.context, "llm_feedback", False))
+            )
         if getattr(ctx, "unresolved_ports", None):
             ports_str = ", ".join(f"{cid}.{p}" for cid, p in ctx.unresolved_ports)
             raise UnresolvedPlaceholderError(
@@ -6904,6 +6976,58 @@ class UnificationGate:
             accum_sigma = res.sigma
             self.last_egress_paths = self._derive_egress_paths(pipeline_bindings)
             self.last_runtime_aliases = dict(getattr(ctx_run, "runtime_aliases", {}) or {})
+
+            # Autonomous Missing Parameter Resolution under --llm-feedback
+            if getattr(ctx_run, "unresolved_ports", None) and (extract_llm_slots or os.environ.get("NSTL_LLM_FEEDBACK") == "1"):
+                try:
+                    from inference import ModelManager
+                except (ImportError, ValueError):
+                    from .inference import ModelManager
+                mm = ModelManager.get_instance()
+                if mm.profile and (mm.can_synthesize() or mm.can_feedback_check()):
+                    prompt_txt = getattr(ctx_run, "_prompt", "") or getattr(self.context, "_prompt", "")
+                    resolved_any = False
+                    rem_unres = []
+                    for cid, p_name in list(ctx_run.unresolved_ports):
+                        cell_obj = next((c for c in cells if c.cell_id == cid), None)
+                        p_sig = cell_obj.inputs.get(p_name) if cell_obj else None
+                        p_desc = getattr(p_sig, "description", "") or getattr(p_sig, "type_name", "") or p_name
+                        query = (
+                            f"User Prompt: {prompt_txt}\n"
+                            f"Missing Parameter Required:\n"
+                            f"Node: {cid}\n"
+                            f"Parameter Port: {p_name} ({p_desc})\n"
+                            f"Extract the exact argument value (e.g. column name, threshold, file path, mode) from the prompt for this port.\n"
+                            f"Return JSON: {{\"value\": <extracted_value>}}"
+                        )
+                        try:
+                            resp = mm.generate_text(query, max_tokens=64, system_prompt="You are a precise argument extractor.")
+                            if resp and "value" in resp:
+                                import json as _json
+                                cleaned = resp.strip()
+                                if "```json" in cleaned:
+                                    cleaned = cleaned.split("```json", 1)[1].split("```", 1)[0].strip()
+                                elif "```" in cleaned:
+                                    cleaned = cleaned.split("```", 1)[1].split("```", 1)[0].strip()
+                                parsed = _json.loads(cleaned)
+                                val = parsed.get("value")
+                                if val is not None:
+                                    ctx_run.parameters[p_name] = val
+                                    ctx_run.target_literals.add(str(val))
+                                    resolved_any = True
+                                    continue
+                        except Exception as _ex:
+                            logger.debug(f"[UNIFICATION] LLM missing parameter extraction failed for {cid}.{p_name}: {_ex}")
+                        rem_unres.append((cid, p_name))
+                    if resolved_any:
+                        ctx_run.unresolved_ports = rem_unres
+                        res = self.unify_pipeline(cells, ctx_run, allow_llm=False)
+                        if not res.is_bottom() and isinstance(res, Success):
+                            pipeline_bindings = res.value
+                            accum_sigma = res.sigma
+                            self.last_egress_paths = self._derive_egress_paths(pipeline_bindings)
+                            self.last_runtime_aliases = dict(getattr(ctx_run, "runtime_aliases", {}) or {})
+
             if getattr(ctx_run, "unresolved_ports", None):
                 ports_str = ", ".join(f"{cid}.{p}" for cid, p in ctx_run.unresolved_ports)
                 raise UnresolvedPlaceholderError(
@@ -7513,7 +7637,8 @@ class UnificationGate:
             self.context.parameters["source_uris"] = list(self.context.source_files)
         if not self.context.parameters.get("dest_uris") and self.context.dest_files:
             self.context.parameters["dest_uris"] = list(self.context.dest_files)
-        return self.emit_code(cells, self.context)
+        extract_llm = (os.environ.get("NSTL_LLM_FEEDBACK") == "1") or bool(getattr(self.context, "llm_feedback", False))
+        return self.emit_code(cells, self.context, extract_llm_slots=extract_llm)
 
     def build_verification_contract(
         self,
@@ -7723,7 +7848,24 @@ class DynamicPlaceholderResolver:
             or p_lower in registry.get_source_port_tokens()
         )
         if is_source_port and hasattr(ctx, "source_files") and ctx.source_files:
-            return f'"{ctx.source_files[0]}"'
+            chosen = None
+            if hasattr(ctx, "current_cell_clause_idx") and ctx.current_cell_clause_idx is not None and hasattr(ctx, "_get_clause_idx_for_pos"):
+                for pos, kind, val in getattr(ctx, "ordered_literals", []):
+                    if val in ctx.source_files and ctx._get_clause_idx_for_pos(pos) == ctx.current_cell_clause_idx:
+                        if val not in getattr(ctx, "consumed_assets", set()):
+                            chosen = val
+                            break
+            if not chosen:
+                for sf in ctx.source_files:
+                    if sf not in getattr(ctx, "consumed_assets", set()):
+                        chosen = sf
+                        break
+            if not chosen:
+                chosen = ctx.source_files[0]
+            if not hasattr(ctx, "consumed_assets"):
+                ctx.consumed_assets = set()
+            ctx.consumed_assets.add(chosen)
+            return f'"{chosen}"'
 
         # 2. Destination files / paths
         is_dest_port = (
@@ -7736,7 +7878,24 @@ class DynamicPlaceholderResolver:
             or p_lower in registry.get_dest_port_tokens()
         )
         if is_dest_port and hasattr(ctx, "dest_files") and ctx.dest_files:
-            return f'"{ctx.dest_files[0]}"'
+            chosen = None
+            if hasattr(ctx, "current_cell_clause_idx") and ctx.current_cell_clause_idx is not None and hasattr(ctx, "_get_clause_idx_for_pos"):
+                for pos, kind, val in getattr(ctx, "ordered_literals", []):
+                    if val in ctx.dest_files and ctx._get_clause_idx_for_pos(pos) == ctx.current_cell_clause_idx:
+                        if val not in getattr(ctx, "consumed_assets", set()):
+                            chosen = val
+                            break
+            if not chosen:
+                for df in ctx.dest_files:
+                    if df not in getattr(ctx, "consumed_assets", set()):
+                        chosen = df
+                        break
+            if not chosen:
+                chosen = ctx.dest_files[-1]
+            if not hasattr(ctx, "consumed_assets"):
+                ctx.consumed_assets = set()
+            ctx.consumed_assets.add(chosen)
+            return f'"{chosen}"'
 
         # 3. Columns / Column names
         is_col_port = (
@@ -7748,7 +7907,24 @@ class DynamicPlaceholderResolver:
         )
         if is_col_port:
             if hasattr(ctx, "columns") and ctx.columns:
-                return f'"{ctx.columns[0]}"'
+                chosen = None
+                if hasattr(ctx, "current_cell_clause_idx") and ctx.current_cell_clause_idx is not None and hasattr(ctx, "_get_clause_idx_for_pos"):
+                    for pos, kind, val in getattr(ctx, "ordered_literals", []):
+                        if val in ctx.columns and ctx._get_clause_idx_for_pos(pos) == ctx.current_cell_clause_idx:
+                            if val not in getattr(ctx, "consumed_columns", set()):
+                                chosen = val
+                                break
+                if not chosen:
+                    for col in ctx.columns:
+                        if col not in getattr(ctx, "consumed_columns", set()):
+                            chosen = col
+                            break
+                if not chosen:
+                    chosen = ctx.columns[0]
+                if not hasattr(ctx, "consumed_columns"):
+                    ctx.consumed_columns = set()
+                ctx.consumed_columns.add(chosen)
+                return f'"{chosen}"'
 
         # 4. Operational flags
         if hasattr(ctx, "flags") and isinstance(ctx.flags, dict) and port_name in ctx.flags:

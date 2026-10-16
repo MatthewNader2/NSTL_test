@@ -2,6 +2,15 @@
   "domain": "pygame",
   "version": "1.1.0",
   "description": "2D game loops, rendering surfaces, geometry, event handling, timers, sound, and collision morphisms.",
+  "supported_formats": [
+    "png",
+    "jpg",
+    "jpeg",
+    "bmp",
+    "wav",
+    "ogg",
+    "mp3"
+  ],
   "types": [
     {
       "name": "object",
@@ -153,7 +162,13 @@
       "node_role": "source",
       "topology_type": "sequential",
       "docstring": "Initializes all imported pygame modules and returns success/failure counts.",
-      "semantic_tags": ["init", "engine", "lifecycle", "start", "initialize"],
+      "semantic_tags": [
+        "init",
+        "engine",
+        "lifecycle",
+        "start",
+        "initialize"
+      ],
       "inputs": {},
       "outputs": {
         "status": {
@@ -161,11 +176,17 @@
           "state": "initialized",
           "abstract_type": "scalar",
           "port_role": "result",
-          "description": "Tuple of (n_successful_inits, n_failed_inits)."
+          "description": "Tuple of (n_successful_inits, n_failed_inits).",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{status} = pygame.init()",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": null,
       "primary_out": "status"
     },
@@ -177,7 +198,13 @@
       "node_role": "sink",
       "topology_type": "sequential",
       "docstring": "Uninitializes all pygame modules that have been previously initialized.",
-      "semantic_tags": ["quit", "engine", "lifecycle", "shutdown", "cleanup"],
+      "semantic_tags": [
+        "quit",
+        "engine",
+        "lifecycle",
+        "shutdown",
+        "cleanup"
+      ],
       "inputs": {
         "trigger": {
           "type_name": "bool",
@@ -186,7 +213,11 @@
           "required": false,
           "default_value": true,
           "port_role": "data_input",
-          "description": "Boolean signal triggering shutdown."
+          "description": "Boolean signal triggering shutdown.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -195,11 +226,17 @@
           "state": "closed",
           "abstract_type": "logical",
           "port_role": "result",
-          "description": "True once pygame modules are uninitialized."
+          "description": "True once pygame modules are uninitialized.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "if {trigger}:\n    pygame.quit()\n{success} = True",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "trigger",
       "primary_out": "success"
     },
@@ -211,16 +248,29 @@
       "node_role": "source",
       "topology_type": "sequential",
       "docstring": "Initializes a window or screen for display and returns a Surface.",
-      "semantic_tags": ["display", "window", "screen", "set_mode", "init_window"],
+      "semantic_tags": [
+        "display",
+        "window",
+        "screen",
+        "set_mode",
+        "init_window"
+      ],
       "inputs": {
         "size": {
           "type_name": "Tuple[int, int]",
           "state": "dimensions",
           "abstract_type": "scalar",
           "required": false,
-          "default_value": [800, 600],
+          "default_value": [
+            800,
+            600
+          ],
           "port_role": "configuration",
-          "description": "Resolution width and height pair."
+          "description": "Resolution width and height pair.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -229,11 +279,17 @@
           "state": "display_surface",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Display Surface object representing the screen."
+          "description": "Display Surface object representing the screen.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{screen} = pygame.display.set_mode({size})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": null,
       "primary_out": "screen"
     },
@@ -245,7 +301,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Sets the current window caption title.",
-      "semantic_tags": ["caption", "title", "window", "display", "set_caption"],
+      "semantic_tags": [
+        "caption",
+        "title",
+        "window",
+        "display",
+        "set_caption"
+      ],
       "inputs": {
         "title": {
           "type_name": "str",
@@ -253,7 +315,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Window title string."
+          "description": "Window title string.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -262,11 +328,17 @@
           "state": "modified",
           "abstract_type": "logical",
           "port_role": "result",
-          "description": "True when caption is set."
+          "description": "True when caption is set.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "pygame.display.set_caption({title})\n{status} = True",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "title",
       "primary_out": "status"
     },
@@ -278,7 +350,13 @@
       "node_role": "source",
       "topology_type": "sequential",
       "docstring": "Returns a reference to the currently set display Surface.",
-      "semantic_tags": ["display", "surface", "screen", "get_surface", "framebuffer"],
+      "semantic_tags": [
+        "display",
+        "surface",
+        "screen",
+        "get_surface",
+        "framebuffer"
+      ],
       "inputs": {},
       "outputs": {
         "screen": {
@@ -286,11 +364,17 @@
           "state": "display_surface",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Currently active display Surface."
+          "description": "Currently active display Surface.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{screen} = pygame.display.get_surface()",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": null,
       "primary_out": "screen"
     },
@@ -302,7 +386,13 @@
       "node_role": "source",
       "topology_type": "sequential",
       "docstring": "Creates a new Clock object to track time and regulate frame rate.",
-      "semantic_tags": ["clock", "timer", "fps", "time", "clock_init"],
+      "semantic_tags": [
+        "clock",
+        "timer",
+        "fps",
+        "time",
+        "clock_init"
+      ],
       "inputs": {},
       "outputs": {
         "clock": {
@@ -310,11 +400,17 @@
           "state": "initialized",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Pygame Clock handle."
+          "description": "Pygame Clock handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{clock} = pygame.time.Clock()",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": null,
       "primary_out": "clock"
     },
@@ -326,7 +422,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Updates the clock and regulates frame rate, returning milliseconds elapsed since previous call.",
-      "semantic_tags": ["tick", "clock", "framerate", "fps", "delta_time"],
+      "semantic_tags": [
+        "tick",
+        "clock",
+        "framerate",
+        "fps",
+        "delta_time"
+      ],
       "inputs": {
         "clock": {
           "type_name": "clock",
@@ -334,7 +436,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Pygame Clock handle."
+          "description": "Pygame Clock handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "framerate": {
           "type_name": "int",
@@ -343,7 +449,11 @@
           "required": false,
           "default_value": 60,
           "port_role": "configuration",
-          "description": "Target frames per second."
+          "description": "Target frames per second.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -352,11 +462,17 @@
           "state": "time_delta",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Elapsed milliseconds since last tick."
+          "description": "Elapsed milliseconds since last tick.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "code_template": "{delta_time} = {clock}.tick({framerate})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "clock",
       "primary_out": "delta_time"
     },
@@ -368,7 +484,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Returns the number of milliseconds since pygame.init() was called.",
-      "semantic_tags": ["ticks", "time", "timestamp", "milliseconds", "timer"],
+      "semantic_tags": [
+        "ticks",
+        "time",
+        "timestamp",
+        "milliseconds",
+        "timer"
+      ],
       "inputs": {},
       "outputs": {
         "ticks": {
@@ -376,11 +498,17 @@
           "state": "time_stamp",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Elapsed milliseconds since engine init."
+          "description": "Elapsed milliseconds since engine init.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "code_template": "{ticks} = pygame.time.get_ticks()",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": null,
       "primary_out": "ticks"
     },
@@ -392,7 +520,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Pauses the program execution for a given number of milliseconds using processor sleep.",
-      "semantic_tags": ["delay", "pause", "sleep", "wait", "time_delay"],
+      "semantic_tags": [
+        "delay",
+        "pause",
+        "sleep",
+        "wait",
+        "time_delay"
+      ],
       "inputs": {
         "milliseconds": {
           "type_name": "int",
@@ -400,7 +534,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Duration to pause in milliseconds."
+          "description": "Duration to pause in milliseconds.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -409,11 +547,17 @@
           "state": "time_delta",
           "abstract_type": "scalar",
           "port_role": "result",
-          "description": "Actual milliseconds paused."
+          "description": "Actual milliseconds paused.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "code_template": "{actual_delay} = pygame.time.delay({milliseconds})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "milliseconds",
       "primary_out": "actual_delay"
     },
@@ -425,7 +569,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Gets events from the queue and clears them.",
-      "semantic_tags": ["event", "poll", "queue", "input", "event_get"],
+      "semantic_tags": [
+        "event",
+        "poll",
+        "queue",
+        "input",
+        "event_get"
+      ],
       "inputs": {},
       "outputs": {
         "events": {
@@ -433,11 +583,17 @@
           "state": "event_queue",
           "abstract_type": "sequence",
           "port_role": "data_output",
-          "description": "List of pending Event objects."
+          "description": "List of pending Event objects.",
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "code_template": "{events} = pygame.event.get()",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": null,
       "primary_out": "events"
     },
@@ -449,7 +605,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Removes and returns a single event from the queue, or NOEVENT if empty.",
-      "semantic_tags": ["event", "poll", "single_event", "event_poll"],
+      "semantic_tags": [
+        "event",
+        "poll",
+        "single_event",
+        "event_poll"
+      ],
       "inputs": {},
       "outputs": {
         "event": {
@@ -457,11 +618,17 @@
           "state": "event_object",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Single event pulled from queue."
+          "description": "Single event pulled from queue.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{event} = pygame.event.poll()",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": null,
       "primary_out": "event"
     },
@@ -473,7 +640,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Gets the state of all keyboard buttons.",
-      "semantic_tags": ["keyboard", "keys", "input", "key_pressed", "keystate"],
+      "semantic_tags": [
+        "keyboard",
+        "keys",
+        "input",
+        "key_pressed",
+        "keystate"
+      ],
       "inputs": {},
       "outputs": {
         "keys": {
@@ -481,11 +654,17 @@
           "state": "key_map",
           "abstract_type": "sequence",
           "port_role": "data_output",
-          "description": "Sequence of boolean states for every key."
+          "description": "Sequence of boolean states for every key.",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "code_template": "{keys} = pygame.key.get_pressed()",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": null,
       "primary_out": "keys"
     },
@@ -497,7 +676,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Retrieves the current mouse cursor position coordinates (x, y).",
-      "semantic_tags": ["mouse", "cursor", "position", "coords", "mouse_pos"],
+      "semantic_tags": [
+        "mouse",
+        "cursor",
+        "position",
+        "coords",
+        "mouse_pos"
+      ],
       "inputs": {},
       "outputs": {
         "pos": {
@@ -505,11 +690,17 @@
           "state": "coordinate",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Mouse coordinates (x, y)."
+          "description": "Mouse coordinates (x, y).",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{pos} = pygame.mouse.get_pos()",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": null,
       "primary_out": "pos"
     },
@@ -521,7 +712,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Gets the state of the mouse buttons as a tuple of booleans (left, middle, right).",
-      "semantic_tags": ["mouse", "button", "click", "mouse_pressed"],
+      "semantic_tags": [
+        "mouse",
+        "button",
+        "click",
+        "mouse_pressed"
+      ],
       "inputs": {},
       "outputs": {
         "buttons": {
@@ -529,11 +725,17 @@
           "state": "mouse_state",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Tuple indicating pressed state for (left, middle, right) buttons."
+          "description": "Tuple indicating pressed state for (left, middle, right) buttons.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{buttons} = pygame.mouse.get_pressed()",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": null,
       "primary_out": "buttons"
     },
@@ -545,7 +747,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Checks if an Event instance matches a target event type constant.",
-      "semantic_tags": ["event", "filter", "type_check", "event_type", "condition"],
+      "semantic_tags": [
+        "event",
+        "filter",
+        "type_check",
+        "event_type",
+        "condition"
+      ],
       "inputs": {
         "event": {
           "type_name": "event",
@@ -553,7 +761,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Event object to inspect."
+          "description": "Event object to inspect.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "target_type": {
           "type_name": "int",
@@ -561,7 +773,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Target pygame event constant."
+          "description": "Target pygame event constant.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -570,11 +786,17 @@
           "state": "logical_state",
           "abstract_type": "logical",
           "port_role": "result",
-          "description": "True if event.type equals target_type."
+          "description": "True if event.type equals target_type.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "{matches} = ({event}.type == {target_type})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "event",
       "primary_out": "matches"
     },
@@ -586,7 +808,13 @@
       "node_role": "source",
       "topology_type": "sequential",
       "docstring": "Creates a new blank off-screen Surface object.",
-      "semantic_tags": ["surface", "create", "canvas", "offscreen", "new_surface"],
+      "semantic_tags": [
+        "surface",
+        "create",
+        "canvas",
+        "offscreen",
+        "new_surface"
+      ],
       "inputs": {
         "size": {
           "type_name": "Tuple[int, int]",
@@ -594,7 +822,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Surface resolution (width, height)."
+          "description": "Surface resolution (width, height).",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -603,11 +835,17 @@
           "state": "initialized",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Newly instantiated Surface."
+          "description": "Newly instantiated Surface.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{surface} = pygame.Surface({size})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": null,
       "primary_out": "surface"
     },
@@ -619,7 +857,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Fills the entire Surface with a solid color.",
-      "semantic_tags": ["fill", "clear", "surface", "color", "background"],
+      "semantic_tags": [
+        "fill",
+        "clear",
+        "surface",
+        "color",
+        "background"
+      ],
       "inputs": {
         "surface": {
           "type_name": "surface",
@@ -627,7 +871,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Surface to fill."
+          "description": "Surface to fill.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "color": {
           "type_name": "Tuple[int, int, int]",
@@ -635,7 +883,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "RGB fill color tuple."
+          "description": "RGB fill color tuple.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -644,11 +896,17 @@
           "state": "modified",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Surface filled with solid color."
+          "description": "Surface filled with solid color.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{surface}.fill({color})\n{out_surface} = {surface}",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "surface",
       "primary_out": "out_surface"
     },
@@ -660,7 +918,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Draws a source Surface onto a destination Surface at the specified destination coordinate or rect.",
-      "semantic_tags": ["blit", "composite", "draw", "render", "surface_blit"],
+      "semantic_tags": [
+        "blit",
+        "composite",
+        "draw",
+        "render",
+        "surface_blit"
+      ],
       "inputs": {
         "dest_surface": {
           "type_name": "surface",
@@ -668,7 +932,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Target surface onto which source is drawn."
+          "description": "Target surface onto which source is drawn.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "source_surface": {
           "type_name": "surface",
@@ -676,7 +944,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Source surface to copy."
+          "description": "Source surface to copy.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "dest_pos": {
           "type_name": "Tuple[int, int]",
@@ -684,7 +956,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Destination top-left position or rect."
+          "description": "Destination top-left position or rect.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -693,11 +969,17 @@
           "state": "modified",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Mutated destination surface."
+          "description": "Mutated destination surface.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{dest_surface}.blit({source_surface}, {dest_pos})\n{out_surface} = {dest_surface}",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "dest_surface",
       "primary_out": "out_surface"
     },
@@ -709,7 +991,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Changes the pixel format of a surface including per-pixel alpha transparency for accelerated blitting.",
-      "semantic_tags": ["convert_alpha", "surface", "transparency", "optimize", "pixel_format"],
+      "semantic_tags": [
+        "convert_alpha",
+        "surface",
+        "transparency",
+        "optimize",
+        "pixel_format"
+      ],
       "inputs": {
         "surface": {
           "type_name": "surface",
@@ -717,7 +1005,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Input surface to optimize."
+          "description": "Input surface to optimize.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -726,11 +1018,17 @@
           "state": "modified",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Optimized surface with alpha channel."
+          "description": "Optimized surface with alpha channel.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{converted_surface} = {surface}.convert_alpha()",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "surface",
       "primary_out": "converted_surface"
     },
@@ -742,7 +1040,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Converts surface pixel format to match display surface for optimal blit performance.",
-      "semantic_tags": ["convert", "surface", "pixel_format", "optimize", "blit_speed"],
+      "semantic_tags": [
+        "convert",
+        "surface",
+        "pixel_format",
+        "optimize",
+        "blit_speed"
+      ],
       "inputs": {
         "surface": {
           "type_name": "surface",
@@ -750,7 +1054,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Input surface to convert."
+          "description": "Input surface to convert.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -759,11 +1067,17 @@
           "state": "modified",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Surface converted to display pixel format."
+          "description": "Surface converted to display pixel format.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{converted_surface} = {surface}.convert()",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "surface",
       "primary_out": "converted_surface"
     },
@@ -775,7 +1089,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Extracts a new Rect bounding box covering the dimensions of the surface.",
-      "semantic_tags": ["get_rect", "rect", "surface", "bounding_box", "geometry"],
+      "semantic_tags": [
+        "get_rect",
+        "rect",
+        "surface",
+        "bounding_box",
+        "geometry"
+      ],
       "inputs": {
         "surface": {
           "type_name": "surface",
@@ -783,7 +1103,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Surface whose bounding rect is queried."
+          "description": "Surface whose bounding rect is queried.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -792,11 +1116,17 @@
           "state": "geometry",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Rect with surface dimensions (origin at 0, 0)."
+          "description": "Rect with surface dimensions (origin at 0, 0).",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{rect} = {surface}.get_rect()",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "surface",
       "primary_out": "rect"
     },
@@ -808,7 +1138,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Returns the (width, height) resolution of the given surface in pixels.",
-      "semantic_tags": ["size", "dimensions", "width", "height", "get_size"],
+      "semantic_tags": [
+        "size",
+        "dimensions",
+        "width",
+        "height",
+        "get_size"
+      ],
       "inputs": {
         "surface": {
           "type_name": "surface",
@@ -816,7 +1152,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Surface to inspect."
+          "description": "Surface to inspect.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -825,11 +1165,17 @@
           "state": "dimensions",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Tuple representing (width, height)."
+          "description": "Tuple representing (width, height).",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{size} = {surface}.get_size()",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "surface",
       "primary_out": "size"
     },
@@ -841,7 +1187,13 @@
       "node_role": "source",
       "topology_type": "sequential",
       "docstring": "Constructs a new pygame Rect object from (x, y, width, height) coordinates.",
-      "semantic_tags": ["rect", "geometry", "init_rect", "bounds", "box"],
+      "semantic_tags": [
+        "rect",
+        "geometry",
+        "init_rect",
+        "bounds",
+        "box"
+      ],
       "inputs": {
         "x": {
           "type_name": "int",
@@ -849,7 +1201,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "X coordinate of top-left corner."
+          "description": "X coordinate of top-left corner.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "y": {
           "type_name": "int",
@@ -857,7 +1213,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Y coordinate of top-left corner."
+          "description": "Y coordinate of top-left corner.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "width": {
           "type_name": "int",
@@ -865,7 +1225,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Width of rect."
+          "description": "Width of rect.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "height": {
           "type_name": "int",
@@ -873,7 +1237,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Height of rect."
+          "description": "Height of rect.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -882,11 +1250,17 @@
           "state": "geometry",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Instantiated Rect handle."
+          "description": "Instantiated Rect handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{rect} = pygame.Rect({x}, {y}, {width}, {height})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": null,
       "primary_out": "rect"
     },
@@ -898,7 +1272,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Returns a new Rect shifted by delta offsets (dx, dy).",
-      "semantic_tags": ["rect", "move", "translate", "offset", "geometry"],
+      "semantic_tags": [
+        "rect",
+        "move",
+        "translate",
+        "offset",
+        "geometry"
+      ],
       "inputs": {
         "rect": {
           "type_name": "rect",
@@ -906,7 +1286,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Source Rect."
+          "description": "Source Rect.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "dx": {
           "type_name": "int",
@@ -914,7 +1298,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Delta displacement along X axis."
+          "description": "Delta displacement along X axis.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "dy": {
           "type_name": "int",
@@ -922,7 +1310,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Delta displacement along Y axis."
+          "description": "Delta displacement along Y axis.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -931,11 +1323,17 @@
           "state": "geometry",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "New translated Rect."
+          "description": "New translated Rect.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{moved_rect} = {rect}.move({dx}, {dy})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "rect",
       "primary_out": "moved_rect"
     },
@@ -947,7 +1345,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Moves the Rect in-place by delta offsets (dx, dy).",
-      "semantic_tags": ["rect", "move_ip", "in_place", "mutation", "translate"],
+      "semantic_tags": [
+        "rect",
+        "move_ip",
+        "in_place",
+        "mutation",
+        "translate"
+      ],
       "inputs": {
         "rect": {
           "type_name": "rect",
@@ -955,7 +1359,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Rect to mutate."
+          "description": "Rect to mutate.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "dx": {
           "type_name": "int",
@@ -963,7 +1371,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "X displacement."
+          "description": "X displacement.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "dy": {
           "type_name": "int",
@@ -971,7 +1383,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Y displacement."
+          "description": "Y displacement.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -980,11 +1396,17 @@
           "state": "geometry",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Mutated Rect handle."
+          "description": "Mutated Rect handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{rect}.move_ip({dx}, {dy})\n{out_rect} = {rect}",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "rect",
       "primary_out": "out_rect"
     },
@@ -996,7 +1418,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Tests whether two rectangles overlap.",
-      "semantic_tags": ["collision", "colliderect", "intersect", "rect", "overlap"],
+      "semantic_tags": [
+        "collision",
+        "colliderect",
+        "intersect",
+        "rect",
+        "overlap"
+      ],
       "inputs": {
         "rect_a": {
           "type_name": "rect",
@@ -1004,7 +1432,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "First Rect."
+          "description": "First Rect.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "rect_b": {
           "type_name": "rect",
@@ -1012,7 +1444,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Second Rect."
+          "description": "Second Rect.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1021,11 +1457,17 @@
           "state": "logical_state",
           "abstract_type": "logical",
           "port_role": "result",
-          "description": "True if rects overlap, False otherwise."
+          "description": "True if rects overlap, False otherwise.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "{collided} = {rect_a}.colliderect({rect_b})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "rect_a",
       "primary_out": "collided"
     },
@@ -1037,7 +1479,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Tests whether a point (x, y) lies inside the given Rect.",
-      "semantic_tags": ["collidepoint", "point_in_rect", "collision", "pick", "hit_test"],
+      "semantic_tags": [
+        "collidepoint",
+        "point_in_rect",
+        "collision",
+        "pick",
+        "hit_test"
+      ],
       "inputs": {
         "rect": {
           "type_name": "rect",
@@ -1045,7 +1493,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Target Rect."
+          "description": "Target Rect.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "point": {
           "type_name": "Tuple[int, int]",
@@ -1053,7 +1505,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Point (x, y) to check."
+          "description": "Point (x, y) to check.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1062,11 +1518,17 @@
           "state": "logical_state",
           "abstract_type": "logical",
           "port_role": "result",
-          "description": "True if point is within rect bounds."
+          "description": "True if point is within rect bounds.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "{inside} = {rect}.collidepoint({point})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "rect",
       "primary_out": "inside"
     },
@@ -1078,7 +1540,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Tests if a Rect intersects any Rect in a list, returning the index of the first collision or -1.",
-      "semantic_tags": ["collidelist", "collision_list", "intersect", "detect", "rect"],
+      "semantic_tags": [
+        "collidelist",
+        "collision_list",
+        "intersect",
+        "detect",
+        "rect"
+      ],
       "inputs": {
         "rect": {
           "type_name": "rect",
@@ -1086,7 +1554,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Probe Rect."
+          "description": "Probe Rect.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "rect_list": {
           "type_name": "list",
@@ -1094,7 +1566,11 @@
           "abstract_type": "sequence",
           "required": true,
           "port_role": "data_input",
-          "description": "List of Rect objects."
+          "description": "List of Rect objects.",
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1103,11 +1579,17 @@
           "state": "index_state",
           "abstract_type": "scalar",
           "port_role": "result",
-          "description": "Index of first colliding rect or -1."
+          "description": "Index of first colliding rect or -1.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "code_template": "{index} = {rect}.collidelist({rect_list})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "rect",
       "primary_out": "index"
     },
@@ -1119,7 +1601,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Returns a new Rect moved completely inside another Rect.",
-      "semantic_tags": ["clamp", "boundary", "constraint", "rect_clamp", "geometry"],
+      "semantic_tags": [
+        "clamp",
+        "boundary",
+        "constraint",
+        "rect_clamp",
+        "geometry"
+      ],
       "inputs": {
         "inner_rect": {
           "type_name": "rect",
@@ -1127,7 +1615,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Rect to be clamped."
+          "description": "Rect to be clamped.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "outer_rect": {
           "type_name": "rect",
@@ -1135,7 +1627,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Bounding Rect container."
+          "description": "Bounding Rect container.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1144,11 +1640,17 @@
           "state": "geometry",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "New Rect constrained within outer_rect."
+          "description": "New Rect constrained within outer_rect.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{clamped_rect} = {inner_rect}.clamp({outer_rect})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "inner_rect",
       "primary_out": "clamped_rect"
     },
@@ -1160,7 +1662,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Re-centers a Rect at the given (x, y) coordinates.",
-      "semantic_tags": ["center", "reposition", "rect", "align", "center_set"],
+      "semantic_tags": [
+        "center",
+        "reposition",
+        "rect",
+        "align",
+        "center_set"
+      ],
       "inputs": {
         "rect": {
           "type_name": "rect",
@@ -1168,7 +1676,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Rect to reposition."
+          "description": "Rect to reposition.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "center_pos": {
           "type_name": "Tuple[int, int]",
@@ -1176,7 +1688,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "New (x, y) center coordinate."
+          "description": "New (x, y) center coordinate.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1185,11 +1701,17 @@
           "state": "geometry",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Mutated Rect centered at center_pos."
+          "description": "Mutated Rect centered at center_pos.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{rect}.center = {center_pos}\n{out_rect} = {rect}",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "rect",
       "primary_out": "out_rect"
     },
@@ -1201,7 +1723,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Draws a rectangle on the given Surface.",
-      "semantic_tags": ["draw", "rect", "rectangle", "shape", "render_rect"],
+      "semantic_tags": [
+        "draw",
+        "rect",
+        "rectangle",
+        "shape",
+        "render_rect"
+      ],
       "inputs": {
         "surface": {
           "type_name": "surface",
@@ -1209,16 +1737,28 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Target surface to draw upon."
+          "description": "Target surface to draw upon.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "color": {
           "type_name": "Tuple[int, int, int]",
           "state": "rgb_color",
           "abstract_type": "scalar",
           "required": false,
-          "default_value": [255, 0, 0],
+          "default_value": [
+            255,
+            0,
+            0
+          ],
           "port_role": "configuration",
-          "description": "RGB color tuple."
+          "description": "RGB color tuple.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "rect": {
           "type_name": "rect",
@@ -1226,7 +1766,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Rectangle coordinates and dimensions."
+          "description": "Rectangle coordinates and dimensions.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1235,11 +1779,17 @@
           "state": "modified",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Surface with rectangle drawn."
+          "description": "Surface with rectangle drawn.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "pygame.draw.rect({surface}, {color}, {rect})\n{out_surface} = {surface}",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "surface",
       "primary_out": "out_surface"
     },
@@ -1251,7 +1801,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Draws a circle on the given Surface around a center position.",
-      "semantic_tags": ["draw", "circle", "render_circle", "shape", "primitive"],
+      "semantic_tags": [
+        "draw",
+        "circle",
+        "render_circle",
+        "shape",
+        "primitive"
+      ],
       "inputs": {
         "surface": {
           "type_name": "surface",
@@ -1259,16 +1815,28 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Target Surface."
+          "description": "Target Surface.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "color": {
           "type_name": "Tuple[int, int, int]",
           "state": "rgb_color",
           "abstract_type": "scalar",
           "required": false,
-          "default_value": [0, 255, 0],
+          "default_value": [
+            0,
+            255,
+            0
+          ],
           "port_role": "configuration",
-          "description": "RGB color tuple."
+          "description": "RGB color tuple.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "center": {
           "type_name": "Tuple[int, int]",
@@ -1276,7 +1844,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Center coordinates (x, y)."
+          "description": "Center coordinates (x, y).",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "radius": {
           "type_name": "int",
@@ -1284,7 +1856,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Radius of circle."
+          "description": "Radius of circle.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1293,11 +1869,17 @@
           "state": "modified",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Surface with circle drawn."
+          "description": "Surface with circle drawn.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "pygame.draw.circle({surface}, {color}, {center}, {radius})\n{out_surface} = {surface}",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "surface",
       "primary_out": "out_surface"
     },
@@ -1309,7 +1891,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Draws a straight line segment on the given Surface between start_pos and end_pos.",
-      "semantic_tags": ["draw", "line", "segment", "render_line", "primitive"],
+      "semantic_tags": [
+        "draw",
+        "line",
+        "segment",
+        "render_line",
+        "primitive"
+      ],
       "inputs": {
         "surface": {
           "type_name": "surface",
@@ -1317,16 +1905,28 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Target Surface."
+          "description": "Target Surface.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "color": {
           "type_name": "Tuple[int, int, int]",
           "state": "rgb_color",
           "abstract_type": "scalar",
           "required": false,
-          "default_value": [255, 255, 255],
+          "default_value": [
+            255,
+            255,
+            255
+          ],
           "port_role": "configuration",
-          "description": "RGB color tuple."
+          "description": "RGB color tuple.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "start_pos": {
           "type_name": "Tuple[int, int]",
@@ -1334,7 +1934,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Start position (x, y)."
+          "description": "Start position (x, y).",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "end_pos": {
           "type_name": "Tuple[int, int]",
@@ -1342,7 +1946,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "End position (x, y)."
+          "description": "End position (x, y).",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "width": {
           "type_name": "int",
@@ -1351,7 +1959,11 @@
           "required": false,
           "default_value": 1,
           "port_role": "configuration",
-          "description": "Line thickness."
+          "description": "Line thickness.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1360,11 +1972,17 @@
           "state": "modified",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Surface with line drawn."
+          "description": "Surface with line drawn.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "pygame.draw.line({surface}, {color}, {start_pos}, {end_pos}, {width})\n{out_surface} = {surface}",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "surface",
       "primary_out": "out_surface"
     },
@@ -1376,7 +1994,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Draws multiple continuous line segments connecting a sequence of points.",
-      "semantic_tags": ["draw", "lines", "polyline", "path", "render_lines"],
+      "semantic_tags": [
+        "draw",
+        "lines",
+        "polyline",
+        "path",
+        "render_lines"
+      ],
       "inputs": {
         "surface": {
           "type_name": "surface",
@@ -1384,16 +2008,28 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Target Surface."
+          "description": "Target Surface.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "color": {
           "type_name": "Tuple[int, int, int]",
           "state": "rgb_color",
           "abstract_type": "scalar",
           "required": false,
-          "default_value": [255, 255, 255],
+          "default_value": [
+            255,
+            255,
+            255
+          ],
           "port_role": "configuration",
-          "description": "RGB color tuple."
+          "description": "RGB color tuple.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "closed": {
           "type_name": "bool",
@@ -1402,7 +2038,11 @@
           "required": false,
           "default_value": false,
           "port_role": "configuration",
-          "description": "If True, connects the first and last points."
+          "description": "If True, connects the first and last points.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         },
         "points": {
           "type_name": "list",
@@ -1410,7 +2050,11 @@
           "abstract_type": "sequence",
           "required": true,
           "port_role": "configuration",
-          "description": "List of (x, y) points."
+          "description": "List of (x, y) points.",
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "width": {
           "type_name": "int",
@@ -1419,7 +2063,11 @@
           "required": false,
           "default_value": 1,
           "port_role": "configuration",
-          "description": "Line thickness."
+          "description": "Line thickness.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1428,11 +2076,17 @@
           "state": "modified",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Surface with polyline drawn."
+          "description": "Surface with polyline drawn.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "pygame.draw.lines({surface}, {color}, {closed}, {points}, {width})\n{out_surface} = {surface}",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "surface",
       "primary_out": "out_surface"
     },
@@ -1444,7 +2098,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Draws a solid or outlined polygon on the given Surface from a sequence of vertices.",
-      "semantic_tags": ["draw", "polygon", "shape", "render_polygon", "vertices"],
+      "semantic_tags": [
+        "draw",
+        "polygon",
+        "shape",
+        "render_polygon",
+        "vertices"
+      ],
       "inputs": {
         "surface": {
           "type_name": "surface",
@@ -1452,16 +2112,28 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Target Surface."
+          "description": "Target Surface.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "color": {
           "type_name": "Tuple[int, int, int]",
           "state": "rgb_color",
           "abstract_type": "scalar",
           "required": false,
-          "default_value": [0, 0, 255],
+          "default_value": [
+            0,
+            0,
+            255
+          ],
           "port_role": "configuration",
-          "description": "RGB color tuple."
+          "description": "RGB color tuple.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "points": {
           "type_name": "list",
@@ -1469,7 +2141,11 @@
           "abstract_type": "sequence",
           "required": true,
           "port_role": "configuration",
-          "description": "List of vertex coordinates [(x, y), ...]."
+          "description": "List of vertex coordinates [(x, y), ...].",
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1478,11 +2154,17 @@
           "state": "modified",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Surface with polygon drawn."
+          "description": "Surface with polygon drawn.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "pygame.draw.polygon({surface}, {color}, {points})\n{out_surface} = {surface}",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "surface",
       "primary_out": "out_surface"
     },
@@ -1494,7 +2176,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Draws an ellipse bounded by the specified Rect on the given Surface.",
-      "semantic_tags": ["draw", "ellipse", "oval", "render_ellipse", "shape"],
+      "semantic_tags": [
+        "draw",
+        "ellipse",
+        "oval",
+        "render_ellipse",
+        "shape"
+      ],
       "inputs": {
         "surface": {
           "type_name": "surface",
@@ -1502,16 +2190,28 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Target Surface."
+          "description": "Target Surface.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "color": {
           "type_name": "Tuple[int, int, int]",
           "state": "rgb_color",
           "abstract_type": "scalar",
           "required": false,
-          "default_value": [255, 255, 0],
+          "default_value": [
+            255,
+            255,
+            0
+          ],
           "port_role": "configuration",
-          "description": "RGB color tuple."
+          "description": "RGB color tuple.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "rect": {
           "type_name": "rect",
@@ -1519,7 +2219,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Bounding Rect of the ellipse."
+          "description": "Bounding Rect of the ellipse.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1528,11 +2232,17 @@
           "state": "modified",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Surface with ellipse drawn."
+          "description": "Surface with ellipse drawn.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "pygame.draw.ellipse({surface}, {color}, {rect})\n{out_surface} = {surface}",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "surface",
       "primary_out": "out_surface"
     },
@@ -1544,7 +2254,13 @@
       "node_role": "sink",
       "topology_type": "sequential",
       "docstring": "Updates the full display Surface to the screen.",
-      "semantic_tags": ["flip", "render", "display", "update", "screen_refresh"],
+      "semantic_tags": [
+        "flip",
+        "render",
+        "display",
+        "update",
+        "screen_refresh"
+      ],
       "inputs": {
         "screen": {
           "type_name": "surface",
@@ -1552,7 +2268,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Surface to flush to the hardware frame buffer."
+          "description": "Surface to flush to the hardware frame buffer.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1561,11 +2281,17 @@
           "state": "flushed",
           "abstract_type": "logical",
           "port_role": "result",
-          "description": "True when buffer is swapped."
+          "description": "True when buffer is swapped.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "pygame.display.flip()\n{status} = True",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "screen",
       "primary_out": "status"
     },
@@ -1577,7 +2303,13 @@
       "node_role": "sink",
       "topology_type": "sequential",
       "docstring": "Updates a portion or list of rect portions of the display Surface to the screen.",
-      "semantic_tags": ["update", "display", "dirty_rect", "refresh", "sink"],
+      "semantic_tags": [
+        "update",
+        "display",
+        "dirty_rect",
+        "refresh",
+        "sink"
+      ],
       "inputs": {
         "screen": {
           "type_name": "surface",
@@ -1585,7 +2317,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Surface to flush to the hardware frame buffer."
+          "description": "Surface to flush to the hardware frame buffer.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "rect_list": {
           "type_name": "list",
@@ -1593,7 +2329,11 @@
           "abstract_type": "sequence",
           "required": true,
           "port_role": "data_input",
-          "description": "List of dirty Rect regions to update."
+          "description": "List of dirty Rect regions to update.",
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1602,11 +2342,17 @@
           "state": "flushed",
           "abstract_type": "logical",
           "port_role": "result",
-          "description": "True when dirty regions have been flipped."
+          "description": "True when dirty regions have been flipped.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "pygame.display.update({rect_list})\n{status} = True",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "screen",
       "primary_out": "status"
     },
@@ -1618,7 +2364,12 @@
       "node_role": "source",
       "topology_type": "sequential",
       "docstring": "Initializes the pygame font module.",
-      "semantic_tags": ["font", "init", "typography", "subsystem"],
+      "semantic_tags": [
+        "font",
+        "init",
+        "typography",
+        "subsystem"
+      ],
       "inputs": {},
       "outputs": {
         "status": {
@@ -1626,11 +2377,17 @@
           "state": "initialized",
           "abstract_type": "logical",
           "port_role": "result",
-          "description": "True when font subsystem is initialized."
+          "description": "True when font subsystem is initialized.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "pygame.font.init()\n{status} = True",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": null,
       "primary_out": "status"
     },
@@ -1642,7 +2399,13 @@
       "node_role": "sink",
       "topology_type": "sequential",
       "docstring": "Uninitializes the font subsystem.",
-      "semantic_tags": ["font", "quit", "shutdown", "cleanup", "typography"],
+      "semantic_tags": [
+        "font",
+        "quit",
+        "shutdown",
+        "cleanup",
+        "typography"
+      ],
       "inputs": {
         "trigger": {
           "type_name": "bool",
@@ -1651,7 +2414,11 @@
           "required": false,
           "default_value": true,
           "port_role": "data_input",
-          "description": "Signal triggering font cleanup."
+          "description": "Signal triggering font cleanup.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1660,11 +2427,17 @@
           "state": "closed",
           "abstract_type": "logical",
           "port_role": "result",
-          "description": "True when font subsystem is shut down."
+          "description": "True when font subsystem is shut down.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "if {trigger}:\n    pygame.font.quit()\n{status} = True",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "trigger",
       "primary_out": "status"
     },
@@ -1676,7 +2449,13 @@
       "node_role": "source",
       "topology_type": "sequential",
       "docstring": "Creates a Font object from system font resources.",
-      "semantic_tags": ["font", "sysfont", "typography", "text", "font_create"],
+      "semantic_tags": [
+        "font",
+        "sysfont",
+        "typography",
+        "text",
+        "font_create"
+      ],
       "inputs": {
         "name": {
           "type_name": "str",
@@ -1685,7 +2464,11 @@
           "required": false,
           "default_value": "Arial",
           "port_role": "configuration",
-          "description": "Font family name."
+          "description": "Font family name.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "size": {
           "type_name": "int",
@@ -1694,7 +2477,11 @@
           "required": false,
           "default_value": 24,
           "port_role": "configuration",
-          "description": "Font point size."
+          "description": "Font point size.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "bold": {
           "type_name": "bool",
@@ -1703,7 +2490,11 @@
           "required": false,
           "default_value": false,
           "port_role": "configuration",
-          "description": "Bold glyph flag."
+          "description": "Bold glyph flag.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         },
         "italic": {
           "type_name": "bool",
@@ -1712,7 +2503,11 @@
           "required": false,
           "default_value": false,
           "port_role": "configuration",
-          "description": "Italic glyph flag."
+          "description": "Italic glyph flag.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1721,11 +2516,17 @@
           "state": "font_handle",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Loaded Font object."
+          "description": "Loaded Font object.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{font} = pygame.font.SysFont({name}, {size}, {bold}, {italic})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": null,
       "primary_out": "font"
     },
@@ -1737,7 +2538,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Renders text string onto a new Surface.",
-      "semantic_tags": ["font", "render", "text", "glyphs", "font_render"],
+      "semantic_tags": [
+        "font",
+        "render",
+        "text",
+        "glyphs",
+        "font_render"
+      ],
       "inputs": {
         "font": {
           "type_name": "font",
@@ -1745,7 +2552,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Font handle to render with."
+          "description": "Font handle to render with.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "text": {
           "type_name": "str",
@@ -1753,7 +2564,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Text content to render."
+          "description": "Text content to render.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "antialias": {
           "type_name": "bool",
@@ -1762,16 +2577,28 @@
           "required": false,
           "default_value": true,
           "port_role": "configuration",
-          "description": "Smooth edges flag."
+          "description": "Smooth edges flag.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         },
         "color": {
           "type_name": "Tuple[int, int, int]",
           "state": "rgb_color",
           "abstract_type": "scalar",
           "required": false,
-          "default_value": [255, 255, 255],
+          "default_value": [
+            255,
+            255,
+            255
+          ],
           "port_role": "configuration",
-          "description": "Text RGB color."
+          "description": "Text RGB color.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1780,11 +2607,17 @@
           "state": "rendered",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "New Surface with rendered text."
+          "description": "New Surface with rendered text.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{text_surface} = {font}.render({text}, {antialias}, {color})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "font",
       "primary_out": "text_surface"
     },
@@ -1796,7 +2629,13 @@
       "node_role": "source",
       "topology_type": "sequential",
       "docstring": "Loads an image from a file path into a new Surface.",
-      "semantic_tags": ["image", "load", "texture", "asset", "ingress"],
+      "semantic_tags": [
+        "image",
+        "load",
+        "texture",
+        "asset",
+        "ingress"
+      ],
       "inputs": {
         "image_path": {
           "type_name": "str",
@@ -1804,7 +2643,13 @@
           "abstract_type": "path",
           "required": true,
           "port_role": "configuration",
-          "description": "Filesystem path to source image file."
+          "description": "Filesystem path to source image file.",
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "*"
+          ]
         }
       },
       "outputs": {
@@ -1813,11 +2658,17 @@
           "state": "initialized",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Surface containing decoded image bitmap."
+          "description": "Surface containing decoded image bitmap.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{surface} = pygame.image.load({image_path})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "image_path",
       "primary_out": "surface"
     },
@@ -1829,7 +2680,13 @@
       "node_role": "sink",
       "topology_type": "sequential",
       "docstring": "Saves a Surface to disk at the specified destination file path.",
-      "semantic_tags": ["image", "save", "screenshot", "egress", "export"],
+      "semantic_tags": [
+        "image",
+        "save",
+        "screenshot",
+        "egress",
+        "export"
+      ],
       "inputs": {
         "surface": {
           "type_name": "surface",
@@ -1837,7 +2694,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Surface to write to disk."
+          "description": "Surface to write to disk.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "file_path": {
           "type_name": "str",
@@ -1845,7 +2706,13 @@
           "abstract_type": "path",
           "required": true,
           "port_role": "configuration",
-          "description": "Destination filesystem path."
+          "description": "Destination filesystem path.",
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "*"
+          ]
         }
       },
       "outputs": {
@@ -1854,11 +2721,17 @@
           "state": "flushed",
           "abstract_type": "logical",
           "port_role": "result",
-          "description": "True when image has been written to disk."
+          "description": "True when image has been written to disk.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "pygame.image.save({surface}, {file_path})\n{status} = True",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "surface",
       "primary_out": "status"
     },
@@ -1870,7 +2743,13 @@
       "node_role": "source",
       "topology_type": "sequential",
       "docstring": "Initializes the pygame mixer subsystem for sound playback.",
-      "semantic_tags": ["mixer", "audio", "init", "sound_init", "subsystem"],
+      "semantic_tags": [
+        "mixer",
+        "audio",
+        "init",
+        "sound_init",
+        "subsystem"
+      ],
       "inputs": {
         "frequency": {
           "type_name": "int",
@@ -1879,7 +2758,11 @@
           "required": false,
           "default_value": 44100,
           "port_role": "configuration",
-          "description": "Audio sample frequency in Hz."
+          "description": "Audio sample frequency in Hz.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "size": {
           "type_name": "int",
@@ -1888,7 +2771,11 @@
           "required": false,
           "default_value": -16,
           "port_role": "configuration",
-          "description": "Audio bit depth and sign."
+          "description": "Audio bit depth and sign.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "channels": {
           "type_name": "int",
@@ -1897,7 +2784,11 @@
           "required": false,
           "default_value": 2,
           "port_role": "configuration",
-          "description": "1 for mono, 2 for stereo."
+          "description": "1 for mono, 2 for stereo.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "buffer": {
           "type_name": "int",
@@ -1906,7 +2797,11 @@
           "required": false,
           "default_value": 512,
           "port_role": "configuration",
-          "description": "Audio buffer size in samples."
+          "description": "Audio buffer size in samples.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1915,11 +2810,17 @@
           "state": "initialized",
           "abstract_type": "logical",
           "port_role": "result",
-          "description": "True when mixer is initialized."
+          "description": "True when mixer is initialized.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "pygame.mixer.init(frequency={frequency}, size={size}, channels={channels}, buffer={buffer})\n{status} = True",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": null,
       "primary_out": "status"
     },
@@ -1931,7 +2832,13 @@
       "node_role": "sink",
       "topology_type": "sequential",
       "docstring": "Uninitializes the pygame mixer audio subsystem.",
-      "semantic_tags": ["mixer", "quit", "shutdown", "audio", "cleanup"],
+      "semantic_tags": [
+        "mixer",
+        "quit",
+        "shutdown",
+        "audio",
+        "cleanup"
+      ],
       "inputs": {
         "trigger": {
           "type_name": "bool",
@@ -1940,7 +2847,11 @@
           "required": false,
           "default_value": true,
           "port_role": "data_input",
-          "description": "Signal triggering mixer shutdown."
+          "description": "Signal triggering mixer shutdown.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1949,11 +2860,17 @@
           "state": "closed",
           "abstract_type": "logical",
           "port_role": "result",
-          "description": "True when mixer is closed."
+          "description": "True when mixer is closed.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "if {trigger}:\n    pygame.mixer.quit()\n{status} = True",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "trigger",
       "primary_out": "status"
     },
@@ -1965,7 +2882,13 @@
       "node_role": "source",
       "topology_type": "sequential",
       "docstring": "Loads an audio sample file into a Sound object.",
-      "semantic_tags": ["sound", "audio", "load", "sample", "sfx"],
+      "semantic_tags": [
+        "sound",
+        "audio",
+        "load",
+        "sample",
+        "sfx"
+      ],
       "inputs": {
         "file_path": {
           "type_name": "str",
@@ -1973,7 +2896,13 @@
           "abstract_type": "path",
           "required": true,
           "port_role": "configuration",
-          "description": "Filesystem path to sound file."
+          "description": "Filesystem path to sound file.",
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "*"
+          ]
         }
       },
       "outputs": {
@@ -1982,11 +2911,17 @@
           "state": "sound_handle",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Loaded Sound object."
+          "description": "Loaded Sound object.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{sound} = pygame.mixer.Sound({file_path})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "file_path",
       "primary_out": "sound"
     },
@@ -1998,7 +2933,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Plays audio sample on an available mixer channel.",
-      "semantic_tags": ["sound", "play", "audio", "sfx", "playback"],
+      "semantic_tags": [
+        "sound",
+        "play",
+        "audio",
+        "sfx",
+        "playback"
+      ],
       "inputs": {
         "sound": {
           "type_name": "sound",
@@ -2006,7 +2947,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Sound handle to play."
+          "description": "Sound handle to play.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "loops": {
           "type_name": "int",
@@ -2015,7 +2960,11 @@
           "required": false,
           "default_value": 0,
           "port_role": "configuration",
-          "description": "Repeat count (0 = play once, -1 = loop indefinitely)."
+          "description": "Repeat count (0 = play once, -1 = loop indefinitely).",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2024,11 +2973,17 @@
           "state": "active",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Channel object assigned to playback."
+          "description": "Channel object assigned to playback.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{channel} = {sound}.play(loops={loops})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "sound",
       "primary_out": "channel"
     },
@@ -2040,7 +2995,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Stops playback of the specified Sound object across all channels.",
-      "semantic_tags": ["sound", "stop", "audio", "halt", "mute"],
+      "semantic_tags": [
+        "sound",
+        "stop",
+        "audio",
+        "halt",
+        "mute"
+      ],
       "inputs": {
         "sound": {
           "type_name": "sound",
@@ -2048,7 +3009,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Sound object to stop."
+          "description": "Sound object to stop.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2057,11 +3022,17 @@
           "state": "modified",
           "abstract_type": "logical",
           "port_role": "result",
-          "description": "True when sound is stopped."
+          "description": "True when sound is stopped.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "{sound}.stop()\n{status} = True",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "sound",
       "primary_out": "status"
     },
@@ -2080,7 +3051,12 @@
         }
       },
       "docstring": "Category-Theoretic State Loop combinator: executes slot body while running flag remains True.",
-      "semantic_tags": ["while_loop", "game_loop", "tick_loop", "main_loop"],
+      "semantic_tags": [
+        "while_loop",
+        "game_loop",
+        "tick_loop",
+        "main_loop"
+      ],
       "inputs": {
         "running": {
           "type_name": "bool",
@@ -2088,7 +3064,11 @@
           "abstract_type": "logical",
           "required": true,
           "port_role": "data_input",
-          "description": "Loop continuation flag."
+          "description": "Loop continuation flag.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2097,11 +3077,17 @@
           "state": "terminated",
           "abstract_type": "handle",
           "port_role": "result",
-          "description": "Final state upon loop completion."
+          "description": "Final state upon loop completion.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "while {running}:\n    {body}\n{final_state} = None",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "running",
       "primary_out": "final_state"
     },
@@ -2119,7 +3105,13 @@
         }
       },
       "docstring": "Category-Theoretic Event Iterator combinator: processes event queue with for event in pygame.event.get().",
-      "semantic_tags": ["event_loop", "for_loop", "event_poll", "iter_events", "main_loop"],
+      "semantic_tags": [
+        "event_loop",
+        "for_loop",
+        "event_poll",
+        "iter_events",
+        "main_loop"
+      ],
       "inputs": {},
       "outputs": {
         "event": {
@@ -2127,18 +3119,28 @@
           "state": "event_object",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Current Event instance being processed."
+          "description": "Current Event instance being processed.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "completed": {
           "type_name": "bool",
           "state": "flushed",
           "abstract_type": "logical",
           "port_role": "result",
-          "description": "True when all pending events have been handled."
+          "description": "True when all pending events have been handled.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "for {event} in pygame.event.get():\n    {body}\n{completed} = True",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": null,
       "primary_out": "completed"
     },
@@ -2150,7 +3152,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Resizes a Surface to new resolution dimensions using nearest-neighbor scaling.",
-      "semantic_tags": ["transform", "scale", "resize", "surface", "resolution"],
+      "semantic_tags": [
+        "transform",
+        "scale",
+        "resize",
+        "surface",
+        "resolution"
+      ],
       "inputs": {
         "surface": {
           "type_name": "surface",
@@ -2158,7 +3166,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Input Surface to scale."
+          "description": "Input Surface to scale.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "size": {
           "type_name": "Tuple[int, int]",
@@ -2166,7 +3178,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Target width and height."
+          "description": "Target width and height.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2175,11 +3191,17 @@
           "state": "modified",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "New scaled Surface."
+          "description": "New scaled Surface.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{scaled_surface} = pygame.transform.scale({surface}, {size})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "surface",
       "primary_out": "scaled_surface"
     },
@@ -2191,7 +3213,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Rotates and scales a Surface simultaneously with anti-aliasing filtering.",
-      "semantic_tags": ["transform", "rotozoom", "rotate", "scale", "smooth"],
+      "semantic_tags": [
+        "transform",
+        "rotozoom",
+        "rotate",
+        "scale",
+        "smooth"
+      ],
       "inputs": {
         "surface": {
           "type_name": "surface",
@@ -2199,7 +3227,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Input Surface."
+          "description": "Input Surface.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "angle": {
           "type_name": "float",
@@ -2207,7 +3239,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Counter-clockwise rotation angle in degrees."
+          "description": "Counter-clockwise rotation angle in degrees.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "scale": {
           "type_name": "float",
@@ -2215,7 +3251,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Positive scaling multiplier factor."
+          "description": "Positive scaling multiplier factor.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2224,11 +3264,17 @@
           "state": "modified",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Filtered rotated and zoomed Surface."
+          "description": "Filtered rotated and zoomed Surface.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{transformed_surface} = pygame.transform.rotozoom({surface}, {angle}, {scale})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "surface",
       "primary_out": "transformed_surface"
     },
@@ -2240,7 +3286,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Rotates a Surface counter-clockwise by an arbitrary angle in degrees.",
-      "semantic_tags": ["transform", "rotate", "orientation", "angle", "surface"],
+      "semantic_tags": [
+        "transform",
+        "rotate",
+        "orientation",
+        "angle",
+        "surface"
+      ],
       "inputs": {
         "surface": {
           "type_name": "surface",
@@ -2248,7 +3300,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Source Surface."
+          "description": "Source Surface.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "angle": {
           "type_name": "float",
@@ -2256,7 +3312,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Degrees of rotation."
+          "description": "Degrees of rotation.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2265,11 +3325,17 @@
           "state": "modified",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Rotated Surface padded to bound new orientation."
+          "description": "Rotated Surface padded to bound new orientation.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{rotated_surface} = pygame.transform.rotate({surface}, {angle})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "surface",
       "primary_out": "rotated_surface"
     },
@@ -2281,7 +3347,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Flips a Surface horizontally, vertically, or in both dimensions.",
-      "semantic_tags": ["transform", "flip", "mirror", "invert", "surface"],
+      "semantic_tags": [
+        "transform",
+        "flip",
+        "mirror",
+        "invert",
+        "surface"
+      ],
       "inputs": {
         "surface": {
           "type_name": "surface",
@@ -2289,7 +3361,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Source Surface."
+          "description": "Source Surface.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "flip_x": {
           "type_name": "bool",
@@ -2297,7 +3373,11 @@
           "abstract_type": "logical",
           "required": true,
           "port_role": "configuration",
-          "description": "True to flip along horizontal axis."
+          "description": "True to flip along horizontal axis.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         },
         "flip_y": {
           "type_name": "bool",
@@ -2305,7 +3385,11 @@
           "abstract_type": "logical",
           "required": true,
           "port_role": "configuration",
-          "description": "True to flip along vertical axis."
+          "description": "True to flip along vertical axis.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2314,11 +3398,17 @@
           "state": "modified",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Reflected Surface."
+          "description": "Reflected Surface.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{flipped_surface} = pygame.transform.flip({surface}, {flip_x}, {flip_y})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "surface",
       "primary_out": "flipped_surface"
     },
@@ -2330,7 +3420,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Scales a 24-bit or 32-bit Surface smoothly using bilinear interpolation.",
-      "semantic_tags": ["transform", "smoothscale", "bilinear", "interpolate", "resample"],
+      "semantic_tags": [
+        "transform",
+        "smoothscale",
+        "bilinear",
+        "interpolate",
+        "resample"
+      ],
       "inputs": {
         "surface": {
           "type_name": "surface",
@@ -2338,7 +3434,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "High-color source Surface."
+          "description": "High-color source Surface.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "size": {
           "type_name": "Tuple[int, int]",
@@ -2346,7 +3446,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Target width and height."
+          "description": "Target width and height.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2355,11 +3459,17 @@
           "state": "modified",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Bilinear anti-aliased scaled Surface."
+          "description": "Bilinear anti-aliased scaled Surface.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{smooth_surface} = pygame.transform.smoothscale({surface}, {size})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "surface",
       "primary_out": "smooth_surface"
     },
@@ -2371,7 +3481,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Scales a Surface by a proportional scalar multiplier factor.",
-      "semantic_tags": ["transform", "scale_by", "factor", "ratio", "surface"],
+      "semantic_tags": [
+        "transform",
+        "scale_by",
+        "factor",
+        "ratio",
+        "surface"
+      ],
       "inputs": {
         "surface": {
           "type_name": "surface",
@@ -2379,7 +3495,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Source Surface."
+          "description": "Source Surface.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "factor": {
           "type_name": "float",
@@ -2387,7 +3507,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Multiplication factor (e.g. 2.0 for double size)."
+          "description": "Multiplication factor (e.g. 2.0 for double size).",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2396,11 +3520,17 @@
           "state": "modified",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Proportionally scaled Surface."
+          "description": "Proportionally scaled Surface.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{scaled_surface} = pygame.transform.scale_by({surface}, {factor})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "surface",
       "primary_out": "scaled_surface"
     },
@@ -2412,7 +3542,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Extracts and removes an internal rectangular region from a Surface, collapsing adjacent edges.",
-      "semantic_tags": ["transform", "chop", "crop", "slice", "surface"],
+      "semantic_tags": [
+        "transform",
+        "chop",
+        "crop",
+        "slice",
+        "surface"
+      ],
       "inputs": {
         "surface": {
           "type_name": "surface",
@@ -2420,7 +3556,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Source Surface."
+          "description": "Source Surface.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "rect": {
           "type_name": "rect",
@@ -2428,7 +3568,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Region to remove."
+          "description": "Region to remove.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2437,11 +3581,17 @@
           "state": "modified",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Surface with specified rectangle excised."
+          "description": "Surface with specified rectangle excised.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{chopped_surface} = pygame.transform.chop({surface}, {rect})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "surface",
       "primary_out": "chopped_surface"
     },
@@ -2453,7 +3603,13 @@
       "node_role": "source",
       "topology_type": "sequential",
       "docstring": "Constructs a 2D Euclidean math vector (x, y).",
-      "semantic_tags": ["vector", "math", "vector2", "euclidean", "coordinate"],
+      "semantic_tags": [
+        "vector",
+        "math",
+        "vector2",
+        "euclidean",
+        "coordinate"
+      ],
       "inputs": {
         "x": {
           "type_name": "float",
@@ -2461,7 +3617,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "X component."
+          "description": "X component.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "y": {
           "type_name": "float",
@@ -2469,7 +3629,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Y component."
+          "description": "Y component.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2478,11 +3642,17 @@
           "state": "vector_cartesian",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Vector2 instance."
+          "description": "Vector2 instance.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{vector} = pygame.math.Vector2({x}, {y})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": null,
       "primary_out": "vector"
     },
@@ -2494,7 +3664,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Computes the vector addition of two Vector2 instances.",
-      "semantic_tags": ["vector", "add", "math", "translation", "sum"],
+      "semantic_tags": [
+        "vector",
+        "add",
+        "math",
+        "translation",
+        "sum"
+      ],
       "inputs": {
         "v1": {
           "type_name": "vector2",
@@ -2502,7 +3678,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "First vector."
+          "description": "First vector.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "v2": {
           "type_name": "vector2",
@@ -2510,7 +3690,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Second vector."
+          "description": "Second vector.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2519,11 +3703,17 @@
           "state": "vector_cartesian",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Resultant sum vector."
+          "description": "Resultant sum vector.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{v_out} = {v1} + {v2}",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "v1",
       "primary_out": "v_out"
     },
@@ -2535,7 +3725,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Computes the vector subtraction between two Vector2 instances.",
-      "semantic_tags": ["vector", "subtract", "math", "displacement", "delta"],
+      "semantic_tags": [
+        "vector",
+        "subtract",
+        "math",
+        "displacement",
+        "delta"
+      ],
       "inputs": {
         "v1": {
           "type_name": "vector2",
@@ -2543,7 +3739,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Minuend vector."
+          "description": "Minuend vector.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "v2": {
           "type_name": "vector2",
@@ -2551,7 +3751,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Subtrahend vector."
+          "description": "Subtrahend vector.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2560,11 +3764,17 @@
           "state": "vector_cartesian",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Displacement difference vector."
+          "description": "Displacement difference vector.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{v_out} = {v1} - {v2}",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "v1",
       "primary_out": "v_out"
     },
@@ -2576,7 +3786,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Multiplies a Vector2 by a scalar float value.",
-      "semantic_tags": ["vector", "scale", "multiply", "scalar_mul", "velocity"],
+      "semantic_tags": [
+        "vector",
+        "scale",
+        "multiply",
+        "scalar_mul",
+        "velocity"
+      ],
       "inputs": {
         "vector": {
           "type_name": "vector2",
@@ -2584,7 +3800,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Vector to scale."
+          "description": "Vector to scale.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "scalar": {
           "type_name": "float",
@@ -2592,7 +3812,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Scalar multiplier."
+          "description": "Scalar multiplier.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2601,11 +3825,17 @@
           "state": "vector_cartesian",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Scaled vector product."
+          "description": "Scaled vector product.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{scaled_vector} = {vector} * {scalar}",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "vector",
       "primary_out": "scaled_vector"
     },
@@ -2617,7 +3847,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Computes Euclidean norm length of a Vector2.",
-      "semantic_tags": ["vector", "length", "magnitude", "norm", "distance"],
+      "semantic_tags": [
+        "vector",
+        "length",
+        "magnitude",
+        "norm",
+        "distance"
+      ],
       "inputs": {
         "vector": {
           "type_name": "vector2",
@@ -2625,7 +3861,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Vector operand."
+          "description": "Vector operand.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2634,11 +3874,17 @@
           "state": "scalar_magnitude",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Euclidean length."
+          "description": "Euclidean length.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{length} = {vector}.length()",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "vector",
       "primary_out": "length"
     },
@@ -2650,7 +3896,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Produces a unit vector of length 1 pointing in identical direction, protecting against zero-division.",
-      "semantic_tags": ["vector", "normalize", "unit_vector", "direction", "heading"],
+      "semantic_tags": [
+        "vector",
+        "normalize",
+        "unit_vector",
+        "direction",
+        "heading"
+      ],
       "inputs": {
         "vector": {
           "type_name": "vector2",
@@ -2658,7 +3910,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Vector operand."
+          "description": "Vector operand.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2667,11 +3923,17 @@
           "state": "vector_cartesian",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Unit direction vector."
+          "description": "Unit direction vector.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{normalized_vector} = {vector}.normalize() if {vector}.length_squared() > 0 else pygame.math.Vector2(0, 0)",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "vector",
       "primary_out": "normalized_vector"
     },
@@ -2683,7 +3945,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Rotates a Vector2 by an angle in degrees.",
-      "semantic_tags": ["vector", "rotate", "angle", "orientation", "trigonometry"],
+      "semantic_tags": [
+        "vector",
+        "rotate",
+        "angle",
+        "orientation",
+        "trigonometry"
+      ],
       "inputs": {
         "vector": {
           "type_name": "vector2",
@@ -2691,7 +3959,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Vector to rotate."
+          "description": "Vector to rotate.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "angle": {
           "type_name": "float",
@@ -2699,7 +3971,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Rotation angle in degrees."
+          "description": "Rotation angle in degrees.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2708,11 +3984,17 @@
           "state": "vector_cartesian",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Rotated vector."
+          "description": "Rotated vector.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{rotated_vector} = {vector}.rotate({angle})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "vector",
       "primary_out": "rotated_vector"
     },
@@ -2724,7 +4006,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Computes Euclidean distance between two Vector2 locations.",
-      "semantic_tags": ["vector", "distance_to", "proximity", "range", "euclidean"],
+      "semantic_tags": [
+        "vector",
+        "distance_to",
+        "proximity",
+        "range",
+        "euclidean"
+      ],
       "inputs": {
         "v1": {
           "type_name": "vector2",
@@ -2732,7 +4020,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Starting position vector."
+          "description": "Starting position vector.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "v2": {
           "type_name": "vector2",
@@ -2740,7 +4032,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Target position vector."
+          "description": "Target position vector.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2749,11 +4045,17 @@
           "state": "scalar_magnitude",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Scalar distance between vectors."
+          "description": "Scalar distance between vectors.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{distance} = {v1}.distance_to({v2})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "v1",
       "primary_out": "distance"
     },
@@ -2765,7 +4067,13 @@
       "node_role": "source",
       "topology_type": "sequential",
       "docstring": "Instantiates a Color object representing 4-channel RGBA values.",
-      "semantic_tags": ["color", "rgba", "palette", "init_color", "alpha"],
+      "semantic_tags": [
+        "color",
+        "rgba",
+        "palette",
+        "init_color",
+        "alpha"
+      ],
       "inputs": {
         "r": {
           "type_name": "int",
@@ -2773,7 +4081,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Red channel [0, 255]."
+          "description": "Red channel [0, 255].",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "g": {
           "type_name": "int",
@@ -2781,7 +4093,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Green channel [0, 255]."
+          "description": "Green channel [0, 255].",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "b": {
           "type_name": "int",
@@ -2789,7 +4105,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Blue channel [0, 255]."
+          "description": "Blue channel [0, 255].",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "a": {
           "type_name": "int",
@@ -2798,7 +4118,11 @@
           "required": false,
           "default_value": 255,
           "port_role": "configuration",
-          "description": "Alpha channel [0, 255]."
+          "description": "Alpha channel [0, 255].",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2807,11 +4131,17 @@
           "state": "color_object",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Pygame Color handle."
+          "description": "Pygame Color handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{color} = pygame.Color({r}, {g}, {b}, {a})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": null,
       "primary_out": "color"
     },
@@ -2823,7 +4153,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Linearly interpolates between two Color objects using a normalized weighting factor [0.0, 1.0].",
-      "semantic_tags": ["color", "lerp", "interpolate", "gradient", "blend"],
+      "semantic_tags": [
+        "color",
+        "lerp",
+        "interpolate",
+        "gradient",
+        "blend"
+      ],
       "inputs": {
         "c1": {
           "type_name": "color",
@@ -2831,7 +4167,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Starting origin color."
+          "description": "Starting origin color.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "c2": {
           "type_name": "color",
@@ -2839,7 +4179,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Target destination color."
+          "description": "Target destination color.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "amount": {
           "type_name": "float",
@@ -2847,7 +4191,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Interpolation factor between 0.0 and 1.0."
+          "description": "Interpolation factor between 0.0 and 1.0.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2856,11 +4204,17 @@
           "state": "color_object",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Blended Color handle."
+          "description": "Blended Color handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{interpolated_color} = {c1}.lerp({c2}, {amount})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "c1",
       "primary_out": "interpolated_color"
     },
@@ -2872,7 +4226,13 @@
       "node_role": "source",
       "topology_type": "sequential",
       "docstring": "Instantiates a basic Sprite object for entity grouping and lifecycle management.",
-      "semantic_tags": ["sprite", "entity", "game_object", "init_sprite", "ecs"],
+      "semantic_tags": [
+        "sprite",
+        "entity",
+        "game_object",
+        "init_sprite",
+        "ecs"
+      ],
       "inputs": {},
       "outputs": {
         "sprite": {
@@ -2880,11 +4240,17 @@
           "state": "sprite_handle",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Pygame Sprite instance."
+          "description": "Pygame Sprite instance.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{sprite} = pygame.sprite.Sprite()",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": null,
       "primary_out": "sprite"
     },
@@ -2896,7 +4262,13 @@
       "node_role": "source",
       "topology_type": "sequential",
       "docstring": "Instantiates an empty Sprite Group container.",
-      "semantic_tags": ["group", "sprite_group", "collection", "entities", "init_group"],
+      "semantic_tags": [
+        "group",
+        "sprite_group",
+        "collection",
+        "entities",
+        "init_group"
+      ],
       "inputs": {},
       "outputs": {
         "group": {
@@ -2904,11 +4276,17 @@
           "state": "group_handle",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Empty Sprite Group instance."
+          "description": "Empty Sprite Group instance.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{group} = pygame.sprite.Group()",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": null,
       "primary_out": "group"
     },
@@ -2920,7 +4298,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Adds a Sprite to an existing Sprite Group.",
-      "semantic_tags": ["group", "add_sprite", "append", "membership", "ecs"],
+      "semantic_tags": [
+        "group",
+        "add_sprite",
+        "append",
+        "membership",
+        "ecs"
+      ],
       "inputs": {
         "group": {
           "type_name": "group",
@@ -2928,7 +4312,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Target Sprite Group."
+          "description": "Target Sprite Group.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "sprite": {
           "type_name": "sprite",
@@ -2936,7 +4324,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Sprite to insert."
+          "description": "Sprite to insert.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2945,11 +4337,17 @@
           "state": "group_handle",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Mutated Sprite Group."
+          "description": "Mutated Sprite Group.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{group}.add({sprite})\n{out_group} = {group}",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "group",
       "primary_out": "out_group"
     },
@@ -2961,7 +4359,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Invokes the update() method across all active member Sprites in the Group.",
-      "semantic_tags": ["group", "update", "tick_sprites", "step", "dispatch"],
+      "semantic_tags": [
+        "group",
+        "update",
+        "tick_sprites",
+        "step",
+        "dispatch"
+      ],
       "inputs": {
         "group": {
           "type_name": "group",
@@ -2969,7 +4373,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Sprite Group to update."
+          "description": "Sprite Group to update.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2978,11 +4386,17 @@
           "state": "group_handle",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Updated Sprite Group."
+          "description": "Updated Sprite Group.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{group}.update()\n{out_group} = {group}",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "group",
       "primary_out": "out_group"
     },
@@ -2994,7 +4408,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Blits every Sprite's image Surface onto target surface at its rect position.",
-      "semantic_tags": ["group", "draw", "render_sprites", "batch_blit", "display"],
+      "semantic_tags": [
+        "group",
+        "draw",
+        "render_sprites",
+        "batch_blit",
+        "display"
+      ],
       "inputs": {
         "group": {
           "type_name": "group",
@@ -3002,7 +4422,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Sprite Group to render."
+          "description": "Sprite Group to render.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "surface": {
           "type_name": "surface",
@@ -3010,7 +4434,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Target destination Surface."
+          "description": "Target destination Surface.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3019,11 +4447,17 @@
           "state": "modified",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Surface with group elements drawn."
+          "description": "Surface with group elements drawn.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{group}.draw({surface})\n{out_surface} = {surface}",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "surface",
       "primary_out": "out_surface"
     },
@@ -3035,7 +4469,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Tests bounding rect intersection between two Sprite entities.",
-      "semantic_tags": ["sprite", "collide_rect", "hit_test", "collision", "overlap"],
+      "semantic_tags": [
+        "sprite",
+        "collide_rect",
+        "hit_test",
+        "collision",
+        "overlap"
+      ],
       "inputs": {
         "sprite1": {
           "type_name": "sprite",
@@ -3043,7 +4483,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "First Sprite operand."
+          "description": "First Sprite operand.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "sprite2": {
           "type_name": "sprite",
@@ -3051,7 +4495,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Second Sprite operand."
+          "description": "Second Sprite operand.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3060,11 +4508,17 @@
           "state": "logical_state",
           "abstract_type": "logical",
           "port_role": "result",
-          "description": "True if sprites' rects intersect."
+          "description": "True if sprites' rects intersect.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "{collided} = pygame.sprite.collide_rect({sprite1}, {sprite2})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "sprite1",
       "primary_out": "collided"
     },
@@ -3076,7 +4530,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Finds collisions between two Sprite groups and optionally kills overlapping sprites.",
-      "semantic_tags": ["groupcollide", "collision", "broadphase", "batch_collision", "kill"],
+      "semantic_tags": [
+        "groupcollide",
+        "collision",
+        "broadphase",
+        "batch_collision",
+        "kill"
+      ],
       "inputs": {
         "group_a": {
           "type_name": "group",
@@ -3084,7 +4544,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Primary Sprite Group."
+          "description": "Primary Sprite Group.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "group_b": {
           "type_name": "group",
@@ -3092,7 +4556,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Secondary Sprite Group."
+          "description": "Secondary Sprite Group.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "dokill_a": {
           "type_name": "bool",
@@ -3101,7 +4569,11 @@
           "required": false,
           "default_value": false,
           "port_role": "configuration",
-          "description": "If True, removes colliding sprites from group_a."
+          "description": "If True, removes colliding sprites from group_a.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         },
         "dokill_b": {
           "type_name": "bool",
@@ -3110,7 +4582,11 @@
           "required": false,
           "default_value": false,
           "port_role": "configuration",
-          "description": "If True, removes colliding sprites from group_b."
+          "description": "If True, removes colliding sprites from group_b.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3119,11 +4595,17 @@
           "state": "modified",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Mapping from group_a sprites to lists of colliding group_b sprites."
+          "description": "Mapping from group_a sprites to lists of colliding group_b sprites.",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "code_template": "{collision_dict} = pygame.sprite.groupcollide({group_a}, {group_b}, {dokill_a}, {dokill_b})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "group_a",
       "primary_out": "collision_dict"
     },
@@ -3135,7 +4617,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Removes the Sprite from every Group it belongs to.",
-      "semantic_tags": ["sprite", "kill", "remove", "despawn", "destroy"],
+      "semantic_tags": [
+        "sprite",
+        "kill",
+        "remove",
+        "despawn",
+        "destroy"
+      ],
       "inputs": {
         "sprite": {
           "type_name": "sprite",
@@ -3143,7 +4631,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Sprite entity to despawn."
+          "description": "Sprite entity to despawn.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3152,11 +4644,17 @@
           "state": "closed",
           "abstract_type": "logical",
           "port_role": "result",
-          "description": "True when sprite is removed from all groups."
+          "description": "True when sprite is removed from all groups.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "{sprite}.kill()\n{status} = True",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "sprite",
       "primary_out": "status"
     },
@@ -3168,7 +4666,13 @@
       "node_role": "source",
       "topology_type": "sequential",
       "docstring": "Creates a 1-bit per-pixel Mask from a Surface based on alpha transparency threshold.",
-      "semantic_tags": ["mask", "pixel_perfect", "collision", "silhouette", "alpha_mask"],
+      "semantic_tags": [
+        "mask",
+        "pixel_perfect",
+        "collision",
+        "silhouette",
+        "alpha_mask"
+      ],
       "inputs": {
         "surface": {
           "type_name": "surface",
@@ -3176,7 +4680,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Surface to generate bitmask from."
+          "description": "Surface to generate bitmask from.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "threshold": {
           "type_name": "int",
@@ -3185,7 +4693,11 @@
           "required": false,
           "default_value": 127,
           "port_role": "configuration",
-          "description": "Alpha threshold [0, 255] above which pixel is solid."
+          "description": "Alpha threshold [0, 255] above which pixel is solid.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3194,11 +4706,17 @@
           "state": "mask_handle",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Generated 2D Mask instance."
+          "description": "Generated 2D Mask instance.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{mask} = pygame.mask.from_surface({surface}, threshold={threshold})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "surface",
       "primary_out": "mask"
     },
@@ -3210,7 +4728,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Tests for pixel-perfect bitwise collision between two Masks at a given spatial offset.",
-      "semantic_tags": ["mask", "overlap", "pixel_collision", "hitbox", "intersection"],
+      "semantic_tags": [
+        "mask",
+        "overlap",
+        "pixel_collision",
+        "hitbox",
+        "intersection"
+      ],
       "inputs": {
         "mask_a": {
           "type_name": "mask",
@@ -3218,7 +4742,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Base Mask."
+          "description": "Base Mask.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "mask_b": {
           "type_name": "mask",
@@ -3226,7 +4754,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Probe Mask."
+          "description": "Probe Mask.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "offset": {
           "type_name": "Tuple[int, int]",
@@ -3234,7 +4766,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Coordinate difference (mask_b.x - mask_a.x, mask_b.y - mask_a.y)."
+          "description": "Coordinate difference (mask_b.x - mask_a.x, mask_b.y - mask_a.y).",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3243,11 +4779,17 @@
           "state": "coordinate",
           "abstract_type": "scalar",
           "port_role": "result",
-          "description": "First colliding (x, y) point coordinate or None."
+          "description": "First colliding (x, y) point coordinate or None.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{overlap_point} = {mask_a}.overlap({mask_b}, {offset})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "mask_a",
       "primary_out": "overlap_point"
     },
@@ -3259,7 +4801,13 @@
       "node_role": "source",
       "topology_type": "sequential",
       "docstring": "Streams and buffers background music track from disk.",
-      "semantic_tags": ["music", "load_music", "bgm", "audio_stream", "track"],
+      "semantic_tags": [
+        "music",
+        "load_music",
+        "bgm",
+        "audio_stream",
+        "track"
+      ],
       "inputs": {
         "music_path": {
           "type_name": "str",
@@ -3267,7 +4815,13 @@
           "abstract_type": "path",
           "required": true,
           "port_role": "configuration",
-          "description": "Path to audio stream file (ogg, mp3, wav)."
+          "description": "Path to audio stream file (ogg, mp3, wav).",
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "*"
+          ]
         }
       },
       "outputs": {
@@ -3276,11 +4830,17 @@
           "state": "initialized",
           "abstract_type": "logical",
           "port_role": "result",
-          "description": "True when music track is loaded into stream buffer."
+          "description": "True when music track is loaded into stream buffer.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "pygame.mixer.music.load({music_path})\n{status} = True",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "music_path",
       "primary_out": "status"
     },
@@ -3292,7 +4852,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Plays streamed background music playback with loop controls.",
-      "semantic_tags": ["music", "play_music", "bgm", "audio_playback", "stream"],
+      "semantic_tags": [
+        "music",
+        "play_music",
+        "bgm",
+        "audio_playback",
+        "stream"
+      ],
       "inputs": {
         "loops": {
           "type_name": "int",
@@ -3301,7 +4867,11 @@
           "required": false,
           "default_value": -1,
           "port_role": "configuration",
-          "description": "Repetition count (-1 = infinite loop)."
+          "description": "Repetition count (-1 = infinite loop).",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "start": {
           "type_name": "float",
@@ -3310,7 +4880,11 @@
           "required": false,
           "default_value": 0.0,
           "port_role": "configuration",
-          "description": "Track start timestamp in seconds."
+          "description": "Track start timestamp in seconds.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3319,11 +4893,17 @@
           "state": "active",
           "abstract_type": "logical",
           "port_role": "result",
-          "description": "True when music streaming initiates."
+          "description": "True when music streaming initiates.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "pygame.mixer.music.play(loops={loops}, start={start})\n{status} = True",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": null,
       "primary_out": "status"
     },
@@ -3335,7 +4915,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Stops background music stream playback.",
-      "semantic_tags": ["music", "stop_music", "halt", "audio_stop", "bgm"],
+      "semantic_tags": [
+        "music",
+        "stop_music",
+        "halt",
+        "audio_stop",
+        "bgm"
+      ],
       "inputs": {
         "trigger": {
           "type_name": "bool",
@@ -3344,7 +4930,11 @@
           "required": false,
           "default_value": true,
           "port_role": "data_input",
-          "description": "Signal triggering music stop."
+          "description": "Signal triggering music stop.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3353,11 +4943,17 @@
           "state": "closed",
           "abstract_type": "logical",
           "port_role": "result",
-          "description": "True when music stream is stopped."
+          "description": "True when music stream is stopped.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "if {trigger}:\n    pygame.mixer.music.stop()\n{status} = True",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "trigger",
       "primary_out": "status"
     },
@@ -3369,7 +4965,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Temporarily pauses background music stream playback.",
-      "semantic_tags": ["music", "pause_music", "suspend", "bgm", "audio_pause"],
+      "semantic_tags": [
+        "music",
+        "pause_music",
+        "suspend",
+        "bgm",
+        "audio_pause"
+      ],
       "inputs": {
         "trigger": {
           "type_name": "bool",
@@ -3378,7 +4980,11 @@
           "required": false,
           "default_value": true,
           "port_role": "data_input",
-          "description": "Signal triggering pause."
+          "description": "Signal triggering pause.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3387,11 +4993,17 @@
           "state": "modified",
           "abstract_type": "logical",
           "port_role": "result",
-          "description": "True when music stream is paused."
+          "description": "True when music stream is paused.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "if {trigger}:\n    pygame.mixer.music.pause()\n{status} = True",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "trigger",
       "primary_out": "status"
     },
@@ -3403,7 +5015,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Resumes paused background music stream playback.",
-      "semantic_tags": ["music", "unpause_music", "resume", "bgm", "audio_resume"],
+      "semantic_tags": [
+        "music",
+        "unpause_music",
+        "resume",
+        "bgm",
+        "audio_resume"
+      ],
       "inputs": {
         "trigger": {
           "type_name": "bool",
@@ -3412,7 +5030,11 @@
           "required": false,
           "default_value": true,
           "port_role": "data_input",
-          "description": "Signal triggering resume."
+          "description": "Signal triggering resume.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3421,11 +5043,17 @@
           "state": "active",
           "abstract_type": "logical",
           "port_role": "result",
-          "description": "True when music playback resumes."
+          "description": "True when music playback resumes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "if {trigger}:\n    pygame.mixer.music.unpause()\n{status} = True",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "trigger",
       "primary_out": "status"
     },
@@ -3437,7 +5065,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Sets the volume of background music stream from 0.0 to 1.0.",
-      "semantic_tags": ["music", "volume", "audio_gain", "gain", "bgm"],
+      "semantic_tags": [
+        "music",
+        "volume",
+        "audio_gain",
+        "gain",
+        "bgm"
+      ],
       "inputs": {
         "volume": {
           "type_name": "float",
@@ -3445,7 +5079,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Music playback volume [0.0, 1.0]."
+          "description": "Music playback volume [0.0, 1.0].",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3454,11 +5092,17 @@
           "state": "modified",
           "abstract_type": "logical",
           "port_role": "result",
-          "description": "True when music volume is updated."
+          "description": "True when music volume is updated.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "pygame.mixer.music.set_volume({volume})\n{status} = True",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "volume",
       "primary_out": "status"
     },
@@ -3470,7 +5114,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Sets the playback volume of an individual Sound object.",
-      "semantic_tags": ["sound", "volume", "gain", "audio_gain", "sfx"],
+      "semantic_tags": [
+        "sound",
+        "volume",
+        "gain",
+        "audio_gain",
+        "sfx"
+      ],
       "inputs": {
         "sound": {
           "type_name": "sound",
@@ -3478,7 +5128,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Sound instance to calibrate."
+          "description": "Sound instance to calibrate.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "volume": {
           "type_name": "float",
@@ -3486,7 +5140,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Playback volume level [0.0, 1.0]."
+          "description": "Playback volume level [0.0, 1.0].",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3495,11 +5153,17 @@
           "state": "sound_handle",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Volume-adjusted Sound handle."
+          "description": "Volume-adjusted Sound handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{sound}.set_volume({volume})\n{out_sound} = {sound}",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "sound",
       "primary_out": "out_sound"
     },
@@ -3511,7 +5175,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Shows or hides the system mouse cursor.",
-      "semantic_tags": ["mouse", "cursor", "set_visible", "hide_cursor", "pointer"],
+      "semantic_tags": [
+        "mouse",
+        "cursor",
+        "set_visible",
+        "hide_cursor",
+        "pointer"
+      ],
       "inputs": {
         "visible": {
           "type_name": "bool",
@@ -3519,7 +5189,11 @@
           "abstract_type": "logical",
           "required": true,
           "port_role": "configuration",
-          "description": "True to show cursor, False to hide."
+          "description": "True to show cursor, False to hide.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3528,11 +5202,17 @@
           "state": "logical_state",
           "abstract_type": "logical",
           "port_role": "result",
-          "description": "Previous cursor visibility state."
+          "description": "Previous cursor visibility state.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "{previous_state} = pygame.mouse.set_visible({visible})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "visible",
       "primary_out": "previous_state"
     },
@@ -3544,7 +5224,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Sets the hardware mouse cursor position to specified screen coordinates.",
-      "semantic_tags": ["mouse", "set_pos", "warp_pointer", "cursor", "coordinate"],
+      "semantic_tags": [
+        "mouse",
+        "set_pos",
+        "warp_pointer",
+        "cursor",
+        "coordinate"
+      ],
       "inputs": {
         "pos": {
           "type_name": "Tuple[int, int]",
@@ -3552,7 +5238,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Target screen position (x, y)."
+          "description": "Target screen position (x, y).",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3561,11 +5251,17 @@
           "state": "modified",
           "abstract_type": "logical",
           "port_role": "result",
-          "description": "True when cursor is repositioned."
+          "description": "True when cursor is repositioned.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "pygame.mouse.set_pos({pos})\n{status} = True",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "pos",
       "primary_out": "status"
     },
@@ -3577,7 +5273,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Changes the system window icon to the provided Surface.",
-      "semantic_tags": ["display", "set_icon", "window_icon", "branding", "titlebar"],
+      "semantic_tags": [
+        "display",
+        "set_icon",
+        "window_icon",
+        "branding",
+        "titlebar"
+      ],
       "inputs": {
         "icon_surface": {
           "type_name": "surface",
@@ -3585,7 +5287,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Surface representing the window icon."
+          "description": "Surface representing the window icon.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3594,11 +5300,17 @@
           "state": "modified",
           "abstract_type": "logical",
           "port_role": "result",
-          "description": "True when window icon is applied."
+          "description": "True when window icon is applied.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "pygame.display.set_icon({icon_surface})\n{status} = True",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "icon_surface",
       "primary_out": "status"
     },
@@ -3610,7 +5322,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Draws an anti-aliased single-pixel line segment between two coordinates.",
-      "semantic_tags": ["draw", "aaline", "anti_aliased", "smooth_line", "primitive"],
+      "semantic_tags": [
+        "draw",
+        "aaline",
+        "anti_aliased",
+        "smooth_line",
+        "primitive"
+      ],
       "inputs": {
         "surface": {
           "type_name": "surface",
@@ -3618,16 +5336,28 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Target Surface."
+          "description": "Target Surface.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "color": {
           "type_name": "Tuple[int, int, int]",
           "state": "rgb_color",
           "abstract_type": "scalar",
           "required": false,
-          "default_value": [255, 255, 255],
+          "default_value": [
+            255,
+            255,
+            255
+          ],
           "port_role": "configuration",
-          "description": "RGB color tuple."
+          "description": "RGB color tuple.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "start_pos": {
           "type_name": "Tuple[int, int]",
@@ -3635,7 +5365,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Start position (x, y)."
+          "description": "Start position (x, y).",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "end_pos": {
           "type_name": "Tuple[int, int]",
@@ -3643,7 +5377,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "End position (x, y)."
+          "description": "End position (x, y).",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "blend": {
           "type_name": "int",
@@ -3652,7 +5390,11 @@
           "required": false,
           "default_value": 1,
           "port_role": "configuration",
-          "description": "Blend mode flag."
+          "description": "Blend mode flag.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3661,11 +5403,17 @@
           "state": "modified",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Surface with anti-aliased line."
+          "description": "Surface with anti-aliased line.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "pygame.draw.aaline({surface}, {color}, {start_pos}, {end_pos}, {blend})\n{out_surface} = {surface}",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "surface",
       "primary_out": "out_surface"
     },
@@ -3677,7 +5425,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Draws an elliptical arc on a Surface within bounding rect between given radian angles.",
-      "semantic_tags": ["draw", "arc", "curve", "ellipse_arc", "primitive"],
+      "semantic_tags": [
+        "draw",
+        "arc",
+        "curve",
+        "ellipse_arc",
+        "primitive"
+      ],
       "inputs": {
         "surface": {
           "type_name": "surface",
@@ -3685,16 +5439,28 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Target Surface."
+          "description": "Target Surface.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "color": {
           "type_name": "Tuple[int, int, int]",
           "state": "rgb_color",
           "abstract_type": "scalar",
           "required": false,
-          "default_value": [255, 255, 255],
+          "default_value": [
+            255,
+            255,
+            255
+          ],
           "port_role": "configuration",
-          "description": "RGB color tuple."
+          "description": "RGB color tuple.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "rect": {
           "type_name": "rect",
@@ -3702,7 +5468,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Bounding box Rect."
+          "description": "Bounding box Rect.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "start_angle": {
           "type_name": "float",
@@ -3710,7 +5480,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Start angle in radians."
+          "description": "Start angle in radians.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "stop_angle": {
           "type_name": "float",
@@ -3718,7 +5492,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Stop angle in radians."
+          "description": "Stop angle in radians.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "width": {
           "type_name": "int",
@@ -3727,7 +5505,11 @@
           "required": false,
           "default_value": 1,
           "port_role": "configuration",
-          "description": "Thickness of the arc outline."
+          "description": "Thickness of the arc outline.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3736,11 +5518,17 @@
           "state": "modified",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Surface with drawn arc."
+          "description": "Surface with drawn arc.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "pygame.draw.arc({surface}, {color}, {rect}, {start_angle}, {stop_angle}, {width})\n{out_surface} = {surface}",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "surface",
       "primary_out": "out_surface"
     },
@@ -3752,7 +5540,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Repeatedly pushes an event identifier onto the event queue at regular millisecond intervals.",
-      "semantic_tags": ["time", "timer", "interval", "custom_event", "alarm"],
+      "semantic_tags": [
+        "time",
+        "timer",
+        "interval",
+        "custom_event",
+        "alarm"
+      ],
       "inputs": {
         "event_id": {
           "type_name": "int",
@@ -3760,7 +5554,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Event type integer constant (e.g. pygame.USEREVENT + 1)."
+          "description": "Event type integer constant (e.g. pygame.USEREVENT + 1).",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "millis": {
           "type_name": "int",
@@ -3768,7 +5566,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Interval frequency in milliseconds (0 cancels timer)."
+          "description": "Interval frequency in milliseconds (0 cancels timer).",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "loops": {
           "type_name": "int",
@@ -3777,7 +5579,11 @@
           "required": false,
           "default_value": 0,
           "port_role": "configuration",
-          "description": "Repetition count (0 = infinite)."
+          "description": "Repetition count (0 = infinite).",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3786,11 +5592,17 @@
           "state": "active",
           "abstract_type": "logical",
           "port_role": "result",
-          "description": "True when timer is registered."
+          "description": "True when timer is registered.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "pygame.time.set_timer({event_id}, {millis}, {loops})\n{status} = True",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "event_id",
       "primary_out": "status"
     },
@@ -3802,7 +5614,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Places a custom Event message into the end of the operating system event queue.",
-      "semantic_tags": ["event", "post", "dispatch", "emit", "message"],
+      "semantic_tags": [
+        "event",
+        "post",
+        "dispatch",
+        "emit",
+        "message"
+      ],
       "inputs": {
         "event": {
           "type_name": "event",
@@ -3810,7 +5628,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Event instance to push."
+          "description": "Event instance to push.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3819,11 +5641,17 @@
           "state": "flushed",
           "abstract_type": "logical",
           "port_role": "result",
-          "description": "True if event successfully enqueued."
+          "description": "True if event successfully enqueued.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "{status} = pygame.event.post({event})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "event",
       "primary_out": "status"
     },
@@ -3835,7 +5663,13 @@
       "node_role": "source",
       "topology_type": "sequential",
       "docstring": "Constructs a new user-defined Event object with an attribute payload dictionary.",
-      "semantic_tags": ["event", "custom_event", "user_event", "message", "event_builder"],
+      "semantic_tags": [
+        "event",
+        "custom_event",
+        "user_event",
+        "message",
+        "event_builder"
+      ],
       "inputs": {
         "event_type": {
           "type_name": "int",
@@ -3843,7 +5677,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Pygame user event ID (e.g. pygame.USEREVENT)."
+          "description": "Pygame user event ID (e.g. pygame.USEREVENT).",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "attributes": {
           "type_name": "dict",
@@ -3852,7 +5690,11 @@
           "required": false,
           "default_value": {},
           "port_role": "configuration",
-          "description": "Custom key-value parameters payload."
+          "description": "Custom key-value parameters payload.",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3861,11 +5703,17 @@
           "state": "event_object",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Constructed Event message."
+          "description": "Constructed Event message.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{event} = pygame.event.Event({event_type}, **{attributes})",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": null,
       "primary_out": "event"
     },
@@ -3884,7 +5732,13 @@
         }
       },
       "docstring": "Fixed-delta-time physics tick combinator: consumes accumulated time step quanta until threshold is cleared.",
-      "semantic_tags": ["fixed_step", "physics_loop", "substep", "delta_accumulator", "simulation"],
+      "semantic_tags": [
+        "fixed_step",
+        "physics_loop",
+        "substep",
+        "delta_accumulator",
+        "simulation"
+      ],
       "inputs": {
         "accumulator": {
           "type_name": "float",
@@ -3892,7 +5746,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "data_input",
-          "description": "Accumulated delta time in milliseconds."
+          "description": "Accumulated delta time in milliseconds.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "time_step": {
           "type_name": "float",
@@ -3900,7 +5758,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Fixed quantum time slice per step (e.g. 16.66 ms)."
+          "description": "Fixed quantum time slice per step (e.g. 16.66 ms).",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3909,11 +5771,17 @@
           "state": "time_delta",
           "abstract_type": "scalar",
           "port_role": "result",
-          "description": "Residual remainder accumulator after all substeps complete."
+          "description": "Residual remainder accumulator after all substeps complete.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "while {accumulator} >= {time_step}:\n    {body}\n{final_accumulator} = {accumulator}",
-      "dependencies": ["import pygame"],
+      "dependencies": [
+        "import pygame"
+      ],
       "primary_in": "accumulator",
       "primary_out": "final_accumulator"
     }

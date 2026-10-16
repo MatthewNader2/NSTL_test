@@ -328,25 +328,21 @@ class SynthesisEngine:
                 live_docs = str(getattr(live_docs, "content", "") or "")
         live_docs = live_docs or "No live documentation available."
 
-        if stage is None:
-            if not expected_input or str(expected_input).lower() in ("any", "none"):
-                stage = 1
-            elif not expected_output or str(expected_output).lower() in ("none", "void", "noreturn"):
-                stage = 3
-            else:
-                stage = 2
+        role = "source" if (not expected_input or str(expected_input).lower() in ("any", "none")) else (
+            "sink" if (not expected_output or str(expected_output).lower() in ("none", "void", "noreturn")) else "transformer"
+        )
 
-        if stage == 1:
+        if role == "source":
             template_rule = (
-                "For Stage 1 (Initial / Ingress morphism), `code_template` MUST produce the primary output "
+                "For Source (Initial / Ingress morphism), `code_template` MUST produce the primary output "
                 "assigned to `{output_var}`. If path-driven, use `{filepath}` as the input asset identifier "
                 "(e.g. `{output_var} = <package>.<source_func>({filepath})`)."
             )
             input_spec = '{"type_name": "str", "state": "source_identifier"}'
             sample_template = "{output_var} = <package>.<source_func>({filepath})"
-        elif stage == 3:
+        elif role == "sink":
             template_rule = (
-                "For Stage 3 (Terminal / Egress morphism), `code_template` MUST consume `{input_var}` and "
+                "For Sink (Terminal / Egress morphism), `code_template` MUST consume `{input_var}` and "
                 "complete the lifecycle (exporting, rendering, or evaluation). If path-driven, use `{dest_path}` "
                 "as the destination identifier (e.g. `{input_var}.<sink_func>({dest_path})\\n{output_var} = {dest_path}`)."
             )
@@ -354,7 +350,7 @@ class SynthesisEngine:
             sample_template = "{input_var}.<sink_func>({dest_path})\n{output_var} = {dest_path}"
         else:
             template_rule = (
-                "For Stage 2 (Intermediate morphism), `code_template` MUST consume `{input_var}` and "
+                "For Transformer (Intermediate morphism), `code_template` MUST consume `{input_var}` and "
                 "assign the result to `{output_var}` (e.g. `{output_var} = <func>({input_var})`)."
             )
             input_spec = f'{{"type_name": "{expected_input}", "state": "any"}}'

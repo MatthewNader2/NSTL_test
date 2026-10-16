@@ -1038,7 +1038,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Construct a contiguous ndarray from nested sequence or array-like data structure.",
       "dependencies": [
@@ -1081,7 +1081,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "dtype": {
           "type_name": "str",
@@ -1095,7 +1099,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1111,7 +1119,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -1126,32 +1138,7 @@
         }
       ],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_RESHAPE_ND",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_SUM_ALL",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_SAVE_NPY",
-          "affinity_score": 0.2,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "data",
       "primary_out": "output_var"
     },
@@ -1164,7 +1151,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Convert an input to an ndarray without copying if already matching requirements.",
       "dependencies": [
@@ -1204,7 +1191,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "dtype": {
           "type_name": "str",
@@ -1218,7 +1209,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1234,30 +1229,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_RESHAPE_2D",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_MEAN_ALL",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "a",
       "primary_out": "output_var"
     },
@@ -1270,7 +1252,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 10,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Interpret a raw byte buffer as a 1-dimensional NumPy vector.",
       "dependencies": [
@@ -1311,7 +1293,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "dtype": {
           "type_name": "str",
@@ -1325,7 +1311,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "count": {
           "type_name": "int",
@@ -1339,7 +1329,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1355,30 +1349,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_RESHAPE_2D",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_SORT",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "buffer",
       "primary_out": "output_var"
     },
@@ -1391,7 +1372,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return a new 1-dimensional array filled with zeros.",
       "dependencies": [
@@ -1430,7 +1411,11 @@
           "value_constraints": {
             "min": 0
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "dtype": {
           "type_name": "str",
@@ -1444,7 +1429,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1460,30 +1449,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_ADD",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_RESHAPE_2D",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "length",
       "primary_out": "output_var"
     },
@@ -1496,7 +1472,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return a 2D matrix filled with zeros.",
       "dependencies": [
@@ -1535,7 +1511,11 @@
           "value_constraints": {
             "min": 1
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "cols": {
           "type_name": "int",
@@ -1551,7 +1531,11 @@
           "value_constraints": {
             "min": 1
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "dtype": {
           "type_name": "str",
@@ -1565,7 +1549,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1581,30 +1569,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_MATMUL",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_TRANSPOSE_2D",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "rows",
       "primary_out": "output_var"
     },
@@ -1617,7 +1592,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return an N-dimensional array of given shape and type, populated with zeros.",
       "dependencies": [
@@ -1654,7 +1629,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "dtype": {
           "type_name": "str",
@@ -1668,7 +1647,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1684,30 +1667,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_SUM_AXIS",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_EXPAND_DIMS",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "shape",
       "primary_out": "output_var"
     },
@@ -1720,7 +1690,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return a 1-dimensional array filled with ones.",
       "dependencies": [
@@ -1758,7 +1728,11 @@
           "value_constraints": {
             "min": 1
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "dtype": {
           "type_name": "str",
@@ -1772,7 +1746,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1788,30 +1766,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_MULTIPLY",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_DOT",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "length",
       "primary_out": "output_var"
     },
@@ -1824,7 +1789,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return a 2D matrix populated with ones.",
       "dependencies": [
@@ -1862,7 +1827,11 @@
           "value_constraints": {
             "min": 1
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "cols": {
           "type_name": "int",
@@ -1878,7 +1847,11 @@
           "value_constraints": {
             "min": 1
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "dtype": {
           "type_name": "str",
@@ -1892,7 +1865,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1908,22 +1885,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_MATMUL",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "rows",
       "primary_out": "output_var"
     },
@@ -1936,7 +1908,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return an N-dimensional array populated with ones.",
       "dependencies": [
@@ -1972,7 +1944,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "dtype": {
           "type_name": "str",
@@ -1986,7 +1962,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2002,22 +1982,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_MULTIPLY",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "shape",
       "primary_out": "output_var"
     },
@@ -2030,7 +2005,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 10,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return a new array of given shape and type, filled with fill_value.",
       "dependencies": [
@@ -2067,7 +2042,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "fill_value": {
           "type_name": "float",
@@ -2081,7 +2060,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "dtype": {
           "type_name": "str",
@@ -2095,7 +2078,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2111,22 +2098,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_ADD",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "shape",
       "primary_out": "output_var"
     },
@@ -2139,7 +2121,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return evenly spaced values within a given half-open interval [start, stop).",
       "dependencies": [
@@ -2180,7 +2162,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "stop": {
           "type_name": "float",
@@ -2194,7 +2180,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "step": {
           "type_name": "float",
@@ -2210,7 +2200,11 @@
           "value_constraints": {
             "nonzero": true
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "dtype": {
           "type_name": "str",
@@ -2224,7 +2218,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2240,30 +2238,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_RESHAPE_2D",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_EXP",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "start",
       "primary_out": "output_var"
     },
@@ -2276,7 +2261,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return evenly spaced numbers over a specified closed or open interval.",
       "dependencies": [
@@ -2314,7 +2299,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "stop": {
           "type_name": "float",
@@ -2328,7 +2317,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "num": {
           "type_name": "int",
@@ -2344,7 +2337,11 @@
           "value_constraints": {
             "min": 1
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "endpoint": {
           "type_name": "bool",
@@ -2358,7 +2355,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2374,30 +2375,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_EXP",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_FFT_FFT",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "start",
       "primary_out": "output_var"
     },
@@ -2410,7 +2398,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return a 2D array with ones on the diagonal and zeros elsewhere.",
       "dependencies": [
@@ -2451,7 +2439,11 @@
           "value_constraints": {
             "min": 1
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "m": {
           "type_name": "int",
@@ -2465,7 +2457,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "k": {
           "type_name": "int",
@@ -2479,7 +2475,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "dtype": {
           "type_name": "str",
@@ -2493,7 +2493,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2509,30 +2513,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_MATMUL",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_LINALG_INV",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "n",
       "primary_out": "output_var"
     },
@@ -2545,7 +2536,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return the identity square matrix of size n x n.",
       "dependencies": [
@@ -2584,7 +2575,11 @@
           "value_constraints": {
             "min": 1
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "dtype": {
           "type_name": "str",
@@ -2598,7 +2593,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2614,22 +2613,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_MATMUL",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "n",
       "primary_out": "output_var"
     },
@@ -2642,7 +2636,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 10,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return a new uninitialized array of given shape and type without zeroing memory.",
       "dependencies": [
@@ -2679,7 +2673,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "dtype": {
           "type_name": "str",
@@ -2693,7 +2691,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2709,22 +2711,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_CLIP",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "shape",
       "primary_out": "output_var"
     },
@@ -2737,7 +2734,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Load an ndarray from a binary .npy file on disk.",
       "dependencies": [
@@ -2776,7 +2773,16 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "npy",
+            "npz",
+            "txt",
+            "csv"
+          ]
         }
       },
       "outputs": {
@@ -2792,30 +2798,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_MEAN_AXIS",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_RESHAPE_2D",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "file_path",
       "primary_out": "output_var"
     },
@@ -2828,7 +2821,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Reshape an existing array into a 2-dimensional matrix.",
       "dependencies": [
@@ -2870,7 +2863,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "rows": {
           "type_name": "int",
@@ -2884,7 +2881,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "cols": {
           "type_name": "int",
@@ -2898,7 +2899,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2914,7 +2919,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -2931,32 +2940,7 @@
       "effects": [
         "preserves:is_complex"
       ],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_MATMUL",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_TRANSPOSE_2D",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_LINALG_SVD",
-          "affinity_score": 0.2,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "array",
       "primary_out": "output_var"
     },
@@ -2969,7 +2953,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Gives a new shape to an array without changing its data.",
       "dependencies": [
@@ -3012,7 +2996,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "new_shape": {
           "type_name": "Tuple[int, ...]",
@@ -3026,7 +3014,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3042,30 +3034,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_SUM_AXIS",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_EXPAND_DIMS",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "array",
       "primary_out": "output_var"
     },
@@ -3078,7 +3057,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return a contiguous flattened 1D array view when possible.",
       "dependencies": [
@@ -3121,7 +3100,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "order": {
           "type_name": "str",
@@ -3140,7 +3123,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3156,7 +3143,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -3173,24 +3164,7 @@
       "effects": [
         "preserves:is_complex"
       ],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_SORT",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_DOT",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "array",
       "primary_out": "output_var"
     },
@@ -3203,7 +3177,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 10,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return a copy of the array collapsed into one dimension.",
       "dependencies": [
@@ -3245,7 +3219,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "order": {
           "type_name": "str",
@@ -3262,7 +3240,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3278,22 +3260,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_SORT",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "array",
       "primary_out": "output_var"
     },
@@ -3306,7 +3283,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Permute the two dimensions of a matrix (matrix transpose).",
       "dependencies": [
@@ -3343,7 +3320,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3359,7 +3340,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -3374,24 +3359,7 @@
       ],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_MATMUL",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_LINALG_INV",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "matrix",
       "primary_out": "output_var"
     },
@@ -3404,7 +3372,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Permute the dimensions of an N-dimensional tensor according to specified axes.",
       "dependencies": [
@@ -3444,7 +3412,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "axes": {
           "type_name": "Tuple[int, ...]",
@@ -3458,7 +3430,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3474,22 +3450,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_SUM_AXIS",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "tensor",
       "primary_out": "output_var"
     },
@@ -3502,7 +3473,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Remove single-dimensional entries from the shape of an array.",
       "dependencies": [
@@ -3541,7 +3512,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "axis": {
           "type_name": "int",
@@ -3555,7 +3530,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3571,22 +3550,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_NORMALIZE_L2",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "array",
       "primary_out": "output_var"
     },
@@ -3599,7 +3573,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Expand the shape of an array by inserting a new axis at specified position.",
       "dependencies": [
@@ -3641,7 +3615,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "axis": {
           "type_name": "int",
@@ -3655,7 +3633,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3671,30 +3653,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_BROADCAST_TO",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_CONCATENATE_AXIS0",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "array",
       "primary_out": "output_var"
     },
@@ -3707,7 +3676,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Join a sequence of arrays along axis 0.",
       "dependencies": [
@@ -3745,7 +3714,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "array_b": {
           "type_name": "ndarray",
@@ -3759,7 +3732,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3775,22 +3752,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_SUM_AXIS",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "array_a",
       "primary_out": "output_var"
     },
@@ -3803,7 +3775,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Join a sequence of arrays along a new axis.",
       "dependencies": [
@@ -3842,7 +3814,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "array_b": {
           "type_name": "ndarray",
@@ -3856,7 +3832,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "axis": {
           "type_name": "int",
@@ -3870,7 +3850,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3886,22 +3870,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_MEAN_AXIS",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "array_a",
       "primary_out": "output_var"
     },
@@ -3914,7 +3893,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Stack arrays in sequence vertically (row wise).",
       "dependencies": [
@@ -3956,7 +3935,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "array_b": {
           "type_name": "ndarray",
@@ -3975,7 +3958,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3991,22 +3978,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_MATMUL",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "array_a",
       "primary_out": "output_var"
     },
@@ -4019,7 +4001,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Stack arrays in sequence horizontally (column wise).",
       "dependencies": [
@@ -4061,7 +4043,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "array_b": {
           "type_name": "ndarray",
@@ -4080,7 +4066,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4096,22 +4086,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_SUM_AXIS",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "array_a",
       "primary_out": "output_var"
     },
@@ -4124,7 +4109,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return elements chosen from x or y depending on condition boolean mask.",
       "dependencies": [
@@ -4162,7 +4147,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "x": {
           "type_name": "ndarray",
@@ -4177,7 +4166,11 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "feature_input"
+          "port_role": "feature_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "y": {
           "type_name": "ndarray",
@@ -4192,7 +4185,11 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "target_input"
+          "port_role": "target_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4208,22 +4205,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_SUM_AXIS",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "x",
       "primary_out": "output_var"
     },
@@ -4236,7 +4228,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Extract 1-dimensional array of elements where boolean mask is True.",
       "dependencies": [
@@ -4274,7 +4266,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "mask": {
           "type_name": "ndarray",
@@ -4288,7 +4284,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4304,7 +4304,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -4321,24 +4325,7 @@
       "effects": [
         "preserves:is_complex"
       ],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_MEAN_ALL",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_SORT",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "array",
       "primary_out": "output_var"
     },
@@ -4351,7 +4338,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 10,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Broadcast an array to a target shape, creating a read-only view.",
       "dependencies": [
@@ -4388,7 +4375,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "shape": {
           "type_name": "Tuple[int, ...]",
@@ -4402,7 +4393,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4418,22 +4413,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_ADD",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "array",
       "primary_out": "output_var"
     },
@@ -4446,7 +4436,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 10,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Pad an array along each dimension with configured values or modes.",
       "dependencies": [
@@ -4486,7 +4476,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "pad_width": {
           "type_name": "tuple",
@@ -4500,7 +4494,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "mode": {
           "type_name": "str",
@@ -4525,7 +4523,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4541,22 +4543,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_FFT_FFT2",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "array",
       "primary_out": "output_var"
     },
@@ -4569,7 +4566,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Clip (limit) the values in an array within a specified lower and upper bound interval.",
       "dependencies": [
@@ -4608,7 +4605,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "a_min": {
           "type_name": "float",
@@ -4622,7 +4623,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "a_max": {
           "type_name": "float",
@@ -4636,7 +4641,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4652,22 +4661,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_SAVE_NPY",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "array",
       "primary_out": "output_var"
     },
@@ -4680,7 +4684,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Element-wise addition of two arrays.",
       "dependencies": [
@@ -4726,7 +4730,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "x2": {
           "type_name": "ndarray",
@@ -4748,7 +4756,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4764,27 +4776,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_FFT_FFT",
-          "affinity_score": 0.9,
-          "score_provenance": "ast_mined"
-        },
-        {
-          "target_cell_id": "NUMPY_SUM_AXIS",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "x1",
       "primary_out": "output_var"
     },
@@ -4797,7 +4799,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Element-wise subtraction of two arrays: x1 - x2.",
       "dependencies": [
@@ -4834,7 +4836,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "x2": {
           "type_name": "ndarray",
@@ -4848,7 +4854,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4864,22 +4874,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_ABS",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "x1",
       "primary_out": "output_var"
     },
@@ -4892,7 +4897,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Element-wise multiplication (Hadamard product) of array operands.",
       "dependencies": [
@@ -4929,7 +4934,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "x2": {
           "type_name": "ndarray",
@@ -4943,7 +4952,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4959,22 +4972,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_SUM_AXIS",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "x1",
       "primary_out": "output_var"
     },
@@ -4987,7 +4995,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Element-wise true division of array inputs.",
       "dependencies": [
@@ -5025,7 +5033,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "x2": {
           "type_name": "ndarray",
@@ -5039,7 +5051,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5055,22 +5071,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_CLIP",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "x1",
       "primary_out": "output_var"
     },
@@ -5083,7 +5094,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Calculate the exponential of all elements in the input array.",
       "dependencies": [
@@ -5124,7 +5135,11 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "feature_input"
+          "port_role": "feature_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5140,22 +5155,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_SUM_AXIS",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "x",
       "primary_out": "output_var"
     },
@@ -5168,7 +5178,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Natural logarithm, element-wise.",
       "dependencies": [
@@ -5209,7 +5219,11 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "feature_input"
+          "port_role": "feature_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5225,22 +5239,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_MEAN_AXIS",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "x",
       "primary_out": "output_var"
     },
@@ -5253,7 +5262,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return the non-negative square-root of an array, element-wise.",
       "dependencies": [
@@ -5294,7 +5303,11 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "feature_input"
+          "port_role": "feature_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5310,22 +5323,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_DIVIDE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "x",
       "primary_out": "output_var"
     },
@@ -5338,7 +5346,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Calculate the absolute value element-wise.",
       "dependencies": [
@@ -5382,7 +5390,11 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "feature_input"
+          "port_role": "feature_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5398,7 +5410,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -5413,16 +5429,7 @@
         }
       ],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_MAX_AXIS",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "x",
       "primary_out": "output_var"
     },
@@ -5435,7 +5442,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Sum of array elements over all axes, reducing to a scalar.",
       "dependencies": [
@@ -5476,7 +5483,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5492,7 +5503,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -5511,7 +5526,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Sum of array elements over a specified axis.",
       "dependencies": [
@@ -5551,7 +5566,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "axis": {
           "type_name": "int",
@@ -5565,7 +5584,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "keepdims": {
           "type_name": "bool",
@@ -5579,7 +5602,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5595,22 +5622,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_DIVIDE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "array",
       "primary_out": "output_var"
     },
@@ -5623,7 +5645,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Compute the arithmetic mean over all elements of an array.",
       "dependencies": [
@@ -5665,7 +5687,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5681,7 +5707,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -5700,7 +5730,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Compute the arithmetic mean along the specified axis.",
       "dependencies": [
@@ -5740,7 +5770,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "axis": {
           "type_name": "int",
@@ -5754,7 +5788,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "keepdims": {
           "type_name": "bool",
@@ -5768,7 +5806,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5784,22 +5826,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_SUBTRACT",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "array",
       "primary_out": "output_var"
     },
@@ -5812,7 +5849,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Compute the standard deviation along the specified axis.",
       "dependencies": [
@@ -5852,7 +5889,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "axis": {
           "type_name": "int",
@@ -5866,7 +5907,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "keepdims": {
           "type_name": "bool",
@@ -5880,7 +5925,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5896,22 +5945,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_DIVIDE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "array",
       "primary_out": "output_var"
     },
@@ -5924,7 +5968,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Compute the variance along the specified axis.",
       "dependencies": [
@@ -5964,7 +6008,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "axis": {
           "type_name": "int",
@@ -5978,7 +6026,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "keepdims": {
           "type_name": "bool",
@@ -5992,7 +6044,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6008,22 +6064,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_SQRT",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "array",
       "primary_out": "output_var"
     },
@@ -6036,7 +6087,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return the minimum of an array or minimum along an axis.",
       "dependencies": [
@@ -6076,7 +6127,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "axis": {
           "type_name": "int",
@@ -6090,7 +6145,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "keepdims": {
           "type_name": "bool",
@@ -6104,7 +6163,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6120,22 +6183,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_SUBTRACT",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "array",
       "primary_out": "output_var"
     },
@@ -6148,7 +6206,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return the maximum of an array or maximum along an axis.",
       "dependencies": [
@@ -6188,7 +6246,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "axis": {
           "type_name": "int",
@@ -6202,7 +6264,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "keepdims": {
           "type_name": "bool",
@@ -6216,7 +6282,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6232,22 +6302,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_DIVIDE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "array",
       "primary_out": "output_var"
     },
@@ -6260,7 +6325,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Returns the indices of the minimum values along an axis.",
       "dependencies": [
@@ -6299,7 +6364,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "axis": {
           "type_name": "int",
@@ -6313,7 +6382,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6329,7 +6402,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -6348,7 +6425,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Returns the indices of the maximum values along an axis.",
       "dependencies": [
@@ -6387,7 +6464,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "axis": {
           "type_name": "int",
@@ -6401,7 +6482,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6417,7 +6502,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -6436,7 +6525,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return the cumulative sum of the elements along a given axis.",
       "dependencies": [
@@ -6475,7 +6564,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "axis": {
           "type_name": "int",
@@ -6489,7 +6582,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6505,22 +6602,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_DIVIDE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "array",
       "primary_out": "output_var"
     },
@@ -6533,7 +6625,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Normalize tensor vectors to unit Euclidean (L2) norm along an axis.",
       "dependencies": [
@@ -6578,7 +6670,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "axis": {
           "type_name": "int",
@@ -6592,7 +6688,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6608,7 +6708,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -6623,24 +6727,7 @@
         }
       ],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_DOT",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_MATMUL",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "array",
       "primary_out": "output_var"
     },
@@ -6653,7 +6740,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Dot product of two arrays (inner product for 1D, matrix multiply for 2D).",
       "dependencies": [
@@ -6695,7 +6782,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "b": {
           "type_name": "ndarray",
@@ -6713,7 +6804,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6729,22 +6824,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_ADD",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "a",
       "primary_out": "output_var"
     },
@@ -6757,7 +6847,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Matrix product of two arrays strictly adhering to matrix multiplication semantics.",
       "dependencies": [
@@ -6798,7 +6888,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "x2": {
           "type_name": "ndarray",
@@ -6816,7 +6910,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6832,7 +6930,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -6856,32 +6958,7 @@
         }
       ],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_LINALG_INV",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_LINALG_SVD",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_TRACE",
-          "affinity_score": 0.2,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "x1",
       "primary_out": "output_var"
     },
@@ -6894,7 +6971,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 10,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Inner product of two arrays.",
       "dependencies": [
@@ -6930,7 +7007,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "b": {
           "type_name": "ndarray",
@@ -6944,7 +7025,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6960,7 +7045,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -6979,7 +7068,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Compute the outer product of two vectors.",
       "dependencies": [
@@ -7014,7 +7103,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "b": {
           "type_name": "ndarray",
@@ -7028,7 +7121,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7044,7 +7141,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -7059,16 +7160,7 @@
         }
       ],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_LINALG_SVD",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "a",
       "primary_out": "output_var"
     },
@@ -7081,7 +7173,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Compute the multiplicative inverse of a square non-singular matrix.",
       "dependencies": [
@@ -7119,7 +7211,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7135,7 +7231,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -7150,16 +7250,7 @@
       ],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_MATMUL",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "matrix",
       "primary_out": "output_var"
     },
@@ -7172,7 +7263,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Compute the determinant of a square matrix.",
       "dependencies": [
@@ -7209,7 +7300,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7225,7 +7320,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -7253,7 +7352,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Compute the eigenvalues and right eigenvectors of a square array.",
       "dependencies": [
@@ -7292,7 +7391,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7308,7 +7411,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -7336,7 +7443,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return eigenvalues and eigenvectors of a complex Hermitian or real symmetric matrix.",
       "dependencies": [
@@ -7375,7 +7482,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7391,7 +7502,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -7419,7 +7534,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Singular Value Decomposition factorizing matrix A into U, S, and Vh.",
       "dependencies": [
@@ -7459,7 +7574,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "full_matrices": {
           "type_name": "bool",
@@ -7473,7 +7592,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7489,7 +7612,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -7517,7 +7644,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Compute the QR factorization of a matrix as Q (orthogonal) and R (upper triangular).",
       "dependencies": [
@@ -7558,7 +7685,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "mode": {
           "type_name": "str",
@@ -7577,7 +7708,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7593,7 +7728,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -7612,7 +7751,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Cholesky decomposition of a square, positive-definite matrix.",
       "dependencies": [
@@ -7649,7 +7788,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7665,7 +7808,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -7680,16 +7827,7 @@
       ],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_MATMUL",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "matrix",
       "primary_out": "output_var"
     },
@@ -7702,7 +7840,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Solve a linear matrix equation, or system of linear scalar equations Ax = b.",
       "dependencies": [
@@ -7739,7 +7877,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "b": {
           "type_name": "ndarray",
@@ -7758,7 +7900,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7774,7 +7920,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -7789,16 +7939,7 @@
       ],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_LINALG_NORM",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "a",
       "primary_out": "output_var"
     },
@@ -7811,7 +7952,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Matrix or vector norm computation.",
       "dependencies": [
@@ -7859,7 +8000,11 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "feature_input"
+          "port_role": "feature_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "ord": {
           "type_name": "str",
@@ -7873,7 +8018,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "axis": {
           "type_name": "int",
@@ -7887,7 +8036,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "keepdims": {
           "type_name": "bool",
@@ -7901,7 +8054,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7917,7 +8074,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -7936,7 +8097,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return matrix rank of array using SVD-based estimation method.",
       "dependencies": [
@@ -7974,7 +8135,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "tol": {
           "type_name": "float",
@@ -7988,7 +8153,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8004,7 +8173,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -8032,7 +8205,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return the sum along diagonals of the array.",
       "dependencies": [
@@ -8069,7 +8242,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "offset": {
           "type_name": "int",
@@ -8083,7 +8260,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8099,7 +8280,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -8127,7 +8312,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Compute the 1-dimensional discrete Fourier Transform.",
       "dependencies": [
@@ -8176,7 +8361,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "n": {
           "type_name": "int",
@@ -8190,7 +8379,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "axis": {
           "type_name": "int",
@@ -8204,7 +8397,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8222,7 +8419,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": "(n_samples,)"
+          "shape_contract": "(n_samples,)",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -8237,37 +8438,7 @@
         }
       ],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_FFT_IFFT",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_FFT_FFTSHIFT",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_ABS",
-          "affinity_score": 0.2,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "PD_SET_COLUMN",
-          "affinity_score": 0.85,
-          "score_provenance": "ast_mined"
-        }
-      ],
+      "edges": [],
       "primary_in": "a",
       "primary_out": "output_var"
     },
@@ -8280,7 +8451,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Compute the 1-dimensional inverse discrete Fourier Transform.",
       "dependencies": [
@@ -8320,7 +8491,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "n": {
           "type_name": "int",
@@ -8334,7 +8509,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "axis": {
           "type_name": "int",
@@ -8348,7 +8527,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8364,7 +8547,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -8379,16 +8566,7 @@
         }
       ],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_ABS",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "a",
       "primary_out": "output_var"
     },
@@ -8401,7 +8579,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Compute the 2-dimensional discrete Fourier Transform.",
       "dependencies": [
@@ -8446,7 +8624,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "s": {
           "type_name": "tuple",
@@ -8460,7 +8642,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "axes": {
           "type_name": "tuple",
@@ -8474,7 +8660,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8490,7 +8680,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -8505,32 +8699,7 @@
         }
       ],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_FFT_IFFT2",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_FFT_FFTSHIFT",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_ABS",
-          "affinity_score": 0.2,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "a",
       "primary_out": "output_var"
     },
@@ -8543,7 +8712,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Compute the 2-dimensional inverse discrete Fourier Transform.",
       "dependencies": [
@@ -8583,7 +8752,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "s": {
           "type_name": "tuple",
@@ -8597,7 +8770,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "axes": {
           "type_name": "tuple",
@@ -8611,7 +8788,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8627,7 +8808,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -8642,16 +8827,7 @@
         }
       ],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_ABS",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "a",
       "primary_out": "output_var"
     },
@@ -8664,7 +8840,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 10,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Compute the N-dimensional discrete Fourier Transform.",
       "dependencies": [
@@ -8704,7 +8880,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "s": {
           "type_name": "tuple",
@@ -8718,7 +8898,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "axes": {
           "type_name": "tuple",
@@ -8732,7 +8916,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8748,7 +8936,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -8763,24 +8955,7 @@
         }
       ],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_FFT_FFTSHIFT",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_ABS",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "a",
       "primary_out": "output_var"
     },
@@ -8793,7 +8968,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Compute the 1-dimensional discrete Fourier Transform for real input.",
       "dependencies": [
@@ -8837,7 +9012,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "n": {
           "type_name": "int",
@@ -8851,7 +9030,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "axis": {
           "type_name": "int",
@@ -8865,7 +9048,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8883,7 +9070,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -8898,24 +9089,7 @@
         }
       ],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_FFT_IRFFT",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_ABS",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "a",
       "primary_out": "output_var"
     },
@@ -8928,7 +9102,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Computes the inverse of rfft for real output.",
       "dependencies": [
@@ -8971,7 +9145,11 @@
           "shape_contract": null,
           "accepted_states": [
             "fft_half_spectrum"
-          ]
+          ],
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "n": {
           "type_name": "int",
@@ -8985,7 +9163,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "axis": {
           "type_name": "int",
@@ -8999,7 +9181,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -9015,7 +9201,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -9030,16 +9220,7 @@
         }
       ],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_MEAN_AXIS",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "a",
       "primary_out": "output_var"
     },
@@ -9052,7 +9233,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Shift the zero-frequency component to the center of the spectrum.",
       "dependencies": [
@@ -9090,7 +9271,11 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "feature_input"
+          "port_role": "feature_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "axes": {
           "type_name": "tuple",
@@ -9104,7 +9289,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -9120,7 +9309,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -9128,24 +9321,7 @@
       "effects": [
         "preserves:is_complex"
       ],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_FFT_IFFTSHIFT",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_ABS",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "x",
       "primary_out": "output_var"
     },
@@ -9158,7 +9334,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "The inverse of fftshift; shifts zero-frequency back to beginning.",
       "dependencies": [
@@ -9195,7 +9371,11 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "feature_input"
+          "port_role": "feature_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "axes": {
           "type_name": "tuple",
@@ -9209,7 +9389,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -9225,7 +9409,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -9233,16 +9421,7 @@
       "effects": [
         "preserves:is_complex"
       ],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_FFT_IFFT",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "x",
       "primary_out": "output_var"
     },
@@ -9255,7 +9434,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Draw samples from a uniform continuous distribution [low, high).",
       "dependencies": [
@@ -9295,7 +9474,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "high": {
           "type_name": "float",
@@ -9309,7 +9492,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "size": {
           "type_name": "tuple",
@@ -9323,7 +9510,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -9339,30 +9530,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_MEAN_ALL",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_SORT",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "low",
       "primary_out": "output_var"
     },
@@ -9375,7 +9553,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Draw random samples from a normal (Gaussian) distribution.",
       "dependencies": [
@@ -9415,7 +9593,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "scale": {
           "type_name": "float",
@@ -9431,7 +9613,11 @@
           "value_constraints": {
             "min": 0.0
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "size": {
           "type_name": "tuple",
@@ -9445,7 +9631,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -9461,38 +9651,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_MEAN_ALL",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_STD_AXIS",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_NORMALIZE_L2",
-          "affinity_score": 0.2,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "loc",
       "primary_out": "output_var"
     },
@@ -9505,7 +9674,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Draw samples from a standard Normal distribution (mean=0, stdev=1).",
       "dependencies": [
@@ -9542,7 +9711,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -9558,30 +9731,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_MATMUL",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_MEAN_ALL",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "size",
       "primary_out": "output_var"
     },
@@ -9594,7 +9754,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return random integers from low (inclusive) to high (exclusive).",
       "dependencies": [
@@ -9636,7 +9796,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "high": {
           "type_name": "int",
@@ -9650,7 +9814,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "size": {
           "type_name": "tuple",
@@ -9664,7 +9832,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "dtype": {
           "type_name": "str",
@@ -9678,7 +9850,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -9694,30 +9870,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_UNIQUE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_SORT",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "low",
       "primary_out": "output_var"
     },
@@ -9730,7 +9893,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Generates a random sample from a given 1-D array.",
       "dependencies": [
@@ -9776,7 +9939,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "size": {
           "type_name": "tuple",
@@ -9790,7 +9957,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "replace": {
           "type_name": "bool",
@@ -9804,7 +9975,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         },
         "p": {
           "type_name": "ndarray",
@@ -9818,7 +9993,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -9834,22 +10013,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_UNIQUE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "a",
       "primary_out": "output_var"
     },
@@ -9862,7 +10036,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Randomly permute a sequence, or return a permuted range.",
       "dependencies": [
@@ -9902,7 +10076,11 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "feature_input"
+          "port_role": "feature_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -9918,30 +10096,17 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
       "postconditions": [],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_RESHAPE_2D",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_SAVE_NPY",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "x",
       "primary_out": "output_var"
     },
@@ -9954,7 +10119,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return a sorted copy of an array along a specified axis.",
       "dependencies": [
@@ -10000,7 +10165,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "axis": {
           "type_name": "int",
@@ -10014,7 +10183,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "kind": {
           "type_name": "str",
@@ -10033,7 +10206,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -10049,7 +10226,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -10064,24 +10245,7 @@
         }
       ],
       "effects": [],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_SEARCHSORTED",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_SAVE_NPY",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "array",
       "primary_out": "output_var"
     },
@@ -10094,7 +10258,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Returns the indices that would sort an array.",
       "dependencies": [
@@ -10134,7 +10298,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "axis": {
           "type_name": "int",
@@ -10148,7 +10316,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "kind": {
           "type_name": "str",
@@ -10167,7 +10339,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -10183,7 +10359,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -10202,7 +10382,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Find indices where elements should be inserted to maintain order.",
       "dependencies": [
@@ -10242,7 +10422,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "v": {
           "type_name": "ndarray",
@@ -10256,7 +10440,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "side": {
           "type_name": "str",
@@ -10273,7 +10461,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -10289,7 +10481,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -10317,7 +10513,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Find the unique elements of an array.",
       "dependencies": [
@@ -10358,7 +10554,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -10374,7 +10574,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -10391,24 +10595,7 @@
       "effects": [
         "preserves:is_complex"
       ],
-      "edges": [
-        {
-          "target_cell_id": "NUMPY_SEARCHSORTED",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "NUMPY_SAVE_NPY",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "array",
       "primary_out": "output_var"
     },
@@ -10421,7 +10608,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Save an array to a binary file in NumPy .npy format.",
       "dependencies": [
@@ -10461,7 +10648,16 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "npy",
+            "npz",
+            "txt",
+            "csv"
+          ]
         },
         "array": {
           "type_name": "ndarray",
@@ -10482,7 +10678,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -10498,7 +10698,16 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "npy",
+            "npz",
+            "txt",
+            "csv"
+          ]
         }
       },
       "preconditions": [],
@@ -10518,7 +10727,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Save several arrays into a single compressed .npz archive.",
       "dependencies": [
@@ -10557,7 +10766,16 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "npy",
+            "npz",
+            "txt",
+            "csv"
+          ]
         },
         "array": {
           "type_name": "ndarray",
@@ -10576,7 +10794,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -10592,7 +10814,16 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "npy",
+            "npz",
+            "txt",
+            "csv"
+          ]
         }
       },
       "preconditions": [],
@@ -10612,7 +10843,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Construct Python bytes containing the raw data bytes in the array.",
       "dependencies": [
@@ -10655,7 +10886,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "order": {
           "type_name": "str",
@@ -10673,7 +10908,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -10689,7 +10928,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -10709,7 +10952,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 10,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Write array to a file as text or binary (in platform-native format).",
       "dependencies": [
@@ -10755,7 +10998,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "file_path": {
           "type_name": "File[Array, Any]",
@@ -10769,7 +11016,16 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "npy",
+            "npz",
+            "txt",
+            "csv"
+          ]
         },
         "sep": {
           "type_name": "str",
@@ -10783,7 +11039,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "format": {
           "type_name": "str",
@@ -10797,7 +11057,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -10813,7 +11077,16 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "npy",
+            "npz",
+            "txt",
+            "csv"
+          ]
         }
       },
       "preconditions": [],
@@ -10833,7 +11106,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return the array as an a.ndim-levels deep nested list of Python scalars.",
       "dependencies": [
@@ -10877,7 +11150,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -10893,7 +11170,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -10913,7 +11194,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Return Pearson product-moment correlation coefficients matrix.",
       "dependencies": [
@@ -10960,7 +11241,11 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "feature_input"
+          "port_role": "feature_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "y": {
           "type_name": "ndarray",
@@ -10980,7 +11265,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "rowvar": {
           "type_name": "bool",
@@ -10994,7 +11283,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -11012,7 +11305,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -11040,7 +11337,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Estimate a covariance matrix, given data and weights.",
       "dependencies": [
@@ -11086,7 +11383,11 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "feature_input"
+          "port_role": "feature_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "y": {
           "type_name": "ndarray",
@@ -11106,7 +11407,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "rowvar": {
           "type_name": "bool",
@@ -11120,7 +11425,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -11138,7 +11447,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -11157,7 +11470,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Compute the median along the specified axis.",
       "dependencies": [
@@ -11202,7 +11515,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "axis": {
           "type_name": "int",
@@ -11216,7 +11533,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "keepdims": {
           "type_name": "bool",
@@ -11230,7 +11551,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -11246,7 +11571,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -11265,7 +11594,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Compute the q-th percentile of data along the specified axis.",
       "dependencies": [
@@ -11310,7 +11639,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "q": {
           "type_name": "float",
@@ -11327,7 +11660,11 @@
             "min": 0.0,
             "max": 100.0
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "axis": {
           "type_name": "int",
@@ -11341,7 +11678,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "keepdims": {
           "type_name": "bool",
@@ -11355,7 +11696,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -11371,7 +11716,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -11391,7 +11740,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Reshape an array into 2D with dynamic row count and specified column count.",
       "dependencies": [
@@ -11436,7 +11785,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "n_columns": {
           "type_name": "int",
@@ -11453,7 +11806,11 @@
             "min": 1
           },
           "shape_contract": null,
-          "port_role": "dim_size"
+          "port_role": "dim_size",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -11471,7 +11828,11 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -11499,7 +11860,7 @@
       "node_role": "bridge",
       "mutation_type": "pure",
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Declared morphism ArrayLike -> Tensor: materialize an array-like carrier as a dense tensor.",
       "dependencies": [
@@ -11524,14 +11885,22 @@
           "type_name": "array-like",
           "state": "any",
           "required": true,
-          "description": "Any array-like carrier (series, list, buffer)."
+          "description": "Any array-like carrier (series, list, buffer).",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
         "output_var": {
           "type_name": "tensor",
           "state": "any",
-          "description": "Dense tensor carrier."
+          "description": "Dense tensor carrier.",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       }
     }
@@ -11629,5 +11998,11 @@
       ],
       "template": "try:\n    import numpy as np\n    {var_name} = np.zeros((4, 4), dtype=np.float32)\nexcept ImportError:\n    {var_name} = [[0.0] * 4] * 4"
     }
+  ],
+  "supported_formats": [
+    "npy",
+    "npz",
+    "txt",
+    "csv"
   ]
 }

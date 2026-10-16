@@ -31,6 +31,15 @@ except ImportError:
     from .harvester import IntelligentHarvester
     from .lattice import TypeRegistry
 
+ROOT_DIR = str(Path(__file__).resolve().parent.parent)
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
+
+try:
+    from tools.compile_trees import synthesize_dynamic_edges
+except Exception:
+    synthesize_dynamic_edges = None
+
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -536,6 +545,16 @@ def cmd_compile(args):
     with ThreadPoolExecutor() as executor:
         loaded_trees = list(executor.map(_load_tree_file, json_files))
 
+    dynamic_edges_map: Dict[str, Any] = {}
+    if synthesize_dynamic_edges:
+        all_cells_list = []
+        for tree, data, cells, domain, fname in loaded_trees:
+            if not cells:
+                continue
+            for cell in cells:
+                all_cells_list.append((domain, cell.model_dump()))
+        dynamic_edges_map = synthesize_dynamic_edges(all_cells_list)
+
     total_compiled = 0
     stats: Dict[str, int] = {}
     node_rows: List[Tuple] = []
@@ -689,7 +708,7 @@ def cmd_compile(args):
                 "preconditions": [p.model_dump() if hasattr(p, "model_dump") else p for p in getattr(cell, "preconditions", [])],
                 "postconditions": [p.model_dump() if hasattr(p, "model_dump") else p for p in getattr(cell, "postconditions", [])],
                 "effects": [p.model_dump() if hasattr(p, "model_dump") else p for p in getattr(cell, "effects", [])],
-                "edges": [e.model_dump() if hasattr(e, "model_dump") else e for e in getattr(cell, "edges", [])],
+                "edges": dynamic_edges_map.get(cell.cell_id, []),
                 "sub_cells": getattr(cell, "sub_cells", []),
                 "algorithmic_steps": getattr(cell, "algorithmic_steps", []),
                 "internal_topology": getattr(cell, "internal_topology", {}),
@@ -2145,6 +2164,7 @@ class NSTLInteractiveShell(cmd.Cmd):
         reranker_model: Optional[str] = None,
         exec_sandbox: bool = False,
         llm_feedback: bool = False,
+        allowed_capabilities: Optional[Union[str, List[str], Set[str]]] = None,
     ):
         super().__init__()
         self.db_path = db_path
@@ -2155,6 +2175,16 @@ class NSTLInteractiveShell(cmd.Cmd):
         self.route_method = route_method.upper() if route_method else None
         self.no_lint: bool = bool(no_lint)
         self.llm_feedback: bool = bool(llm_feedback)
+        if self.llm_feedback:
+            os.environ["NSTL_LLM_FEEDBACK"] = "1"
+        else:
+            os.environ.pop("NSTL_LLM_FEEDBACK", None)
+        if isinstance(allowed_capabilities, str):
+            self.allowed_capabilities: Set[str] = {c.strip() for c in allowed_capabilities.split(",") if c.strip()}
+        else:
+            self.allowed_capabilities = set(allowed_capabilities or [])
+        if self.allowed_capabilities:
+            os.environ["NSTL_ALLOWED_CAPABILITIES"] = ",".join(sorted(self.allowed_capabilities))
         self.rag: Optional[LocalRAG] = None
         self.history: List[Dict[str, Any]] = []
         self.debug: bool = debug
@@ -2199,7 +2229,7 @@ class NSTLInteractiveShell(cmd.Cmd):
         self.orchestrator.load_from_database(db_path)
         self.orchestrator.build_topology()
         self.gate = UnificationGate(self.orchestrator)
-        self.sandbox = GEVRSandbox()
+        self.sandbox = GEVRSandbox(allowed_capabilities=self.allowed_capabilities)
 
         node_count = len(self.orchestrator.cells)
         load_time = (time.perf_counter() - t0) * 1000.0
@@ -3233,6 +3263,7 @@ def cmd_shell(args):
         reranker_model=getattr(args, "reranker_model", None),
         exec_sandbox=getattr(args, "exec_sandbox", False),
         llm_feedback=getattr(args, "llm_feedback", False),
+        allowed_capabilities=getattr(args, "allow_capabilities", ""),
     )
     shell.cmdloop()
 
@@ -3277,6 +3308,7 @@ def cmd_run(args):
         reranker_model=getattr(args, "reranker_model", None),
         exec_sandbox=getattr(args, "exec_sandbox", False),
         llm_feedback=getattr(args, "llm_feedback", False),
+        allowed_capabilities=getattr(args, "allow_capabilities", ""),
     )
     shell.default(f"{prompt} --debug" if debug_mode else prompt)
 
@@ -3372,6 +3404,12 @@ def cmd_macro(args):
 
 def cmd_benchmark(args):
     """Runs empirical benchmark suite (matrix or reference bank)."""
+    if getattr(args, "llm_feedback", False):
+        os.environ["NSTL_LLM_FEEDBACK"] = "1"
+    else:
+        os.environ.pop("NSTL_LLM_FEEDBACK", None)
+    if getattr(args, "allow_capabilities", None):
+        os.environ["NSTL_ALLOWED_CAPABILITIES"] = str(args.allow_capabilities)
     if getattr(args, "macros", None) is not None:
         try:
             from config import settings
@@ -3503,6 +3541,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_bench.add_argument("--reranker-model", type=str, default=None, help="Neural reranker model name (e.g. jina-reranker-v3.5)")
     p_bench.add_argument("--dev", action="store_true", default=False, help="Enable Dev Mode")
     p_bench.add_argument("--topology", choices=["frontier", "linear"], default=None, help="Topological planning approach")
+    p_bench.add_argument("--allow-capabilities", type=str, default="", help="Comma-separated list of capabilities to allow in sandbox (e.g. net.http,fs.read)")
+    p_bench.add_argument("--llm-feedback", dest="llm_feedback", action="store_true", default=False, help="Enable LLM feedback / self-repair cycle")
     p_bench.add_argument(
         "--early-exit-layer",
         type=int,
@@ -3549,6 +3589,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("--no-exec", action="store_true", help="Skip GEVR sandbox execution")
     p_run.add_argument("--exec", dest="exec_sandbox", action="store_true", default=False, help="Enable GEVR sandbox execution")
     p_run.add_argument("--llm-feedback", dest="llm_feedback", action="store_true", default=False, help="Enable LLM feedback / self-repair cycle when pre-flight lint fails")
+    p_run.add_argument("--allow-capabilities", type=str, default="", help="Comma-separated list of capabilities to allow in sandbox (e.g. net.http,fs.read)")
     p_run.add_argument("--timeout", type=float, default=DEFAULT_SANDBOX_TIMEOUT, help="Sandbox execution timeout in seconds")
     p_run.add_argument("--macros", dest="macros", action="store_true", default=None, help="Enable macro-goal routing")
     p_run.add_argument("--no-macros", dest="macros", action="store_false", help="Disable macro-goal routing")
@@ -3593,6 +3634,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_shell.add_argument("--no-exec", action="store_true", help="Skip GEVR sandbox execution")
     p_shell.add_argument("--exec", dest="exec_sandbox", action="store_true", default=False, help="Enable GEVR sandbox execution")
     p_shell.add_argument("--llm-feedback", dest="llm_feedback", action="store_true", default=False, help="Enable LLM feedback / self-repair cycle when pre-flight lint fails")
+    p_shell.add_argument("--allow-capabilities", type=str, default="", help="Comma-separated list of capabilities to allow in sandbox (e.g. net.http,fs.read)")
     p_shell.add_argument("--timeout", type=float, default=DEFAULT_SANDBOX_TIMEOUT, help="Sandbox execution timeout in seconds")
     p_shell.add_argument("--macros", dest="macros", action="store_true", default=None, help="Enable macro-goal routing")
     p_shell.add_argument("--no-macros", dest="macros", action="store_false", help="Disable macro-goal routing")

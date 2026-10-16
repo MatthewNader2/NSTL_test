@@ -4,6 +4,14 @@
   "aliases": {
     "plt": "matplotlib.pyplot"
   },
+  "supported_formats": [
+    "png",
+    "jpg",
+    "jpeg",
+    "pdf",
+    "svg",
+    "eps"
+  ],
   "typestates": {
     "domain": "matplotlib",
     "initial_state": "empty_figure",
@@ -768,7 +776,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Create a figure and a single subplot Axes object.",
       "dependencies": [
@@ -813,7 +821,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -833,7 +845,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "ax": {
           "name": "ax",
@@ -851,7 +867,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -868,40 +888,7 @@
       "effects": [
         "Allocates new Figure and primary Axes in matplotlib pyplot engine."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_ax_plot",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_ax_scatter",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_ax_bar",
-          "affinity_score": 0.2,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_ax_hist",
-          "affinity_score": 0.2,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "figsize",
       "primary_out": "ax"
     },
@@ -914,7 +901,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Create a standalone top-level Matplotlib Figure.",
       "dependencies": [
@@ -956,7 +943,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "dpi": {
           "name": "dpi",
@@ -974,7 +965,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -994,7 +989,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -1011,32 +1010,7 @@
       "effects": [
         "Instantiates Figure manager inside matplotlib GUI subsystem."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_fig_add_subplot",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_fig_add_subplot_3d",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_fig_add_axes",
-          "affinity_score": 0.2,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "figsize",
       "primary_out": "fig"
     },
@@ -1049,7 +1023,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Add a standard 2D subplot Axes to an existing Figure instance.",
       "dependencies": [
@@ -1098,7 +1072,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "nrows": {
           "name": "nrows",
@@ -1114,7 +1092,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "ncols": {
           "name": "ncols",
@@ -1130,7 +1112,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "index": {
           "name": "index",
@@ -1146,7 +1132,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1166,7 +1156,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -1192,32 +1186,7 @@
       "effects": [
         "Appends new Axes child into fig.axes list."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_ax_plot",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_ax_scatter",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_ax_imshow",
-          "affinity_score": 0.2,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "fig",
       "primary_out": "ax"
     },
@@ -1230,7 +1199,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Add a 3D subplot (Axes3D) to a Figure container using projection='3d'.",
       "dependencies": [
@@ -1279,7 +1248,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "nrows": {
           "name": "nrows",
@@ -1295,7 +1268,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "ncols": {
           "name": "ncols",
@@ -1311,7 +1288,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "index": {
           "name": "index",
@@ -1327,7 +1308,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1347,7 +1332,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -1373,32 +1362,7 @@
       "effects": [
         "Configures mplot3d viewing frustum and 3-axis coordinate frame."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_ax3d_plot_surface",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_ax3d_scatter",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_ax3d_plot",
-          "affinity_score": 0.2,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "fig",
       "primary_out": "ax"
     },
@@ -1411,7 +1375,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Add an axes with arbitrary normalized rectangular coordinates [left, bottom, width, height].",
       "dependencies": [
@@ -1457,7 +1421,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "rect": {
           "name": "rect",
@@ -1473,7 +1441,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[4]"
+          "shape_contract": "[4]",
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1493,7 +1465,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -1510,24 +1486,7 @@
       "effects": [
         "Adds positioned axes layer to figure canvas."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_ax_plot",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_ax_scatter",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "fig",
       "primary_out": "ax"
     },
@@ -1540,7 +1499,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Plot 2D coordinates as lines and/or markers onto the provided Axes.",
       "dependencies": [
@@ -1590,7 +1549,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "y": {
           "name": "y",
@@ -1607,7 +1570,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": "[N]",
-          "port_role": "feature_input"
+          "port_role": "feature_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1627,7 +1594,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -1652,40 +1623,7 @@
       "effects": [
         "Adds Line2D artist to axes lines collection."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_ax_set_title",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_ax_set_xlabel",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_ax_legend",
-          "affinity_score": 0.2,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_ax_grid",
-          "affinity_score": 0.2,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "y",
       "primary_out": "out_ax"
     },
@@ -1698,7 +1636,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Render a scatter plot of markers with variable size and color.",
       "dependencies": [
@@ -1750,7 +1688,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "x": {
           "name": "x",
@@ -1767,7 +1709,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": "[N]",
-          "port_role": "feature_input"
+          "port_role": "feature_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "y": {
           "name": "y",
@@ -1784,7 +1730,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": "[N]",
-          "port_role": "target_input"
+          "port_role": "target_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "s": {
           "name": "s",
@@ -1802,7 +1752,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "c": {
           "name": "c",
@@ -1820,7 +1774,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "marker": {
           "name": "marker",
@@ -1844,7 +1802,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "alpha": {
           "name": "alpha",
@@ -1862,7 +1824,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1882,7 +1848,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -1899,32 +1869,7 @@
       "effects": [
         "Adds PathCollection into axes collections."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_ax_set_title",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_ax_legend",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_fig_colorbar",
-          "affinity_score": 0.2,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "x",
       "primary_out": "out_ax"
     },
@@ -1937,7 +1882,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Render a vertical bar plot on the specified Axes.",
       "dependencies": [
@@ -1988,7 +1933,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "x": {
           "name": "x",
@@ -2005,7 +1954,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": "[N]",
-          "port_role": "feature_input"
+          "port_role": "feature_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "height": {
           "name": "height",
@@ -2021,7 +1974,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]"
+          "shape_contract": "[N]",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "width": {
           "name": "width",
@@ -2039,7 +1996,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "color": {
           "name": "color",
@@ -2057,7 +2018,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "align": {
           "name": "align",
@@ -2078,7 +2043,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2098,7 +2067,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -2115,24 +2088,7 @@
       "effects": [
         "Adds BarContainer into axes containers."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_ax_set_xticks",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_ax_set_title",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "x",
       "primary_out": "out_ax"
     },
@@ -2145,7 +2101,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Render a horizontal bar plot on the specified Axes.",
       "dependencies": [
@@ -2196,7 +2152,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "y": {
           "name": "y",
@@ -2213,7 +2173,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": "[N]",
-          "port_role": "target_input"
+          "port_role": "target_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "width": {
           "name": "width",
@@ -2229,7 +2193,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]"
+          "shape_contract": "[N]",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "height": {
           "name": "height",
@@ -2247,7 +2215,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "color": {
           "name": "color",
@@ -2265,7 +2237,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "align": {
           "name": "align",
@@ -2286,7 +2262,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2306,7 +2286,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -2323,24 +2307,7 @@
       "effects": [
         "Adds horizontal bar rectangles to axes."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_ax_set_ylabel",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_ax_set_title",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "ax",
       "primary_out": "out_ax"
     },
@@ -2353,7 +2320,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Compute and draw a histogram distribution of values.",
       "dependencies": [
@@ -2404,7 +2371,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "x": {
           "name": "x",
@@ -2421,7 +2392,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": "[N]",
-          "port_role": "feature_input"
+          "port_role": "feature_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "bins": {
           "name": "bins",
@@ -2439,7 +2414,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "density": {
           "name": "density",
@@ -2457,7 +2436,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         },
         "color": {
           "name": "color",
@@ -2475,7 +2458,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "alpha": {
           "name": "alpha",
@@ -2493,7 +2480,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2513,7 +2504,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -2530,32 +2525,7 @@
       "effects": [
         "Adds binned rectangle patches to axes."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_ax_set_title",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_ax_set_xlabel",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_ax_grid",
-          "affinity_score": 0.2,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "x",
       "primary_out": "out_ax"
     },
@@ -2568,7 +2538,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Render a box and whisker plot to visualize quartiles and outliers.",
       "dependencies": [
@@ -2617,7 +2587,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "x": {
           "name": "x",
@@ -2634,7 +2608,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "feature_input"
+          "port_role": "feature_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "vert": {
           "name": "vert",
@@ -2652,7 +2630,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         },
         "patch_artist": {
           "name": "patch_artist",
@@ -2670,7 +2652,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2690,7 +2676,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -2707,24 +2697,7 @@
       "effects": [
         "Adds box, median line, and flier artists to axes."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_ax_set_xticklabels",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_ax_set_title",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "x",
       "primary_out": "out_ax"
     },
@@ -2737,7 +2710,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Render a violin plot showing kernel density estimates.",
       "dependencies": [
@@ -2785,7 +2758,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "dataset": {
           "name": "dataset",
@@ -2801,7 +2778,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "showmeans": {
           "name": "showmeans",
@@ -2819,7 +2800,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         },
         "showmedians": {
           "name": "showmedians",
@@ -2837,7 +2822,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2857,7 +2846,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -2874,24 +2867,7 @@
       "effects": [
         "Adds PolyCollection density contours to axes."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_ax_set_title",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_ax_set_ylabel",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "ax",
       "primary_out": "out_ax"
     },
@@ -2904,7 +2880,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Render a pie chart showing fractional proportions.",
       "dependencies": [
@@ -2954,7 +2930,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "x": {
           "name": "x",
@@ -2971,7 +2951,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": "[N]",
-          "port_role": "feature_input"
+          "port_role": "feature_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "labels": {
           "name": "labels",
@@ -2989,7 +2973,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": "[N]"
+          "shape_contract": "[N]",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "autopct": {
           "name": "autopct",
@@ -3007,7 +2995,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "startangle": {
           "name": "startangle",
@@ -3025,7 +3017,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3045,7 +3041,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -3062,24 +3062,7 @@
       "effects": [
         "Adds Wedge patch collection and percentage texts."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_ax_set_title",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_fig_tight_layout",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "x",
       "primary_out": "out_ax"
     },
@@ -3092,7 +3075,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Display 2D data or RGB image rasters on the given Axes.",
       "dependencies": [
@@ -3143,7 +3126,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "X": {
           "name": "X",
@@ -3160,7 +3147,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": "[M, N]",
-          "port_role": "feature_input"
+          "port_role": "feature_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "cmap": {
           "name": "cmap",
@@ -3185,7 +3176,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "aspect": {
           "name": "aspect",
@@ -3206,7 +3201,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "interpolation": {
           "name": "interpolation",
@@ -3229,7 +3228,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3249,7 +3252,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "mappable": {
           "name": "mappable",
@@ -3265,7 +3272,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -3282,24 +3293,7 @@
       "effects": [
         "Adds AxesImage to axes images collection."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_fig_colorbar",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_ax_set_title",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "X",
       "primary_out": "out_ax"
     },
@@ -3312,7 +3306,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Create a pseudocolor plot with a non-regular rectangular mesh.",
       "dependencies": [
@@ -3364,7 +3358,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "X": {
           "name": "X",
@@ -3381,7 +3379,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": "[M, N]",
-          "port_role": "feature_input"
+          "port_role": "feature_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "Y": {
           "name": "Y",
@@ -3398,7 +3400,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": "[M, N]",
-          "port_role": "target_input"
+          "port_role": "target_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "C": {
           "name": "C",
@@ -3414,7 +3420,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[M, N]"
+          "shape_contract": "[M, N]",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "cmap": {
           "name": "cmap",
@@ -3432,7 +3442,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "shading": {
           "name": "shading",
@@ -3455,7 +3469,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3475,7 +3493,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "mappable": {
           "name": "mappable",
@@ -3491,7 +3513,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -3508,24 +3534,7 @@
       "effects": [
         "Adds QuadMesh into axes collections."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_fig_colorbar",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_ax_set_title",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "X",
       "primary_out": "out_ax"
     },
@@ -3538,7 +3547,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Plot 2D contour isolines of a surface function Z.",
       "dependencies": [
@@ -3589,7 +3598,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "X": {
           "name": "X",
@@ -3606,7 +3619,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": "[M, N]",
-          "port_role": "feature_input"
+          "port_role": "feature_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "Y": {
           "name": "Y",
@@ -3623,7 +3640,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": "[M, N]",
-          "port_role": "target_input"
+          "port_role": "target_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "Z": {
           "name": "Z",
@@ -3639,7 +3660,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[M, N]"
+          "shape_contract": "[M, N]",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "levels": {
           "name": "levels",
@@ -3657,7 +3682,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "cmap": {
           "name": "cmap",
@@ -3675,7 +3704,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3695,7 +3728,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "cs": {
           "name": "cs",
@@ -3711,7 +3748,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -3728,24 +3769,7 @@
       "effects": [
         "Adds line collections representing height thresholds."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_fig_colorbar",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_ax_set_title",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "X",
       "primary_out": "out_ax"
     },
@@ -3758,7 +3782,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Plot filled contour regions for surface function Z.",
       "dependencies": [
@@ -3810,7 +3834,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "X": {
           "name": "X",
@@ -3827,7 +3855,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": "[M, N]",
-          "port_role": "feature_input"
+          "port_role": "feature_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "Y": {
           "name": "Y",
@@ -3844,7 +3876,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": "[M, N]",
-          "port_role": "target_input"
+          "port_role": "target_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "Z": {
           "name": "Z",
@@ -3860,7 +3896,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[M, N]"
+          "shape_contract": "[M, N]",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "levels": {
           "name": "levels",
@@ -3878,7 +3918,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "cmap": {
           "name": "cmap",
@@ -3896,7 +3940,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3916,7 +3964,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "cs": {
           "name": "cs",
@@ -3932,7 +3984,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -3949,24 +4005,7 @@
       "effects": [
         "Adds filled polygon contour sets to axes."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_fig_colorbar",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_ax_set_title",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "X",
       "primary_out": "out_ax"
     },
@@ -3979,7 +4018,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Plot 3D line curves on an Axes3D object.",
       "dependencies": [
@@ -4030,7 +4069,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "xs": {
           "name": "xs",
@@ -4046,7 +4089,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]"
+          "shape_contract": "[N]",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "ys": {
           "name": "ys",
@@ -4062,7 +4109,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]"
+          "shape_contract": "[N]",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "zs": {
           "name": "zs",
@@ -4078,7 +4129,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]"
+          "shape_contract": "[N]",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "color": {
           "name": "color",
@@ -4096,7 +4151,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4116,7 +4175,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -4142,24 +4205,7 @@
       "effects": [
         "Adds Line3D artist to 3D axes."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_ax3d_view_init",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_ax_set_title",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "ax",
       "primary_out": "out_ax"
     },
@@ -4172,7 +4218,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Render a 3D scatter plot of points.",
       "dependencies": [
@@ -4223,7 +4269,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "xs": {
           "name": "xs",
@@ -4239,7 +4289,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]"
+          "shape_contract": "[N]",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "ys": {
           "name": "ys",
@@ -4255,7 +4309,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]"
+          "shape_contract": "[N]",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "zs": {
           "name": "zs",
@@ -4271,7 +4329,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]"
+          "shape_contract": "[N]",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "s": {
           "name": "s",
@@ -4289,7 +4351,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "c": {
           "name": "c",
@@ -4307,7 +4373,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4327,7 +4397,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -4353,24 +4427,7 @@
       "effects": [
         "Adds Path3DCollection to 3D axes."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_ax3d_view_init",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_ax_set_title",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "ax",
       "primary_out": "out_ax"
     },
@@ -4383,7 +4440,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Render a continuous 3D surface plot from 2D coordinate matrices.",
       "dependencies": [
@@ -4435,7 +4492,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "X": {
           "name": "X",
@@ -4452,7 +4513,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": "[M, N]",
-          "port_role": "feature_input"
+          "port_role": "feature_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "Y": {
           "name": "Y",
@@ -4469,7 +4534,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": "[M, N]",
-          "port_role": "target_input"
+          "port_role": "target_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "Z": {
           "name": "Z",
@@ -4485,7 +4554,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[M, N]"
+          "shape_contract": "[M, N]",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "cmap": {
           "name": "cmap",
@@ -4503,7 +4576,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4523,7 +4600,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "surf": {
           "name": "surf",
@@ -4539,7 +4620,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -4565,24 +4650,7 @@
       "effects": [
         "Adds Poly3DCollection surface facets."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_ax3d_view_init",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_fig_colorbar",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "X",
       "primary_out": "out_ax"
     },
@@ -4595,7 +4663,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Set the elevation angle and azimuth orientation for a 3D Axes camera.",
       "dependencies": [
@@ -4644,7 +4712,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "elev": {
           "name": "elev",
@@ -4662,7 +4734,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "azim": {
           "name": "azim",
@@ -4680,7 +4756,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4700,7 +4780,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -4726,24 +4810,7 @@
       "effects": [
         "Updates projection projection matrix."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_fig_tight_layout",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_fig_savefig",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "ax",
       "primary_out": "out_ax"
     },
@@ -4756,7 +4823,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Plot data points with associated symmetric or asymmetric error bars.",
       "dependencies": [
@@ -4807,7 +4874,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "x": {
           "name": "x",
@@ -4824,7 +4895,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": "[N]",
-          "port_role": "feature_input"
+          "port_role": "feature_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "y": {
           "name": "y",
@@ -4841,7 +4916,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": "[N]",
-          "port_role": "target_input"
+          "port_role": "target_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "yerr": {
           "name": "yerr",
@@ -4859,7 +4938,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "xerr": {
           "name": "xerr",
@@ -4877,7 +4960,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "fmt": {
           "name": "fmt",
@@ -4895,7 +4982,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4915,7 +5006,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -4932,24 +5027,7 @@
       "effects": [
         "Adds ErrorbarContainer with whiskers and caps."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_ax_set_title",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_ax_legend",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "x",
       "primary_out": "out_ax"
     },
@@ -4962,7 +5040,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Fill the area between two horizontal curves y1 and y2 across x.",
       "dependencies": [
@@ -5013,7 +5091,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "x": {
           "name": "x",
@@ -5030,7 +5112,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": "[N]",
-          "port_role": "feature_input"
+          "port_role": "feature_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "y1": {
           "name": "y1",
@@ -5046,7 +5132,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]"
+          "shape_contract": "[N]",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "y2": {
           "name": "y2",
@@ -5062,7 +5152,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]"
+          "shape_contract": "[N]",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "color": {
           "name": "color",
@@ -5080,7 +5174,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "alpha": {
           "name": "alpha",
@@ -5098,7 +5196,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5118,7 +5220,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -5135,24 +5241,7 @@
       "effects": [
         "Adds PolyCollection to axes collections."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_ax_plot",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_ax_legend",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "x",
       "primary_out": "out_ax"
     },
@@ -5165,7 +5254,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Plot a stem graph representing discrete sample sequences.",
       "dependencies": [
@@ -5214,7 +5303,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "x": {
           "name": "x",
@@ -5231,7 +5324,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": "[N]",
-          "port_role": "feature_input"
+          "port_role": "feature_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "y": {
           "name": "y",
@@ -5248,7 +5345,11 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": "[N]",
-          "port_role": "target_input"
+          "port_role": "target_input",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "linefmt": {
           "name": "linefmt",
@@ -5266,7 +5367,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "markerfmt": {
           "name": "markerfmt",
@@ -5284,7 +5389,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5304,7 +5413,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -5321,24 +5434,7 @@
       "effects": [
         "Adds StemContainer with baseline and marker lines."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_ax_set_title",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_ax_grid",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "x",
       "primary_out": "out_ax"
     },
@@ -5351,7 +5447,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Add a horizontal reference line spanning the full horizontal axis.",
       "dependencies": [
@@ -5401,7 +5497,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "y": {
           "name": "y",
@@ -5418,7 +5518,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "target_input"
+          "port_role": "target_input",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "color": {
           "name": "color",
@@ -5436,7 +5540,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "linestyle": {
           "name": "linestyle",
@@ -5454,7 +5562,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "linewidth": {
           "name": "linewidth",
@@ -5472,7 +5584,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5492,7 +5608,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -5509,24 +5629,7 @@
       "effects": [
         "Adds spanning Line2D to axes."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_ax_legend",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_fig_tight_layout",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "ax",
       "primary_out": "out_ax"
     },
@@ -5539,7 +5642,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Add a vertical reference line spanning the full vertical axis.",
       "dependencies": [
@@ -5589,7 +5692,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "x": {
           "name": "x",
@@ -5606,7 +5713,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "feature_input"
+          "port_role": "feature_input",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "color": {
           "name": "color",
@@ -5624,7 +5735,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "linestyle": {
           "name": "linestyle",
@@ -5642,7 +5757,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "linewidth": {
           "name": "linewidth",
@@ -5660,7 +5779,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5680,7 +5803,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -5697,24 +5824,7 @@
       "effects": [
         "Adds spanning vertical Line2D to axes."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_ax_legend",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_fig_tight_layout",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "x",
       "primary_out": "out_ax"
     },
@@ -5727,7 +5837,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Place a legend on the axes using artist label tags.",
       "dependencies": [
@@ -5776,7 +5886,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "loc": {
           "name": "loc",
@@ -5801,7 +5915,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "fontsize": {
           "name": "fontsize",
@@ -5819,7 +5937,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "frameon": {
           "name": "frameon",
@@ -5837,7 +5959,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5857,7 +5983,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "legend": {
           "name": "legend",
@@ -5873,7 +6003,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -5890,24 +6024,7 @@
       "effects": [
         "Attaches Legend object to axes."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_fig_tight_layout",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_fig_savefig",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "ax",
       "primary_out": "out_ax"
     },
@@ -5920,7 +6037,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Annotate a point (xy) with text and an optional pointer arrow.",
       "dependencies": [
@@ -5969,7 +6086,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "text": {
           "name": "text",
@@ -5985,7 +6106,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "xy": {
           "name": "xy",
@@ -6001,7 +6126,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": "[2]"
+          "shape_contract": "[2]",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "xytext": {
           "name": "xytext",
@@ -6019,7 +6148,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": "[2]"
+          "shape_contract": "[2]",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "arrowprops": {
           "name": "arrowprops",
@@ -6037,7 +6170,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6057,7 +6194,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -6074,24 +6215,7 @@
       "effects": [
         "Adds Annotation artist to axes."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_fig_tight_layout",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_fig_savefig",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "ax",
       "primary_out": "out_ax"
     },
@@ -6104,7 +6228,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Place arbitrary string text at data coordinates (x, y).",
       "dependencies": [
@@ -6155,7 +6279,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "x": {
           "name": "x",
@@ -6172,7 +6300,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "feature_input"
+          "port_role": "feature_input",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "y": {
           "name": "y",
@@ -6189,7 +6321,11 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "target_input"
+          "port_role": "target_input",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "s": {
           "name": "s",
@@ -6205,7 +6341,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "fontsize": {
           "name": "fontsize",
@@ -6223,7 +6363,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "color": {
           "name": "color",
@@ -6241,7 +6385,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6261,7 +6409,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -6278,24 +6430,7 @@
       "effects": [
         "Adds Text artist to axes."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_fig_tight_layout",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_fig_savefig",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "x",
       "primary_out": "out_ax"
     },
@@ -6308,7 +6443,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Set a title string on the target axes.",
       "dependencies": [
@@ -6357,7 +6492,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "label": {
           "name": "label",
@@ -6373,7 +6512,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "fontsize": {
           "name": "fontsize",
@@ -6391,7 +6534,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "pad": {
           "name": "pad",
@@ -6409,7 +6556,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6429,7 +6580,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -6446,32 +6601,7 @@
       "effects": [
         "Sets title text of the axes artist."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_ax_set_xlabel",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_ax_set_ylabel",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_fig_tight_layout",
-          "affinity_score": 0.2,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "ax",
       "primary_out": "out_ax"
     },
@@ -6484,7 +6614,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Set the label text for the X axis.",
       "dependencies": [
@@ -6533,7 +6663,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "label": {
           "name": "label",
@@ -6549,7 +6683,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "fontsize": {
           "name": "fontsize",
@@ -6567,7 +6705,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "labelpad": {
           "name": "labelpad",
@@ -6585,7 +6727,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6605,7 +6751,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -6622,32 +6772,7 @@
       "effects": [
         "Configures X-axis label artist text."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_ax_set_ylabel",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_fig_tight_layout",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_fig_savefig",
-          "affinity_score": 0.2,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "ax",
       "primary_out": "out_ax"
     },
@@ -6660,7 +6785,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Set the label text for the Y axis.",
       "dependencies": [
@@ -6709,7 +6834,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "label": {
           "name": "label",
@@ -6725,7 +6854,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "fontsize": {
           "name": "fontsize",
@@ -6743,7 +6876,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "labelpad": {
           "name": "labelpad",
@@ -6761,7 +6898,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6781,7 +6922,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -6798,24 +6943,7 @@
       "effects": [
         "Configures Y-axis label artist text."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_fig_tight_layout",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_fig_savefig",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "ax",
       "primary_out": "out_ax"
     },
@@ -6828,7 +6956,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Set the view data limits for the horizontal X axis.",
       "dependencies": [
@@ -6877,7 +7005,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "left": {
           "name": "left",
@@ -6895,7 +7027,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "right": {
           "name": "right",
@@ -6913,7 +7049,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6933,7 +7073,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -6950,24 +7094,7 @@
       "effects": [
         "Modifies X data interval view bounds."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_ax_set_ylim",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_fig_tight_layout",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "left",
       "primary_out": "out_ax"
     },
@@ -6980,7 +7107,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Set the view data limits for the vertical Y axis.",
       "dependencies": [
@@ -7029,7 +7156,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "bottom": {
           "name": "bottom",
@@ -7047,7 +7178,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "top": {
           "name": "top",
@@ -7065,7 +7200,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7085,7 +7224,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -7102,24 +7245,7 @@
       "effects": [
         "Modifies Y data interval view bounds."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_fig_tight_layout",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_fig_savefig",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "ax",
       "primary_out": "out_ax"
     },
@@ -7132,7 +7258,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Set the coordinate scaling algorithm for the X axis.",
       "dependencies": [
@@ -7179,7 +7305,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "value": {
           "name": "value",
@@ -7200,7 +7330,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7220,7 +7354,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -7237,24 +7375,7 @@
       "effects": [
         "Configures X axis projection scale transform."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_ax_set_yscale",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_fig_tight_layout",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "ax",
       "primary_out": "out_ax"
     },
@@ -7267,7 +7388,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Set the coordinate scaling algorithm for the Y axis.",
       "dependencies": [
@@ -7314,7 +7435,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "value": {
           "name": "value",
@@ -7335,7 +7460,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7355,7 +7484,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -7372,24 +7505,7 @@
       "effects": [
         "Configures Y axis projection scale transform."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_fig_tight_layout",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_fig_savefig",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "ax",
       "primary_out": "out_ax"
     },
@@ -7402,7 +7518,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Set explicit tick coordinate locations for the X axis.",
       "dependencies": [
@@ -7448,7 +7564,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "ticks": {
           "name": "ticks",
@@ -7464,7 +7584,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": "[K]"
+          "shape_contract": "[K]",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7484,7 +7608,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -7501,24 +7629,7 @@
       "effects": [
         "Overrides X axis tick locator."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_ax_set_xticklabels",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_fig_tight_layout",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "ax",
       "primary_out": "out_ax"
     },
@@ -7531,7 +7642,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Set custom string labels and rotation for X axis ticks.",
       "dependencies": [
@@ -7578,7 +7689,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "labels": {
           "name": "labels",
@@ -7594,7 +7709,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": "[K]"
+          "shape_contract": "[K]",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "rotation": {
           "name": "rotation",
@@ -7612,7 +7731,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7632,7 +7755,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -7649,24 +7776,7 @@
       "effects": [
         "Overrides X axis tick formatter."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_fig_tight_layout",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_fig_savefig",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "ax",
       "primary_out": "out_ax"
     },
@@ -7679,7 +7789,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Configure appearance parameters for tick marks and labels.",
       "dependencies": [
@@ -7729,7 +7839,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "axis": {
           "name": "axis",
@@ -7751,7 +7865,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "which": {
           "name": "which",
@@ -7773,7 +7891,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "labelsize": {
           "name": "labelsize",
@@ -7791,7 +7913,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "rotation": {
           "name": "rotation",
@@ -7809,7 +7935,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7829,7 +7959,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -7846,24 +7980,7 @@
       "effects": [
         "Mutates tick styling parameters."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_fig_tight_layout",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_fig_savefig",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "ax",
       "primary_out": "out_ax"
     },
@@ -7876,7 +7993,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Add a scalar colorbar legend linked to an image or contour plot.",
       "dependencies": [
@@ -7926,7 +8043,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "mappable": {
           "name": "mappable",
@@ -7942,7 +8063,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "ax": {
           "name": "ax",
@@ -7960,7 +8085,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "orientation": {
           "name": "orientation",
@@ -7981,7 +8110,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8001,7 +8134,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "cbar": {
           "name": "cbar",
@@ -8017,7 +8154,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -8034,24 +8175,7 @@
       "effects": [
         "Adds child colorbar axes to figure."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_fig_tight_layout",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_fig_savefig",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "ax",
       "primary_out": "out_fig"
     },
@@ -8064,7 +8188,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Create a secondary twin Axes sharing the same X axis but independent Y axis.",
       "dependencies": [
@@ -8109,7 +8233,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8129,7 +8257,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -8146,24 +8278,7 @@
       "effects": [
         "Spawns overlay axis linked to parent figure."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_ax_plot",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_ax_set_ylabel",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "ax",
       "primary_out": "ax2"
     },
@@ -8176,7 +8291,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Create a secondary twin Axes sharing the same Y axis but independent X axis.",
       "dependencies": [
@@ -8221,7 +8336,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8241,7 +8360,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -8258,24 +8381,7 @@
       "effects": [
         "Spawns overlay axis linked to parent figure."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_ax_plot",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_ax_set_xlabel",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "ax",
       "primary_out": "ax2"
     },
@@ -8288,7 +8394,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Invert the positive direction of the X axis.",
       "dependencies": [
@@ -8333,7 +8439,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8353,7 +8463,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -8370,24 +8484,7 @@
       "effects": [
         "Inverts X coordinate order."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_fig_tight_layout",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_fig_savefig",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "ax",
       "primary_out": "out_ax"
     },
@@ -8400,7 +8497,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Invert the positive direction of the Y axis.",
       "dependencies": [
@@ -8445,7 +8542,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8465,7 +8566,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -8482,24 +8587,7 @@
       "effects": [
         "Inverts Y coordinate order."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_fig_tight_layout",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_fig_savefig",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "ax",
       "primary_out": "out_ax"
     },
@@ -8512,7 +8600,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Configure background gridlines visibility and style on axes.",
       "dependencies": [
@@ -8562,7 +8650,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "visible": {
           "name": "visible",
@@ -8580,7 +8672,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         },
         "which": {
           "name": "which",
@@ -8602,7 +8698,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "linestyle": {
           "name": "linestyle",
@@ -8625,7 +8725,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "alpha": {
           "name": "alpha",
@@ -8643,7 +8747,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8663,7 +8771,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -8680,24 +8792,7 @@
       "effects": [
         "Configures background coordinate grid lines."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_fig_tight_layout",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_fig_savefig",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "ax",
       "primary_out": "out_ax"
     },
@@ -8710,7 +8805,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Apply a global matplotlib style sheet across active and upcoming plots.",
       "dependencies": [
@@ -8757,7 +8852,11 @@
           ],
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {},
@@ -8766,24 +8865,7 @@
       "effects": [
         "Mutates global plt.rcParams styling dictionary."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_plt_subplots_single",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_plt_figure",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "style",
       "primary_out": "void"
     },
@@ -8796,7 +8878,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Set the background fill color of the axes canvas.",
       "dependencies": [
@@ -8842,7 +8924,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "color": {
           "name": "color",
@@ -8858,7 +8944,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8878,7 +8968,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -8895,16 +8989,7 @@
       "effects": [
         "Sets axes patch facecolor."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_fig_tight_layout",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "ax",
       "primary_out": "out_ax"
     },
@@ -8917,7 +9002,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Set the outer background fill color of the top-level Figure.",
       "dependencies": [
@@ -8964,7 +9049,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "color": {
           "name": "color",
@@ -8980,7 +9069,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -9000,7 +9093,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -9017,16 +9114,7 @@
       "effects": [
         "Sets figure frame facecolor."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_fig_tight_layout",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "fig",
       "primary_out": "out_fig"
     },
@@ -9039,7 +9127,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Toggle the visibility of an axis boundary spine (top, right, bottom, left).",
       "dependencies": [
@@ -9087,7 +9175,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "spine_name": {
           "name": "spine_name",
@@ -9108,7 +9200,11 @@
           ],
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "visible": {
           "name": "visible",
@@ -9126,7 +9222,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -9146,7 +9246,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -9163,16 +9267,7 @@
       "effects": [
         "Toggles individual border spine artist."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_fig_tight_layout",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "ax",
       "primary_out": "out_ax"
     },
@@ -9185,7 +9280,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Add a centered overarching title above all subplots in the figure.",
       "dependencies": [
@@ -9234,7 +9329,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "t": {
           "name": "t",
@@ -9250,7 +9349,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "fontsize": {
           "name": "fontsize",
@@ -9268,7 +9371,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -9288,7 +9395,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -9305,24 +9416,7 @@
       "effects": [
         "Adds overarching suptitle Text artist to figure."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_fig_tight_layout",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_fig_savefig",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "fig",
       "primary_out": "out_fig"
     },
@@ -9335,7 +9429,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Automatically adjust subplot parameters to give specified padding and avoid overlap.",
       "dependencies": [
@@ -9382,7 +9476,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "pad": {
           "name": "pad",
@@ -9400,7 +9498,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -9420,7 +9522,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -9437,24 +9543,7 @@
       "effects": [
         "Recomputes SubplotParams margins."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_fig_savefig",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_plt_show",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "fig",
       "primary_out": "out_fig"
     },
@@ -9467,7 +9556,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Tune subplot layout margins and spacing explicitly.",
       "dependencies": [
@@ -9520,7 +9609,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "left": {
           "name": "left",
@@ -9538,7 +9631,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "right": {
           "name": "right",
@@ -9556,7 +9653,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "bottom": {
           "name": "bottom",
@@ -9574,7 +9675,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "top": {
           "name": "top",
@@ -9592,7 +9697,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "wspace": {
           "name": "wspace",
@@ -9610,7 +9719,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "hspace": {
           "name": "hspace",
@@ -9628,7 +9741,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -9648,7 +9765,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -9665,24 +9786,7 @@
       "effects": [
         "Overrides SubplotParams boundaries explicitly."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_fig_savefig",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_plt_show",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "left",
       "primary_out": "out_fig"
     },
@@ -9695,7 +9799,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Save the current figure canvas to image file on disk.",
       "dependencies": [
@@ -9748,7 +9852,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "output_filepath": {
           "name": "output_filepath",
@@ -9764,7 +9872,13 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "*"
+          ]
         },
         "dpi": {
           "name": "dpi",
@@ -9782,7 +9896,11 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "bbox_inches": {
           "name": "bbox_inches",
@@ -9803,7 +9921,11 @@
           ],
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -9823,7 +9945,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -9849,24 +9975,7 @@
       "effects": [
         "Rasterizes canvas and writes image file to storage."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_plt_show",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "matplotlib_plt_close",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "fig",
       "primary_out": "out_fig",
       "endable": true
@@ -9880,7 +9989,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Display all open figures in graphical windows.",
       "dependencies": [
@@ -9909,16 +10018,7 @@
       "effects": [
         "Spawns GUI window event loop."
       ],
-      "edges": [
-        {
-          "target_cell_id": "matplotlib_plt_close",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": null,
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "void",
       "primary_out": "void",
       "endable": true
@@ -9932,7 +10032,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 1,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Close and purge a Figure window to release memory.",
       "dependencies": [
@@ -9978,7 +10078,11 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {},

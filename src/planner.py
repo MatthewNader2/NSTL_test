@@ -242,9 +242,8 @@ class LatticeVocabulary:
 
     @property
     def terminal_stage(self) -> Optional[int]:
-        # A sink distinct from the transforms needs at least three declared levels.
         s = self.stages
-        return s[-1] if len(s) >= 3 else None
+        return s[-1] if s else None
 
     def _terminal_cells(self) -> List[Any]:
         ts = self.terminal_stage
@@ -302,14 +301,15 @@ class LatticeVocabulary:
             return False
         if getattr(cell, "is_ingress", False):
             return True
+        ins = getattr(cell, "inputs", {}) or {}
+        required_data_ins = [p for p in ins.values() if getattr(p, "required", True) and getattr(p, "structure_kind", None) != "scalar"]
+        if not required_data_ins:
+            return True
         c_st = getattr(cell, "stage", None)
         if self.ingress_stage is not None and c_st == self.ingress_stage:
             return True
         r = str(getattr(cell, "node_role", "") or getattr(cell, "role", "") or "").lower()
         if r and r in self.ingress_roles:
-            return True
-        ins = getattr(cell, "inputs", {}) or {}
-        if not ins:
             return True
         return False
 
@@ -317,6 +317,9 @@ class LatticeVocabulary:
         if cell is None:
             return False
         if getattr(cell, "is_sink", False) or getattr(cell, "endable", None) is True:
+            return True
+        outs = getattr(cell, "outputs", {}) or {}
+        if not outs:
             return True
         c_st = getattr(cell, "stage", None)
         if self.terminal_stage is not None and c_st == self.terminal_stage:
@@ -4978,7 +4981,7 @@ class LatticePlanner:
         _max_depth = int(getattr(settings, "max_plan_depth", 24))
 
         _ing = self._vocab.ingress_stage
-        entries = [c for c in tunnel if c.stage == _ing] or list(tunnel)
+        entries = [c for c in tunnel if getattr(c, "is_ingress", False) or (c.stage == _ing)] or list(tunnel)
         by_id = {c.cell_id: c for c in tunnel}
         sigma_cache: Dict[tuple, Optional[Substitution]] = {(): Substitution()}
 

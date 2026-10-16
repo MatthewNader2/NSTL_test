@@ -1,5 +1,3 @@
-
-
 {
   "domain": "sqlite3",
   "version": "1.0.0",
@@ -132,7 +130,12 @@
       "node_role": "source",
       "topology_type": "sequential",
       "docstring": "Opens a connection to the SQLite database file on disk.",
-      "semantic_tags": ["connect", "database", "open_db", "sqlite_connect"],
+      "semantic_tags": [
+        "connect",
+        "database",
+        "open_db",
+        "sqlite_connect"
+      ],
       "inputs": {
         "database_path": {
           "type_name": "db_path",
@@ -140,7 +143,15 @@
           "abstract_type": "path",
           "required": true,
           "port_role": "source_data",
-          "description": "Filesystem path to the SQLite database file."
+          "description": "Filesystem path to the SQLite database file.",
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "db",
+            "sqlite",
+            "sqlite3"
+          ]
         }
       },
       "outputs": {
@@ -149,11 +160,17 @@
           "state": "open",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Database connection handle."
+          "description": "Database connection handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{connection} = sqlite3.connect({database_path})",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "database_path",
       "primary_out": "connection"
     },
@@ -165,7 +182,12 @@
       "node_role": "source",
       "topology_type": "sequential",
       "docstring": "Opens an isolated, high-performance in-memory SQLite database connection.",
-      "semantic_tags": ["connect", "in_memory", "ram_database", "sqlite_memory"],
+      "semantic_tags": [
+        "connect",
+        "in_memory",
+        "ram_database",
+        "sqlite_memory"
+      ],
       "inputs": {},
       "outputs": {
         "connection": {
@@ -173,11 +195,17 @@
           "state": "open",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "In-memory database connection handle."
+          "description": "In-memory database connection handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{connection} = sqlite3.connect(\":memory:\")",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": null,
       "primary_out": "connection"
     },
@@ -189,7 +217,12 @@
       "node_role": "source",
       "topology_type": "sequential",
       "docstring": "Opens a database connection using URI filename handling for flags like mode=ro or cache=shared.",
-      "semantic_tags": ["connect", "uri", "read_only", "shared_cache"],
+      "semantic_tags": [
+        "connect",
+        "uri",
+        "read_only",
+        "shared_cache"
+      ],
       "inputs": {
         "uri": {
           "type_name": "str",
@@ -197,7 +230,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "source_data",
-          "description": "URI connection string (e.g. 'file:data.db?mode=ro')."
+          "description": "URI connection string (e.g. 'file:data.db?mode=ro').",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -206,11 +243,17 @@
           "state": "open",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Database connection handle opened in URI mode."
+          "description": "Database connection handle opened in URI mode.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{connection} = sqlite3.connect({uri}, uri=True)",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "uri",
       "primary_out": "connection"
     },
@@ -222,7 +265,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Configures row_factory on the connection to sqlite3.Row for column-name keyed indexing.",
-      "semantic_tags": ["row_factory", "sqlite_row", "dictionary_cursor", "config"],
+      "semantic_tags": [
+        "row_factory",
+        "sqlite_row",
+        "dictionary_cursor",
+        "config"
+      ],
       "inputs": {
         "connection": {
           "type_name": "connection",
@@ -230,7 +278,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Database connection handle."
+          "description": "Database connection handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -239,11 +291,17 @@
           "state": "open",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Connection configured with sqlite3.Row row_factory."
+          "description": "Connection configured with sqlite3.Row row_factory.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{connection}.row_factory = sqlite3.Row\n{out_connection} = {connection}",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "connection",
       "primary_out": "out_connection"
     },
@@ -255,7 +313,11 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Configures transaction isolation level or enables autocommit mode when set to None.",
-      "semantic_tags": ["isolation_level", "autocommit", "transaction_mode"],
+      "semantic_tags": [
+        "isolation_level",
+        "autocommit",
+        "transaction_mode"
+      ],
       "inputs": {
         "connection": {
           "type_name": "connection",
@@ -263,7 +325,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Database connection handle."
+          "description": "Database connection handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "isolation_level": {
           "type_name": "Optional[str]",
@@ -271,7 +337,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Isolation level string ('DEFERRED', 'IMMEDIATE', 'EXCLUSIVE') or None."
+          "description": "Isolation level string ('DEFERRED', 'IMMEDIATE', 'EXCLUSIVE') or None.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -280,11 +350,17 @@
           "state": "open",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Connection configured with specified isolation level."
+          "description": "Connection configured with specified isolation level.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{connection}.isolation_level = {isolation_level}\n{out_connection} = {connection}",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "connection",
       "primary_out": "out_connection"
     },
@@ -296,7 +372,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Configures the busy handler lock timeout in seconds on the active connection.",
-      "semantic_tags": ["timeout", "busy_timeout", "lock", "concurrency"],
+      "semantic_tags": [
+        "timeout",
+        "busy_timeout",
+        "lock",
+        "concurrency"
+      ],
       "inputs": {
         "connection": {
           "type_name": "connection",
@@ -304,7 +385,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Database connection handle."
+          "description": "Database connection handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "timeout_seconds": {
           "type_name": "float",
@@ -312,7 +397,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Timeout duration in seconds to wait for database locks."
+          "description": "Timeout duration in seconds to wait for database locks.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -321,11 +410,17 @@
           "state": "open",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Connection configured with busy timeout."
+          "description": "Connection configured with busy timeout.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{connection}.execute(\"PRAGMA busy_timeout = \" + str(int({timeout_seconds} * 1000)))\n{out_connection} = {connection}",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "connection",
       "primary_out": "out_connection"
     },
@@ -337,7 +432,11 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Creates a new Cursor handle from an open database connection.",
-      "semantic_tags": ["cursor", "create_cursor", "query_handle"],
+      "semantic_tags": [
+        "cursor",
+        "create_cursor",
+        "query_handle"
+      ],
       "inputs": {
         "connection": {
           "type_name": "connection",
@@ -345,7 +444,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Open database connection."
+          "description": "Open database connection.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -354,7 +457,11 @@
           "state": "active",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Instantiated cursor handle."
+          "description": "Instantiated cursor handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{cursor} = {connection}.cursor()"
@@ -367,7 +474,11 @@
       "node_role": "sink",
       "topology_type": "sequential",
       "docstring": "Closes the database cursor handle and releases underlying resources.",
-      "semantic_tags": ["close_cursor", "cursor_teardown", "release_cursor"],
+      "semantic_tags": [
+        "close_cursor",
+        "cursor_teardown",
+        "release_cursor"
+      ],
       "inputs": {
         "cursor": {
           "type_name": "cursor",
@@ -375,7 +486,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Cursor handle to close."
+          "description": "Cursor handle to close.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -384,11 +499,17 @@
           "state": "closed",
           "abstract_type": "logical",
           "port_role": "result",
-          "description": "True when cursor is successfully closed."
+          "description": "True when cursor is successfully closed.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "{cursor}.close()\n{status} = True",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "cursor",
       "primary_out": "status"
     },
@@ -400,7 +521,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Executes a CREATE TABLE IF NOT EXISTS statement to initialize relational schema.",
-      "semantic_tags": ["ddl", "create_table", "schema_init", "table"],
+      "semantic_tags": [
+        "ddl",
+        "create_table",
+        "schema_init",
+        "table"
+      ],
       "inputs": {
         "cursor": {
           "type_name": "cursor",
@@ -408,7 +534,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Active database cursor."
+          "description": "Active database cursor.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "table_name": {
           "type_name": "str",
@@ -416,7 +546,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Name of table to create."
+          "description": "Name of table to create.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "schema_ddl": {
           "type_name": "str",
@@ -424,7 +558,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Column definitions (e.g. 'id INTEGER PRIMARY KEY, title TEXT NOT NULL')."
+          "description": "Column definitions (e.g. 'id INTEGER PRIMARY KEY, title TEXT NOT NULL').",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -433,11 +571,17 @@
           "state": "executed",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Cursor after table creation execution."
+          "description": "Cursor after table creation execution.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{cursor}.execute(\"CREATE TABLE IF NOT EXISTS \" + str({table_name}) + \" (\" + str({schema_ddl}) + \")\")\n{out_cursor} = {cursor}",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "cursor",
       "primary_out": "out_cursor"
     },
@@ -449,7 +593,11 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Executes a DROP TABLE IF EXISTS statement to remove a relational table.",
-      "semantic_tags": ["ddl", "drop_table", "schema_teardown"],
+      "semantic_tags": [
+        "ddl",
+        "drop_table",
+        "schema_teardown"
+      ],
       "inputs": {
         "cursor": {
           "type_name": "cursor",
@@ -457,7 +605,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Active database cursor."
+          "description": "Active database cursor.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "table_name": {
           "type_name": "str",
@@ -465,7 +617,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Name of table to drop."
+          "description": "Name of table to drop.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -474,11 +630,17 @@
           "state": "executed",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Cursor after table drop execution."
+          "description": "Cursor after table drop execution.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{cursor}.execute(\"DROP TABLE IF EXISTS \" + str({table_name}))\n{out_cursor} = {cursor}",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "cursor",
       "primary_out": "out_cursor"
     },
@@ -490,7 +652,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Creates an index on specified table columns to accelerate query lookups.",
-      "semantic_tags": ["ddl", "create_index", "indexing", "performance"],
+      "semantic_tags": [
+        "ddl",
+        "create_index",
+        "indexing",
+        "performance"
+      ],
       "inputs": {
         "cursor": {
           "type_name": "cursor",
@@ -498,7 +665,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Active database cursor."
+          "description": "Active database cursor.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "index_name": {
           "type_name": "str",
@@ -506,7 +677,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Name of index to create."
+          "description": "Name of index to create.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "table_name": {
           "type_name": "str",
@@ -514,7 +689,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Target table name."
+          "description": "Target table name.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "columns": {
           "type_name": "str",
@@ -522,7 +701,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Comma-separated column names to index (e.g. 'user_id, created_at')."
+          "description": "Comma-separated column names to index (e.g. 'user_id, created_at').",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -531,11 +714,17 @@
           "state": "executed",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Cursor after index creation execution."
+          "description": "Cursor after index creation execution.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{cursor}.execute(\"CREATE INDEX IF NOT EXISTS \" + str({index_name}) + \" ON \" + str({table_name}) + \" (\" + str({columns}) + \")\")\n{out_cursor} = {cursor}",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "cursor",
       "primary_out": "out_cursor"
     },
@@ -547,7 +736,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Applies schema migration by adding a new column to an existing table.",
-      "semantic_tags": ["ddl", "alter_table", "add_column", "migration"],
+      "semantic_tags": [
+        "ddl",
+        "alter_table",
+        "add_column",
+        "migration"
+      ],
       "inputs": {
         "cursor": {
           "type_name": "cursor",
@@ -555,7 +749,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Active database cursor."
+          "description": "Active database cursor.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "table_name": {
           "type_name": "str",
@@ -563,7 +761,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Target table name."
+          "description": "Target table name.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "column_def": {
           "type_name": "str",
@@ -571,7 +773,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Column specification (e.g. 'is_verified INTEGER DEFAULT 0')."
+          "description": "Column specification (e.g. 'is_verified INTEGER DEFAULT 0').",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -580,11 +786,17 @@
           "state": "executed",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Cursor after schema alteration."
+          "description": "Cursor after schema alteration.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{cursor}.execute(\"ALTER TABLE \" + str({table_name}) + \" ADD COLUMN \" + str({column_def}))\n{out_cursor} = {cursor}",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "cursor",
       "primary_out": "out_cursor"
     },
@@ -596,7 +808,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Queries sqlite_master to introspect all user table names in the database.",
-      "semantic_tags": ["introspection", "schema", "table_names", "sqlite_master"],
+      "semantic_tags": [
+        "introspection",
+        "schema",
+        "table_names",
+        "sqlite_master"
+      ],
       "inputs": {
         "cursor": {
           "type_name": "cursor",
@@ -604,7 +821,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Active database cursor."
+          "description": "Active database cursor.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -613,11 +834,17 @@
           "state": "records",
           "abstract_type": "collection",
           "port_role": "data_output",
-          "description": "List of user table names."
+          "description": "List of user table names.",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "code_template": "{cursor}.execute(\"SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'\")\n{table_names} = [row[0] for row in {cursor}.fetchall()]",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "cursor",
       "primary_out": "table_names"
     },
@@ -629,7 +856,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Executes PRAGMA table_info to inspect column metadata for a target table.",
-      "semantic_tags": ["introspection", "table_info", "pragma", "schema_info"],
+      "semantic_tags": [
+        "introspection",
+        "table_info",
+        "pragma",
+        "schema_info"
+      ],
       "inputs": {
         "cursor": {
           "type_name": "cursor",
@@ -637,7 +869,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Active database cursor."
+          "description": "Active database cursor.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "table_name": {
           "type_name": "str",
@@ -645,7 +881,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Table name to introspect."
+          "description": "Table name to introspect.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -654,11 +894,17 @@
           "state": "records",
           "abstract_type": "collection",
           "port_role": "data_output",
-          "description": "List of tuples with column metadata."
+          "description": "List of tuples with column metadata.",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "code_template": "{cursor}.execute(\"PRAGMA table_info(\" + str({table_name}) + \")\")\n{schema_info} = {cursor}.fetchall()",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "cursor",
       "primary_out": "schema_info"
     },
@@ -670,7 +916,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Executes a raw non-parameterized SQL statement string.",
-      "semantic_tags": ["execute", "raw_sql", "query", "run_statement"],
+      "semantic_tags": [
+        "execute",
+        "raw_sql",
+        "query",
+        "run_statement"
+      ],
       "inputs": {
         "cursor": {
           "type_name": "cursor",
@@ -678,7 +929,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Active database cursor."
+          "description": "Active database cursor.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "sql": {
           "type_name": "sql_query",
@@ -686,7 +941,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "SQL statement string to execute."
+          "description": "SQL statement string to execute.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -695,11 +954,17 @@
           "state": "executed",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Cursor populated with execution results."
+          "description": "Cursor populated with execution results.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{cursor}.execute({sql})\n{out_cursor} = {cursor}",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "cursor",
       "primary_out": "out_cursor"
     },
@@ -711,7 +976,13 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Executes a parameterized SQL query safely binding placeholder values against a cursor.",
-      "semantic_tags": ["execute", "query", "sql", "parameterized_sql", "run_query"],
+      "semantic_tags": [
+        "execute",
+        "query",
+        "sql",
+        "parameterized_sql",
+        "run_query"
+      ],
       "inputs": {
         "cursor": {
           "type_name": "cursor",
@@ -719,7 +990,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Active database cursor."
+          "description": "Active database cursor.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "sql": {
           "type_name": "sql_query",
@@ -727,7 +1002,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "SQL statement string containing ? parameter placeholders."
+          "description": "SQL statement string containing ? parameter placeholders.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "parameters": {
           "type_name": "Tuple[Any, ...]",
@@ -735,7 +1014,11 @@
           "abstract_type": "collection",
           "required": true,
           "port_role": "data_input",
-          "description": "Tuple of parameter values to bind safely."
+          "description": "Tuple of parameter values to bind safely.",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -744,11 +1027,17 @@
           "state": "executed",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Cursor populated with execution results."
+          "description": "Cursor populated with execution results.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{cursor}.execute({sql}, {parameters})\n{out_cursor} = {cursor}",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "cursor",
       "primary_out": "out_cursor"
     },
@@ -760,7 +1049,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Executes a parameterized SQL query repeatedly across an iterable of parameter sequences.",
-      "semantic_tags": ["executemany", "batch_insert", "bulk_query", "bulk_execution"],
+      "semantic_tags": [
+        "executemany",
+        "batch_insert",
+        "bulk_query",
+        "bulk_execution"
+      ],
       "inputs": {
         "cursor": {
           "type_name": "cursor",
@@ -768,7 +1062,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Active database cursor."
+          "description": "Active database cursor.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "sql": {
           "type_name": "sql_query",
@@ -776,7 +1074,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Parameterized SQL template string."
+          "description": "Parameterized SQL template string.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "seq_of_parameters": {
           "type_name": "Iterable[Tuple[Any, ...]]",
@@ -784,7 +1086,11 @@
           "abstract_type": "collection",
           "required": true,
           "port_role": "data_input",
-          "description": "Sequence of parameter tuples for batch binding."
+          "description": "Sequence of parameter tuples for batch binding.",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -793,11 +1099,17 @@
           "state": "executed",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Cursor after batch execution completes."
+          "description": "Cursor after batch execution completes.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{cursor}.executemany({sql}, {seq_of_parameters})\n{out_cursor} = {cursor}",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "cursor",
       "primary_out": "out_cursor"
     },
@@ -809,7 +1121,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Executes a multi-statement SQL script separated by semicolons.",
-      "semantic_tags": ["executescript", "sql_script", "batch_ddl", "migration_script"],
+      "semantic_tags": [
+        "executescript",
+        "sql_script",
+        "batch_ddl",
+        "migration_script"
+      ],
       "inputs": {
         "cursor": {
           "type_name": "cursor",
@@ -817,7 +1134,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Active database cursor."
+          "description": "Active database cursor.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "sql_script": {
           "type_name": "str",
@@ -825,7 +1146,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Multi-statement SQL script string."
+          "description": "Multi-statement SQL script string.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -834,11 +1159,17 @@
           "state": "executed",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Cursor after executing SQL script."
+          "description": "Cursor after executing SQL script.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{cursor}.executescript({sql_script})\n{out_cursor} = {cursor}",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "cursor",
       "primary_out": "out_cursor"
     },
@@ -850,7 +1181,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Constructs and executes a parameterized INSERT INTO statement for a single record.",
-      "semantic_tags": ["insert", "insert_row", "dml", "create_record"],
+      "semantic_tags": [
+        "insert",
+        "insert_row",
+        "dml",
+        "create_record"
+      ],
       "inputs": {
         "cursor": {
           "type_name": "cursor",
@@ -858,7 +1194,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Active database cursor."
+          "description": "Active database cursor.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "table_name": {
           "type_name": "str",
@@ -866,7 +1206,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Target table name."
+          "description": "Target table name.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "columns": {
           "type_name": "str",
@@ -874,7 +1218,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Comma-separated column names."
+          "description": "Comma-separated column names.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "values": {
           "type_name": "Tuple[Any, ...]",
@@ -882,7 +1230,11 @@
           "abstract_type": "collection",
           "required": true,
           "port_role": "data_input",
-          "description": "Tuple of values to insert."
+          "description": "Tuple of values to insert.",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -891,11 +1243,17 @@
           "state": "executed",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Cursor after row insertion."
+          "description": "Cursor after row insertion.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{cursor}.execute(\"INSERT INTO \" + str({table_name}) + \" (\" + str({columns}) + \") VALUES (\" + \",\".join([\"?\"] * len({values})) + \")\", {values})\n{out_cursor} = {cursor}",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "cursor",
       "primary_out": "out_cursor"
     },
@@ -907,7 +1265,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Executes a parameterized UPDATE statement against records matching a WHERE predicate.",
-      "semantic_tags": ["update", "update_rows", "dml", "modify_records"],
+      "semantic_tags": [
+        "update",
+        "update_rows",
+        "dml",
+        "modify_records"
+      ],
       "inputs": {
         "cursor": {
           "type_name": "cursor",
@@ -915,7 +1278,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Active database cursor."
+          "description": "Active database cursor.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "table_name": {
           "type_name": "str",
@@ -923,7 +1290,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Target table name."
+          "description": "Target table name.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "set_clause": {
           "type_name": "str",
@@ -931,7 +1302,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "SET clause with ? placeholders (e.g. 'status = ?, updated_at = ?')."
+          "description": "SET clause with ? placeholders (e.g. 'status = ?, updated_at = ?').",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "where_clause": {
           "type_name": "str",
@@ -939,7 +1314,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "WHERE clause with ? placeholders (e.g. 'id = ?')."
+          "description": "WHERE clause with ? placeholders (e.g. 'id = ?').",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "parameters": {
           "type_name": "Tuple[Any, ...]",
@@ -947,7 +1326,11 @@
           "abstract_type": "collection",
           "required": true,
           "port_role": "data_input",
-          "description": "Tuple of parameters matching SET and WHERE placeholders."
+          "description": "Tuple of parameters matching SET and WHERE placeholders.",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -956,11 +1339,17 @@
           "state": "executed",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Cursor after update execution."
+          "description": "Cursor after update execution.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{cursor}.execute(\"UPDATE \" + str({table_name}) + \" SET \" + str({set_clause}) + \" WHERE \" + str({where_clause}), {parameters})\n{out_cursor} = {cursor}",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "cursor",
       "primary_out": "out_cursor"
     },
@@ -972,7 +1361,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Executes a parameterized DELETE FROM statement matching a WHERE predicate.",
-      "semantic_tags": ["delete", "delete_rows", "dml", "remove_records"],
+      "semantic_tags": [
+        "delete",
+        "delete_rows",
+        "dml",
+        "remove_records"
+      ],
       "inputs": {
         "cursor": {
           "type_name": "cursor",
@@ -980,7 +1374,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Active database cursor."
+          "description": "Active database cursor.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "table_name": {
           "type_name": "str",
@@ -988,7 +1386,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Target table name."
+          "description": "Target table name.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "where_clause": {
           "type_name": "str",
@@ -996,7 +1398,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "WHERE clause with ? placeholders (e.g. 'category = ?')."
+          "description": "WHERE clause with ? placeholders (e.g. 'category = ?').",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "parameters": {
           "type_name": "Tuple[Any, ...]",
@@ -1004,7 +1410,11 @@
           "abstract_type": "collection",
           "required": true,
           "port_role": "data_input",
-          "description": "Tuple of parameters bound to WHERE clause."
+          "description": "Tuple of parameters bound to WHERE clause.",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1013,11 +1423,17 @@
           "state": "executed",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Cursor after delete execution."
+          "description": "Cursor after delete execution.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{cursor}.execute(\"DELETE FROM \" + str({table_name}) + \" WHERE \" + str({where_clause}), {parameters})\n{out_cursor} = {cursor}",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "cursor",
       "primary_out": "out_cursor"
     },
@@ -1029,7 +1445,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Retrieves the single next row record from an executed cursor query.",
-      "semantic_tags": ["fetchone", "fetch_row", "read_record", "single_row"],
+      "semantic_tags": [
+        "fetchone",
+        "fetch_row",
+        "read_record",
+        "single_row"
+      ],
       "inputs": {
         "cursor": {
           "type_name": "cursor",
@@ -1037,7 +1458,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Cursor with executed query."
+          "description": "Cursor with executed query.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1046,11 +1471,17 @@
           "state": "raw_tuple",
           "abstract_type": "collection",
           "port_role": "data_output",
-          "description": "Single row record tuple or None if no rows remaining."
+          "description": "Single row record tuple or None if no rows remaining.",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "code_template": "{row} = {cursor}.fetchone()",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "cursor",
       "primary_out": "row"
     },
@@ -1062,7 +1493,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Retrieves all remaining row records from an executed cursor query as a list.",
-      "semantic_tags": ["fetchall", "fetch_all_rows", "read_all", "record_list"],
+      "semantic_tags": [
+        "fetchall",
+        "fetch_all_rows",
+        "read_all",
+        "record_list"
+      ],
       "inputs": {
         "cursor": {
           "type_name": "cursor",
@@ -1070,7 +1506,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Cursor with executed query."
+          "description": "Cursor with executed query.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1079,11 +1519,17 @@
           "state": "records",
           "abstract_type": "collection",
           "port_role": "data_output",
-          "description": "List of all result rows."
+          "description": "List of all result rows.",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "code_template": "{rows} = {cursor}.fetchall()",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "cursor",
       "primary_out": "rows"
     },
@@ -1095,7 +1541,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Retrieves the next batch of up to size rows from an executed cursor.",
-      "semantic_tags": ["fetchmany", "batch_fetch", "chunk_fetch", "pagination"],
+      "semantic_tags": [
+        "fetchmany",
+        "batch_fetch",
+        "chunk_fetch",
+        "pagination"
+      ],
       "inputs": {
         "cursor": {
           "type_name": "cursor",
@@ -1103,7 +1554,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Cursor with executed query."
+          "description": "Cursor with executed query.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "size": {
           "type_name": "int",
@@ -1111,7 +1566,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Maximum number of rows to retrieve."
+          "description": "Maximum number of rows to retrieve.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1120,11 +1579,17 @@
           "state": "batch",
           "abstract_type": "collection",
           "port_role": "data_output",
-          "description": "Batch list of result rows."
+          "description": "Batch list of result rows.",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "code_template": "{rows} = {cursor}.fetchmany({size})",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "cursor",
       "primary_out": "rows"
     },
@@ -1136,7 +1601,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Extracts the number of rows modified by the most recent execute statement.",
-      "semantic_tags": ["rowcount", "affected_rows", "changes_count", "cursor_metric"],
+      "semantic_tags": [
+        "rowcount",
+        "affected_rows",
+        "changes_count",
+        "cursor_metric"
+      ],
       "inputs": {
         "cursor": {
           "type_name": "cursor",
@@ -1144,7 +1614,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Cursor after DML mutation."
+          "description": "Cursor after DML mutation.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1153,11 +1627,17 @@
           "state": "scalar",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Count of affected rows."
+          "description": "Count of affected rows.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "code_template": "{count} = {cursor}.rowcount",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "cursor",
       "primary_out": "count"
     },
@@ -1169,7 +1649,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Extracts the rowid or auto-increment primary key ID generated by the last INSERT.",
-      "semantic_tags": ["lastrowid", "inserted_id", "autoincrement", "rowid"],
+      "semantic_tags": [
+        "lastrowid",
+        "inserted_id",
+        "autoincrement",
+        "rowid"
+      ],
       "inputs": {
         "cursor": {
           "type_name": "cursor",
@@ -1177,7 +1662,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Cursor after INSERT statement."
+          "description": "Cursor after INSERT statement.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1186,11 +1675,17 @@
           "state": "scalar",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Generated integer rowid of the inserted record."
+          "description": "Generated integer rowid of the inserted record.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{last_id} = {cursor}.lastrowid",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "cursor",
       "primary_out": "last_id"
     },
@@ -1202,7 +1697,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Maps an iterable of sqlite3.Row objects to standard Python dictionaries keyed by column name.",
-      "semantic_tags": ["dict_mapping", "rows_to_dicts", "serialization", "transform"],
+      "semantic_tags": [
+        "dict_mapping",
+        "rows_to_dicts",
+        "serialization",
+        "transform"
+      ],
       "inputs": {
         "rows": {
           "type_name": "record_list",
@@ -1210,7 +1710,11 @@
           "abstract_type": "collection",
           "required": true,
           "port_role": "data_input",
-          "description": "List of sqlite3.Row instances."
+          "description": "List of sqlite3.Row instances.",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1219,11 +1723,17 @@
           "state": "dict_record",
           "abstract_type": "collection",
           "port_role": "data_output",
-          "description": "List of dictionaries mapping column names to values."
+          "description": "List of dictionaries mapping column names to values.",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "code_template": "{dict_records} = [dict(r) for r in {rows}]",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "rows",
       "primary_out": "dict_records"
     },
@@ -1235,7 +1745,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Commits the current transaction, making all pending database writes durable.",
-      "semantic_tags": ["commit", "save_transaction", "persist", "flush_changes"],
+      "semantic_tags": [
+        "commit",
+        "save_transaction",
+        "persist",
+        "flush_changes"
+      ],
       "inputs": {
         "connection": {
           "type_name": "connection",
@@ -1243,7 +1758,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Database connection with uncommitted changes."
+          "description": "Database connection with uncommitted changes.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1252,11 +1771,17 @@
           "state": "committed",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Connection after transaction commit."
+          "description": "Connection after transaction commit.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{connection}.commit()\n{out_connection} = {connection}",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "connection",
       "primary_out": "out_connection"
     },
@@ -1268,7 +1793,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Rolls back all uncommitted changes from the start of the current transaction.",
-      "semantic_tags": ["rollback", "abort_transaction", "revert_changes", "undo"],
+      "semantic_tags": [
+        "rollback",
+        "abort_transaction",
+        "revert_changes",
+        "undo"
+      ],
       "inputs": {
         "connection": {
           "type_name": "connection",
@@ -1276,7 +1806,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Database connection handle."
+          "description": "Database connection handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1285,11 +1819,17 @@
           "state": "rolled_back",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Connection after transaction rollback."
+          "description": "Connection after transaction rollback.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{connection}.rollback()\n{out_connection} = {connection}",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "connection",
       "primary_out": "out_connection"
     },
@@ -1304,7 +1844,12 @@
         "body": {}
       },
       "docstring": "Category-Theoretic Transaction Context: auto-commits on clean exit and auto-rollbacks on exception.",
-      "semantic_tags": ["transaction", "with_conn", "atomic", "auto_commit"],
+      "semantic_tags": [
+        "transaction",
+        "with_conn",
+        "atomic",
+        "auto_commit"
+      ],
       "inputs": {
         "connection": {
           "type_name": "connection",
@@ -1312,7 +1857,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Database connection handle."
+          "description": "Database connection handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1321,11 +1870,17 @@
           "state": "committed",
           "abstract_type": "handle",
           "port_role": "result",
-          "description": "Connection after transaction resolution."
+          "description": "Connection after transaction resolution.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "with {connection}:\n    {body}\n{out_conn} = {connection}",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "connection",
       "primary_out": "out_conn"
     },
@@ -1337,7 +1892,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Executes a PRAGMA directive to configure database engine parameters like WAL journal mode or foreign keys.",
-      "semantic_tags": ["pragma", "configure_db", "wal_mode", "foreign_keys"],
+      "semantic_tags": [
+        "pragma",
+        "configure_db",
+        "wal_mode",
+        "foreign_keys"
+      ],
       "inputs": {
         "connection": {
           "type_name": "connection",
@@ -1345,7 +1905,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Active database connection."
+          "description": "Active database connection.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "pragma_name": {
           "type_name": "str",
@@ -1353,7 +1917,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Pragma setting key (e.g. 'foreign_keys', 'journal_mode')."
+          "description": "Pragma setting key (e.g. 'foreign_keys', 'journal_mode').",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "pragma_value": {
           "type_name": "str",
@@ -1361,7 +1929,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Pragma setting value (e.g. 'ON', 'WAL')."
+          "description": "Pragma setting value (e.g. 'ON', 'WAL').",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1370,11 +1942,17 @@
           "state": "open",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Connection after PRAGMA configuration."
+          "description": "Connection after PRAGMA configuration.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{connection}.execute(\"PRAGMA \" + str({pragma_name}) + \" = \" + str({pragma_value}))\n{out_connection} = {connection}",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "connection",
       "primary_out": "out_connection"
     },
@@ -1386,7 +1964,11 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Queries the current value of a PRAGMA parameter on the connection.",
-      "semantic_tags": ["pragma", "get_pragma", "inspect_config"],
+      "semantic_tags": [
+        "pragma",
+        "get_pragma",
+        "inspect_config"
+      ],
       "inputs": {
         "connection": {
           "type_name": "connection",
@@ -1394,7 +1976,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Active database connection."
+          "description": "Active database connection.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "pragma_name": {
           "type_name": "str",
@@ -1402,7 +1988,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Pragma key to inspect (e.g. 'foreign_keys', 'user_version')."
+          "description": "Pragma key to inspect (e.g. 'foreign_keys', 'user_version').",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1411,11 +2001,17 @@
           "state": "scalar",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Retrieved scalar PRAGMA value."
+          "description": "Retrieved scalar PRAGMA value.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "code_template": "{result} = ({connection}.execute(\"PRAGMA \" + str({pragma_name})).fetchone() or [None])[0]",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "connection",
       "primary_out": "result"
     },
@@ -1427,7 +2023,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Registers a custom Python scalar function (UDF) callable directly within SQL statements.",
-      "semantic_tags": ["udf", "create_function", "custom_sql_func", "scalar_function"],
+      "semantic_tags": [
+        "udf",
+        "create_function",
+        "custom_sql_func",
+        "scalar_function"
+      ],
       "inputs": {
         "connection": {
           "type_name": "connection",
@@ -1435,7 +2036,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Database connection handle."
+          "description": "Database connection handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "function_name": {
           "type_name": "str",
@@ -1443,7 +2048,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Name of the SQL function to register."
+          "description": "Name of the SQL function to register.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "num_params": {
           "type_name": "int",
@@ -1451,7 +2060,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Number of function arguments (-1 for variadic)."
+          "description": "Number of function arguments (-1 for variadic).",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "func": {
           "type_name": "Callable[..., Any]",
@@ -1459,7 +2072,11 @@
           "abstract_type": "callable",
           "required": true,
           "port_role": "data_input",
-          "description": "Python callable function."
+          "description": "Python callable function.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1468,11 +2085,17 @@
           "state": "open",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Connection with registered scalar function."
+          "description": "Connection with registered scalar function.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{connection}.create_function({function_name}, {num_params}, {func})\n{out_connection} = {connection}",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "connection",
       "primary_out": "out_connection"
     },
@@ -1484,7 +2107,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Registers a custom user-defined aggregate function class having step and finalize methods.",
-      "semantic_tags": ["aggregate", "create_aggregate", "custom_aggregate", "udf"],
+      "semantic_tags": [
+        "aggregate",
+        "create_aggregate",
+        "custom_aggregate",
+        "udf"
+      ],
       "inputs": {
         "connection": {
           "type_name": "connection",
@@ -1492,7 +2120,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Database connection handle."
+          "description": "Database connection handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "aggregate_name": {
           "type_name": "str",
@@ -1500,7 +2132,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Name of the aggregate function in SQL."
+          "description": "Name of the aggregate function in SQL.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "num_params": {
           "type_name": "int",
@@ -1508,7 +2144,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Number of arguments the step method accepts."
+          "description": "Number of arguments the step method accepts.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "aggregate_class": {
           "type_name": "Type[Any]",
@@ -1516,7 +2156,11 @@
           "abstract_type": "callable",
           "required": true,
           "port_role": "data_input",
-          "description": "Class implementing step and finalize methods."
+          "description": "Class implementing step and finalize methods.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1525,11 +2169,17 @@
           "state": "open",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Connection with registered aggregate function."
+          "description": "Connection with registered aggregate function.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{connection}.create_aggregate({aggregate_name}, {num_params}, {aggregate_class})\n{out_connection} = {connection}",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "connection",
       "primary_out": "out_connection"
     },
@@ -1541,7 +2191,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Registers a custom string comparison collation callable on the database connection.",
-      "semantic_tags": ["collation", "create_collation", "custom_sort", "string_ordering"],
+      "semantic_tags": [
+        "collation",
+        "create_collation",
+        "custom_sort",
+        "string_ordering"
+      ],
       "inputs": {
         "connection": {
           "type_name": "connection",
@@ -1549,7 +2204,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Database connection handle."
+          "description": "Database connection handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "collation_name": {
           "type_name": "str",
@@ -1557,7 +2216,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Name of collation to register (e.g. 'reverse_str')."
+          "description": "Name of collation to register (e.g. 'reverse_str').",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "callable_func": {
           "type_name": "Callable[[str, str], int]",
@@ -1565,7 +2228,11 @@
           "abstract_type": "callable",
           "required": true,
           "port_role": "data_input",
-          "description": "Comparison function taking two strings and returning negative, zero, or positive integer."
+          "description": "Comparison function taking two strings and returning negative, zero, or positive integer.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1574,11 +2241,17 @@
           "state": "open",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Connection with registered collation."
+          "description": "Connection with registered collation.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{connection}.create_collation({collation_name}, {callable_func})\n{out_connection} = {connection}",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "connection",
       "primary_out": "out_connection"
     },
@@ -1590,7 +2263,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Registers a trace callback invoked with statement text for every executed query.",
-      "semantic_tags": ["trace", "logging", "profiling", "query_audit"],
+      "semantic_tags": [
+        "trace",
+        "logging",
+        "profiling",
+        "query_audit"
+      ],
       "inputs": {
         "connection": {
           "type_name": "connection",
@@ -1598,7 +2276,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Database connection handle."
+          "description": "Database connection handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "trace_callback": {
           "type_name": "Optional[Callable[[str], None]]",
@@ -1606,7 +2288,11 @@
           "abstract_type": "callable",
           "required": true,
           "port_role": "data_input",
-          "description": "Callback receiving SQL string or None to disable tracing."
+          "description": "Callback receiving SQL string or None to disable tracing.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1615,11 +2301,17 @@
           "state": "open",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Connection with trace callback configured."
+          "description": "Connection with trace callback configured.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{connection}.set_trace_callback({trace_callback})\n{out_connection} = {connection}",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "connection",
       "primary_out": "out_connection"
     },
@@ -1631,7 +2323,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Registers a progress handler callback invoked periodically during long-running SQLite operations.",
-      "semantic_tags": ["progress_handler", "interrupt_hook", "timeout_handler", "concurrency"],
+      "semantic_tags": [
+        "progress_handler",
+        "interrupt_hook",
+        "timeout_handler",
+        "concurrency"
+      ],
       "inputs": {
         "connection": {
           "type_name": "connection",
@@ -1639,7 +2336,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Database connection handle."
+          "description": "Database connection handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "handler": {
           "type_name": "Optional[Callable[[], int]]",
@@ -1647,7 +2348,11 @@
           "abstract_type": "callable",
           "required": true,
           "port_role": "data_input",
-          "description": "Handler returning non-zero to abort execution or None to clear."
+          "description": "Handler returning non-zero to abort execution or None to clear.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "n_instructions": {
           "type_name": "int",
@@ -1655,7 +2360,11 @@
           "abstract_type": "scalar",
           "required": true,
           "port_role": "configuration",
-          "description": "Number of SQLite VM instructions between handler invocations."
+          "description": "Number of SQLite VM instructions between handler invocations.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1664,11 +2373,17 @@
           "state": "open",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Connection with progress handler installed."
+          "description": "Connection with progress handler installed.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{connection}.set_progress_handler({handler}, {n_instructions})\n{out_connection} = {connection}",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "connection",
       "primary_out": "out_connection"
     },
@@ -1680,7 +2395,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Registers an authorizer callback invoked during query compilation to inspect and filter permissions.",
-      "semantic_tags": ["authorizer", "security", "access_control", "query_firewall"],
+      "semantic_tags": [
+        "authorizer",
+        "security",
+        "access_control",
+        "query_firewall"
+      ],
       "inputs": {
         "connection": {
           "type_name": "connection",
@@ -1688,7 +2408,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Database connection handle."
+          "description": "Database connection handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "authorizer_callback": {
           "type_name": "Optional[Callable[..., int]]",
@@ -1696,7 +2420,11 @@
           "abstract_type": "callable",
           "required": true,
           "port_role": "data_input",
-          "description": "Authorizer callback returning SQLITE_OK, SQLITE_DENY, or SQLITE_IGNORE."
+          "description": "Authorizer callback returning SQLITE_OK, SQLITE_DENY, or SQLITE_IGNORE.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1705,11 +2433,17 @@
           "state": "open",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Connection with authorizer callback attached."
+          "description": "Connection with authorizer callback attached.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{connection}.set_authorizer({authorizer_callback})\n{out_connection} = {connection}",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "connection",
       "primary_out": "out_connection"
     },
@@ -1721,7 +2455,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Enables or disables dynamic extension loading on the database connection handle.",
-      "semantic_tags": ["extensions", "load_extension", "security", "plugins"],
+      "semantic_tags": [
+        "extensions",
+        "load_extension",
+        "security",
+        "plugins"
+      ],
       "inputs": {
         "connection": {
           "type_name": "connection",
@@ -1729,7 +2468,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Database connection handle."
+          "description": "Database connection handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "enabled": {
           "type_name": "bool",
@@ -1737,7 +2480,11 @@
           "abstract_type": "logical",
           "required": true,
           "port_role": "configuration",
-          "description": "True to enable loading SQLite extensions, False to disable."
+          "description": "True to enable loading SQLite extensions, False to disable.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1746,11 +2493,17 @@
           "state": "open",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Connection with updated extension loading permissions."
+          "description": "Connection with updated extension loading permissions.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{connection}.enable_load_extension({enabled})\n{out_connection} = {connection}",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "connection",
       "primary_out": "out_connection"
     },
@@ -1762,7 +2515,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Loads a compiled shared library SQLite extension module into the database connection.",
-      "semantic_tags": ["load_extension", "c_extension", "spatialite", "sqlite_vec"],
+      "semantic_tags": [
+        "load_extension",
+        "c_extension",
+        "spatialite",
+        "sqlite_vec"
+      ],
       "inputs": {
         "connection": {
           "type_name": "connection",
@@ -1770,7 +2528,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Database connection handle with extension loading enabled."
+          "description": "Database connection handle with extension loading enabled.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "extension_path": {
           "type_name": "str",
@@ -1778,7 +2540,15 @@
           "abstract_type": "path",
           "required": true,
           "port_role": "configuration",
-          "description": "Filesystem path to the extension shared library."
+          "description": "Filesystem path to the extension shared library.",
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "db",
+            "sqlite",
+            "sqlite3"
+          ]
         }
       },
       "outputs": {
@@ -1787,11 +2557,17 @@
           "state": "open",
           "abstract_type": "handle",
           "port_role": "data_output",
-          "description": "Connection with extension loaded."
+          "description": "Connection with extension loaded.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "code_template": "{connection}.load_extension({extension_path})\n{out_connection} = {connection}",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "connection",
       "primary_out": "out_connection"
     },
@@ -1803,7 +2579,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Retrieves the total count of database row mutations since the connection was opened.",
-      "semantic_tags": ["total_changes", "mutation_count", "metrics", "database_stat"],
+      "semantic_tags": [
+        "total_changes",
+        "mutation_count",
+        "metrics",
+        "database_stat"
+      ],
       "inputs": {
         "connection": {
           "type_name": "connection",
@@ -1811,7 +2592,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Database connection handle."
+          "description": "Database connection handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1820,11 +2605,17 @@
           "state": "scalar",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Cumulative count of row modifications."
+          "description": "Cumulative count of row modifications.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "code_template": "{total_changes} = {connection}.total_changes",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "connection",
       "primary_out": "total_changes"
     },
@@ -1836,7 +2627,11 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Checks whether the connection is currently inside an active transaction.",
-      "semantic_tags": ["in_transaction", "transaction_state", "active_tx"],
+      "semantic_tags": [
+        "in_transaction",
+        "transaction_state",
+        "active_tx"
+      ],
       "inputs": {
         "connection": {
           "type_name": "connection",
@@ -1844,7 +2639,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Database connection handle."
+          "description": "Database connection handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1853,11 +2652,17 @@
           "state": "scalar",
           "abstract_type": "logical",
           "port_role": "data_output",
-          "description": "True if a transaction is currently open, False otherwise."
+          "description": "True if a transaction is currently open, False otherwise.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "{is_in_tx} = {connection}.in_transaction",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "connection",
       "primary_out": "is_in_tx"
     },
@@ -1869,7 +2674,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Iterates through database SQL definitions and rows, producing a complete text dump script.",
-      "semantic_tags": ["iterdump", "sql_dump", "database_export", "backup_sql"],
+      "semantic_tags": [
+        "iterdump",
+        "sql_dump",
+        "database_export",
+        "backup_sql"
+      ],
       "inputs": {
         "connection": {
           "type_name": "connection",
@@ -1877,7 +2687,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Database connection to dump."
+          "description": "Database connection to dump.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1886,11 +2700,17 @@
           "state": "dump_stream",
           "abstract_type": "scalar",
           "port_role": "data_output",
-          "description": "Full SQL text script reconstructing the database."
+          "description": "Full SQL text script reconstructing the database.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "code_template": "{dump_sql} = chr(10).join({connection}.iterdump())",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "connection",
       "primary_out": "dump_sql"
     },
@@ -1902,7 +2722,12 @@
       "node_role": "sink",
       "topology_type": "sequential",
       "docstring": "Aborts any pending or long-running database operation on the connection.",
-      "semantic_tags": ["interrupt", "abort", "cancel_query", "teardown"],
+      "semantic_tags": [
+        "interrupt",
+        "abort",
+        "cancel_query",
+        "teardown"
+      ],
       "inputs": {
         "connection": {
           "type_name": "connection",
@@ -1910,7 +2735,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Connection handle running queries."
+          "description": "Connection handle running queries.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1919,11 +2748,17 @@
           "state": "closed",
           "abstract_type": "logical",
           "port_role": "result",
-          "description": "True when interrupt call completes."
+          "description": "True when interrupt call completes.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "{connection}.interrupt()\n{interrupted} = True",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "connection",
       "primary_out": "interrupted"
     },
@@ -1935,7 +2770,12 @@
       "node_role": "transformer",
       "topology_type": "sequential",
       "docstring": "Streams data from source database connection into destination database connection using SQLite Online Backup API.",
-      "semantic_tags": ["backup", "online_backup", "replication", "sync_db"],
+      "semantic_tags": [
+        "backup",
+        "online_backup",
+        "replication",
+        "sync_db"
+      ],
       "inputs": {
         "source_conn": {
           "type_name": "connection",
@@ -1943,7 +2783,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Source database connection handle."
+          "description": "Source database connection handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "target_conn": {
           "type_name": "connection",
@@ -1951,7 +2795,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Destination database connection handle."
+          "description": "Destination database connection handle.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1960,11 +2808,17 @@
           "state": "committed",
           "abstract_type": "logical",
           "port_role": "result",
-          "description": "True when online backup completes successfully."
+          "description": "True when online backup completes successfully.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "{source_conn}.backup({target_conn})\n{status} = True",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "source_conn",
       "primary_out": "status"
     },
@@ -1976,7 +2830,12 @@
       "node_role": "sink",
       "topology_type": "sequential",
       "docstring": "Streams in-memory or active database contents to a permanent SQLite database file on disk.",
-      "semantic_tags": ["backup_to_file", "save_database", "disk_backup", "persistence_sink"],
+      "semantic_tags": [
+        "backup_to_file",
+        "save_database",
+        "disk_backup",
+        "persistence_sink"
+      ],
       "inputs": {
         "source_conn": {
           "type_name": "connection",
@@ -1984,7 +2843,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Source database connection (e.g. in-memory database)."
+          "description": "Source database connection (e.g. in-memory database).",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         },
         "target_db_path": {
           "type_name": "db_path",
@@ -1992,7 +2855,15 @@
           "abstract_type": "path",
           "required": true,
           "port_role": "configuration",
-          "description": "Destination filesystem path for database backup."
+          "description": "Destination filesystem path for database backup.",
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "db",
+            "sqlite",
+            "sqlite3"
+          ]
         }
       },
       "outputs": {
@@ -2001,11 +2872,17 @@
           "state": "closed",
           "abstract_type": "logical",
           "port_role": "result",
-          "description": "True when backup is completely flushed to disk."
+          "description": "True when backup is completely flushed to disk.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "_dest_conn = sqlite3.connect({target_db_path})\ntry:\n    {source_conn}.backup(_dest_conn)\n    {backup_success} = True\nfinally:\n    _dest_conn.close()",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "source_conn",
       "primary_out": "backup_success"
     },
@@ -2017,7 +2894,12 @@
       "node_role": "sink",
       "topology_type": "sequential",
       "docstring": "Closes the SQLite database connection handle, releasing file locks.",
-      "semantic_tags": ["close", "disconnect", "release_db", "teardown"],
+      "semantic_tags": [
+        "close",
+        "disconnect",
+        "release_db",
+        "teardown"
+      ],
       "inputs": {
         "connection": {
           "type_name": "connection",
@@ -2025,7 +2907,11 @@
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
-          "description": "Connection to close."
+          "description": "Connection to close.",
+          "structure_kind": "handle",
+          "rank": null,
+          "element_type": "opaque",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2034,13 +2920,24 @@
           "state": "closed",
           "abstract_type": "logical",
           "port_role": "result",
-          "description": "True when connection is closed."
+          "description": "True when connection is closed.",
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "code_template": "{connection}.close()\n{status} = True",
-      "dependencies": ["import sqlite3"],
+      "dependencies": [
+        "import sqlite3"
+      ],
       "primary_in": "connection",
       "primary_out": "status"
     }
+  ],
+  "supported_formats": [
+    "db",
+    "sqlite",
+    "sqlite3"
   ]
 }

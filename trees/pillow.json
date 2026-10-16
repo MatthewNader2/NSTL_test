@@ -1140,7 +1140,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "jpg",
+            "jpeg",
+            "png",
+            "bmp",
+            "tiff",
+            "webp",
+            "gif",
+            "ico"
+          ]
         }
       },
       "outputs": {
@@ -1157,7 +1170,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, C)"
+          "shape_contract": "(H, W, C)",
+          "structure_kind": "tensor",
+          "rank": 3,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -1183,32 +1200,7 @@
       "effects": [
         "allocates_image_buffer"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_CONVERT_TO_RGB",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "output_var.mode != 'RGB'",
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "PILLOW_RESIZE_LANCZOS",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "PILLOW_RGB_TO_NDARRAY_RGB_ORDER",
-          "affinity_score": 0.2,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "output_var.mode == 'RGB'",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image_path",
       "primary_out": "output_var"
     },
@@ -1264,7 +1256,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(2,)"
+          "shape_contract": "(2,)",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "color": {
           "name": "color",
@@ -1279,7 +1275,11 @@
           "enum_values": null,
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": "(3,)"
+          "shape_contract": "(3,)",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1296,7 +1296,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)"
+          "shape_contract": "(H, W, 3)",
+          "structure_kind": "tensor",
+          "rank": 3,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -1322,24 +1326,7 @@
       "effects": [
         "allocates_image_buffer"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_DRAW_INITIALIZE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "PILLOW_RGB_TO_NDARRAY_RGB_ORDER",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "size",
       "primary_out": "output_var"
     },
@@ -1397,7 +1384,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(2,)"
+          "shape_contract": "(2,)",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "color": {
           "name": "color",
@@ -1412,7 +1403,11 @@
           "enum_values": null,
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": "(4,)"
+          "shape_contract": "(4,)",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1429,7 +1424,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 4)"
+          "shape_contract": "(H, W, 4)",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -1455,16 +1454,7 @@
       "effects": [
         "allocates_image_buffer"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_ALPHA_COMPOSITE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "size",
       "primary_out": "output_var"
     },
@@ -1520,7 +1510,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(2,)"
+          "shape_contract": "(2,)",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "color": {
           "name": "color",
@@ -1538,7 +1532,11 @@
             "min": 0,
             "max": 255
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1555,7 +1553,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)"
+          "shape_contract": "(H, W)",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -1581,16 +1583,7 @@
       "effects": [
         "allocates_image_buffer"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_GRAYSCALE_TO_NDARRAY",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "size",
       "primary_out": "output_var"
     },
@@ -1603,7 +1596,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 95,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Converts an image of any supported mode to 3-channel RGB color space.",
       "dependencies": [
@@ -1652,7 +1645,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1669,7 +1666,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)"
+          "shape_contract": "(H, W, 3)",
+          "structure_kind": "tensor",
+          "rank": 3,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -1695,32 +1696,7 @@
       "effects": [
         "creates_new_image"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_RGB_TO_NDARRAY_RGB_ORDER",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "PILLOW_RGB_TO_NDARRAY_BGR_ORDER",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "PILLOW_RESIZE_LANCZOS",
-          "affinity_score": 0.2,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -1733,7 +1709,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 95,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Converts an image to RGBA format, adding an opaque alpha channel if none exists.",
       "dependencies": [
@@ -1780,7 +1756,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1797,7 +1777,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 4)"
+          "shape_contract": "(H, W, 4)",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -1823,16 +1807,7 @@
       "effects": [
         "adds_alpha_channel"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_ALPHA_COMPOSITE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -1845,7 +1820,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 95,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Converts an image to 8-bit single-channel grayscale ('L') via standard ITU-R 601-2 luma transform.",
       "dependencies": [
@@ -1893,7 +1868,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -1910,7 +1889,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)"
+          "shape_contract": "(H, W)",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -1936,24 +1919,7 @@
       "effects": [
         "drops_color_channels"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_GRAYSCALE_TO_NDARRAY",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "PILLOW_CONVERT_TO_BINARY",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -1966,7 +1932,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 90,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Converts image to 1-bit bilevel black and white ('1' mode) using dithering.",
       "dependencies": [
@@ -2014,7 +1980,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2031,7 +2001,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)"
+          "shape_contract": "(H, W)",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -2048,16 +2022,7 @@
       "effects": [
         "quantizes_to_1bit"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -2070,7 +2035,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 90,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Converts image to 4-channel CMYK print separation mode.",
       "dependencies": [
@@ -2112,7 +2077,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)"
+          "shape_contract": "(H, W, 3)",
+          "structure_kind": "tensor",
+          "rank": 3,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2129,7 +2098,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 4)"
+          "shape_contract": "(H, W, 4)",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -2155,16 +2128,7 @@
       "effects": [
         "converts_to_subtractive_color"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE_JPEG",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -2219,7 +2183,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)"
+          "shape_contract": "(H, W, 3)",
+          "structure_kind": "tensor",
+          "rank": 3,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2236,7 +2204,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)"
+          "shape_contract": "(H, W, 3)",
+          "structure_kind": "tensor",
+          "rank": 3,
+          "element_type": "uint8",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -2318,7 +2290,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)"
+          "shape_contract": "(H, W, 3)",
+          "structure_kind": "tensor",
+          "rank": 3,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2340,7 +2316,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)"
+          "shape_contract": "(H, W, 3)",
+          "structure_kind": "tensor",
+          "rank": 3,
+          "element_type": "uint8",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -2421,7 +2401,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)"
+          "shape_contract": "(H, W)",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2443,7 +2427,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)"
+          "shape_contract": "(H, W)",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "uint8",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -2528,7 +2516,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)"
+          "shape_contract": "(H, W, 3)",
+          "structure_kind": "tensor",
+          "rank": 3,
+          "element_type": "uint8",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2545,7 +2537,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)"
+          "shape_contract": "(H, W, 3)",
+          "structure_kind": "tensor",
+          "rank": 3,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -2571,24 +2567,7 @@
       "effects": [
         "creates_image_from_bgr"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_RESIZE_LANCZOS",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "array",
       "primary_out": "output_var"
     },
@@ -2646,7 +2625,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)"
+          "shape_contract": "(H, W)",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "uint8",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2663,7 +2646,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)"
+          "shape_contract": "(H, W)",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -2689,16 +2676,7 @@
       "effects": [
         "creates_image_from_gray"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_FILTER_GAUSSIAN_BLUR",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "array",
       "primary_out": "output_var"
     },
@@ -2711,7 +2689,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 95,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Resizes image to target dimensions using high-quality Lanczos resampling.",
       "dependencies": [
@@ -2760,7 +2738,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "size": {
           "name": "size",
@@ -2775,7 +2757,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(2,)"
+          "shape_contract": "(2,)",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2792,7 +2778,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -2818,24 +2808,7 @@
       "effects": [
         "spatial_interpolation"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "PILLOW_RGB_TO_NDARRAY_RGB_ORDER",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "output_var.mode == 'RGB'",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -2848,7 +2821,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 90,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Resizes image using bilinear interpolation for fast balanced scaling.",
       "dependencies": [
@@ -2895,7 +2868,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "size": {
           "name": "size",
@@ -2910,7 +2887,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(2,)"
+          "shape_contract": "(2,)",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -2927,7 +2908,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -2935,16 +2920,7 @@
       "effects": [
         "spatial_interpolation"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -2957,7 +2933,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 90,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Resizes image using nearest-neighbor interpolation, ideal for masks and pixel art.",
       "dependencies": [
@@ -3007,7 +2983,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "size": {
           "name": "size",
@@ -3022,7 +3002,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(2,)"
+          "shape_contract": "(2,)",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3039,7 +3023,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -3047,16 +3035,7 @@
       "effects": [
         "spatial_sampling_unfiltered"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -3069,7 +3048,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 95,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Crops a rectangular region from this image specified by a 4-tuple (left, upper, right, lower).",
       "dependencies": [
@@ -3118,7 +3097,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "box": {
           "name": "box",
@@ -3133,7 +3116,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(4,)"
+          "shape_contract": "(4,)",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3150,7 +3137,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -3167,24 +3158,7 @@
       "effects": [
         "reduces_spatial_footprint"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_RESIZE_LANCZOS",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -3197,7 +3171,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 90,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Rotates image counter-clockwise by the specified angle in degrees.",
       "dependencies": [
@@ -3246,7 +3220,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "angle": {
           "name": "angle",
@@ -3261,7 +3239,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "expand": {
           "name": "expand",
@@ -3276,7 +3258,11 @@
           "enum_values": null,
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3293,7 +3279,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -3301,16 +3291,7 @@
       "effects": [
         "affine_rotation"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -3323,7 +3304,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 85,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Flips the image horizontally (left to right mirror).",
       "dependencies": [
@@ -3369,7 +3350,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3386,7 +3371,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -3394,16 +3383,7 @@
       "effects": [
         "horizontal_reflection"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -3416,7 +3396,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 85,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Flips the image vertically (top to bottom mirror).",
       "dependencies": [
@@ -3462,7 +3442,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3479,7 +3463,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -3487,16 +3475,7 @@
       "effects": [
         "vertical_reflection"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -3509,7 +3488,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 85,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Rotates image 90 degrees counter-clockwise without resampling artifacts.",
       "dependencies": [
@@ -3553,7 +3532,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3570,7 +3553,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -3578,16 +3565,7 @@
       "effects": [
         "orthogonal_rotation"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -3600,7 +3578,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 90,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Applies Gaussian blur convolution filter with adjustable radius.",
       "dependencies": [
@@ -3651,7 +3629,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "radius": {
           "name": "radius",
@@ -3668,7 +3650,11 @@
           "value_constraints": {
             "min": 0.1
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3685,7 +3671,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -3702,16 +3692,7 @@
       "effects": [
         "low_pass_filter"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var",
       "imports": [
@@ -3727,7 +3708,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 85,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Applies Box blur filter where each pixel is set to the average value of its surrounding box.",
       "dependencies": [
@@ -3777,7 +3758,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "radius": {
           "name": "radius",
@@ -3794,7 +3779,11 @@
           "value_constraints": {
             "min": 1
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3811,7 +3800,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -3819,16 +3812,7 @@
       "effects": [
         "box_smoothing"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var",
       "imports": [
@@ -3844,7 +3828,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 90,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Applies a predefined edge-finding kernel highlighting boundaries within the image.",
       "dependencies": [
@@ -3890,7 +3874,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -3907,7 +3895,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -3915,16 +3907,7 @@
       "effects": [
         "high_pass_filter"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var",
       "imports": [
@@ -3940,7 +3923,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 85,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Applies a predefined contour filter extracting outline boundaries.",
       "dependencies": [
@@ -3985,7 +3968,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4002,7 +3989,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -4011,16 +4002,7 @@
         "extracts_contours",
         "draws_annotation"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var",
       "imports": [
@@ -4036,7 +4018,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 90,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Applies a predefined sharpening convolution filter.",
       "dependencies": [
@@ -4081,7 +4063,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4098,7 +4084,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -4106,16 +4096,7 @@
       "effects": [
         "enhances_high_frequencies"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var",
       "imports": [
@@ -4131,7 +4112,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 90,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Applies an unsharp mask filter to sharpen fine details without boosting noise.",
       "dependencies": [
@@ -4182,7 +4163,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "radius": {
           "name": "radius",
@@ -4197,7 +4182,11 @@
           "enum_values": null,
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "percent": {
           "name": "percent",
@@ -4212,7 +4201,11 @@
           "enum_values": null,
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "threshold": {
           "name": "threshold",
@@ -4227,7 +4220,11 @@
           "enum_values": null,
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4244,7 +4241,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -4252,16 +4253,7 @@
       "effects": [
         "frequency_dependent_sharpening"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var",
       "imports": [
@@ -4277,7 +4269,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 85,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Applies a median filter for salt-and-pepper noise reduction.",
       "dependencies": [
@@ -4326,7 +4318,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "size_val": {
           "name": "size_val",
@@ -4343,7 +4339,11 @@
           "value_constraints": {
             "min": 3
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4360,7 +4360,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -4377,16 +4381,7 @@
       "effects": [
         "non_linear_denoise"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var",
       "imports": [
@@ -4402,7 +4397,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 90,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Adjusts image contrast using ImageEnhance.Contrast with a multiplicative factor.",
       "dependencies": [
@@ -4449,7 +4444,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "factor": {
           "name": "factor",
@@ -4466,7 +4465,11 @@
           "value_constraints": {
             "min": 0.0
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4483,7 +4486,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -4500,24 +4507,7 @@
       "effects": [
         "scales_dynamic_range"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_ENHANCE_BRIGHTNESS",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -4530,7 +4520,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 90,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Adjusts image brightness using ImageEnhance.Brightness with a multiplicative factor.",
       "dependencies": [
@@ -4577,7 +4567,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "factor": {
           "name": "factor",
@@ -4594,7 +4588,11 @@
           "value_constraints": {
             "min": 0.0
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4611,7 +4609,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -4628,16 +4630,7 @@
       "effects": [
         "offsets_intensity"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -4650,7 +4643,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 90,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Adjusts color saturation balance using ImageEnhance.Color.",
       "dependencies": [
@@ -4694,7 +4687,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)"
+          "shape_contract": "(H, W, 3)",
+          "structure_kind": "tensor",
+          "rank": 3,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "factor": {
           "name": "factor",
@@ -4711,7 +4708,11 @@
           "value_constraints": {
             "min": 0.0
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4728,7 +4729,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)"
+          "shape_contract": "(H, W, 3)",
+          "structure_kind": "tensor",
+          "rank": 3,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -4745,16 +4750,7 @@
       "effects": [
         "scales_chroma"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -4767,7 +4763,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 90,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Adjusts sharpness continuously using ImageEnhance.Sharpness.",
       "dependencies": [
@@ -4814,7 +4810,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "factor": {
           "name": "factor",
@@ -4831,7 +4831,11 @@
           "value_constraints": {
             "min": 0.0
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4848,7 +4852,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -4856,16 +4864,7 @@
       "effects": [
         "boosts_high_frequency"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -4878,7 +4877,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 95,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Initializes an ImageDraw context bound in-place to an existing image canvas.",
       "dependencies": [
@@ -4925,7 +4924,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -4942,7 +4945,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -4959,32 +4966,7 @@
       "effects": [
         "attaches_draw_context"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_DRAW_RECTANGLE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "PILLOW_DRAW_TEXT",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "PILLOW_DRAW_LINE",
-          "affinity_score": 0.2,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -4997,7 +4979,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 85,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Renders a line or series of connected segments onto the active draw context.",
       "dependencies": [
@@ -5041,7 +5023,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "xy": {
           "name": "xy",
@@ -5056,7 +5042,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 1,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "fill": {
           "name": "fill",
@@ -5071,7 +5061,11 @@
           "enum_values": null,
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "width": {
           "name": "width",
@@ -5088,7 +5082,11 @@
           "value_constraints": {
             "min": 1
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {},
@@ -5097,16 +5095,7 @@
       "effects": [
         "mutates_image_pixels"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_DRAW_TEXT",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "draw",
       "primary_out": "void"
     },
@@ -5119,7 +5108,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 90,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Renders a rectangle on the active draw context with optional fill and outline border.",
       "dependencies": [
@@ -5166,7 +5155,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "xy": {
           "name": "xy",
@@ -5181,7 +5174,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(4,)"
+          "shape_contract": "(4,)",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "fill": {
           "name": "fill",
@@ -5196,7 +5193,11 @@
           "enum_values": null,
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "outline": {
           "name": "outline",
@@ -5211,7 +5212,11 @@
           "enum_values": null,
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "width": {
           "name": "width",
@@ -5228,7 +5233,11 @@
           "value_constraints": {
             "min": 1
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {},
@@ -5246,16 +5255,7 @@
       "effects": [
         "mutates_image_pixels"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_DRAW_TEXT",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "draw",
       "primary_out": "void"
     },
@@ -5268,7 +5268,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 85,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Renders an ellipse or circle within the bounding box onto the canvas.",
       "dependencies": [
@@ -5313,7 +5313,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "xy": {
           "name": "xy",
@@ -5328,7 +5332,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(4,)"
+          "shape_contract": "(4,)",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "fill": {
           "name": "fill",
@@ -5343,7 +5351,11 @@
           "enum_values": null,
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "outline": {
           "name": "outline",
@@ -5358,7 +5370,11 @@
           "enum_values": null,
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "width": {
           "name": "width",
@@ -5375,7 +5391,11 @@
           "value_constraints": {
             "min": 1
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {},
@@ -5397,7 +5417,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 95,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Renders text string onto the active image at specified origin coordinates.",
       "dependencies": [
@@ -5443,7 +5463,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "xy": {
           "name": "xy",
@@ -5458,7 +5482,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(2,)"
+          "shape_contract": "(2,)",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "text": {
           "name": "text",
@@ -5473,7 +5501,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "fill": {
           "name": "fill",
@@ -5488,7 +5520,11 @@
           "enum_values": null,
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {},
@@ -5510,7 +5546,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 90,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Composites RGBA source image over RGBA destination image using alpha blending.",
       "dependencies": [
@@ -5555,7 +5591,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 4)"
+          "shape_contract": "(H, W, 4)",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "image_src": {
           "name": "image_src",
@@ -5570,7 +5610,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 4)"
+          "shape_contract": "(H, W, 4)",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5587,7 +5631,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 4)"
+          "shape_contract": "(H, W, 4)",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -5621,24 +5669,7 @@
       "effects": [
         "blends_alpha_layers"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_CONVERT_TO_RGB",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE_PNG",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image_dst",
       "primary_out": "output_var"
     },
@@ -5651,7 +5682,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 85,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Creates a new image by interpolating between two images with constant weight alpha: out = image1*(1.0 - alpha) + image2*alpha.",
       "dependencies": [
@@ -5696,7 +5727,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)"
+          "shape_contract": "(H, W, 3)",
+          "structure_kind": "tensor",
+          "rank": 3,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "image2": {
           "name": "image2",
@@ -5711,7 +5746,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)"
+          "shape_contract": "(H, W, 3)",
+          "structure_kind": "tensor",
+          "rank": 3,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "alpha": {
           "name": "alpha",
@@ -5729,7 +5768,11 @@
             "min": 0.0,
             "max": 1.0
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5746,7 +5789,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)"
+          "shape_contract": "(H, W, 3)",
+          "structure_kind": "tensor",
+          "rank": 3,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -5763,16 +5810,7 @@
       "effects": [
         "linear_interpolation"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image1",
       "primary_out": "output_var"
     },
@@ -5785,7 +5823,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 85,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Composites two images using an explicit grayscale or binary mask image.",
       "dependencies": [
@@ -5829,7 +5867,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)"
+          "shape_contract": "(H, W, 3)",
+          "structure_kind": "tensor",
+          "rank": 3,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "image2": {
           "name": "image2",
@@ -5844,7 +5886,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)"
+          "shape_contract": "(H, W, 3)",
+          "structure_kind": "tensor",
+          "rank": 3,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "mask": {
           "name": "mask",
@@ -5863,7 +5909,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)"
+          "shape_contract": "(H, W)",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5880,7 +5930,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)"
+          "shape_contract": "(H, W, 3)",
+          "structure_kind": "tensor",
+          "rank": 3,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -5897,16 +5951,7 @@
       "effects": [
         "mask_weighting"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image1",
       "primary_out": "output_var"
     },
@@ -5919,7 +5964,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 85,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Splits a 3-channel RGB image into separate single-channel band images (R, G, B).",
       "dependencies": [
@@ -5963,7 +6008,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)"
+          "shape_contract": "(H, W, 3)",
+          "structure_kind": "tensor",
+          "rank": 3,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -5980,7 +6029,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)"
+          "shape_contract": "(H, W)",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "output_g": {
           "name": "output_g",
@@ -5995,7 +6048,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)"
+          "shape_contract": "(H, W)",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "output_b": {
           "name": "output_b",
@@ -6010,7 +6067,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)"
+          "shape_contract": "(H, W)",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -6027,16 +6088,7 @@
       "effects": [
         "separates_color_bands"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_MERGE_RGB",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_r"
     },
@@ -6049,7 +6101,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 85,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Merges three single-channel grayscale bands into a single RGB color image.",
       "dependencies": [
@@ -6094,7 +6146,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)"
+          "shape_contract": "(H, W)",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "band_g": {
           "name": "band_g",
@@ -6109,7 +6165,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)"
+          "shape_contract": "(H, W)",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "band_b": {
           "name": "band_b",
@@ -6124,7 +6184,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)"
+          "shape_contract": "(H, W)",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6141,7 +6205,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)"
+          "shape_contract": "(H, W, 3)",
+          "structure_kind": "tensor",
+          "rank": 3,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -6167,16 +6235,7 @@
       "effects": [
         "merges_channels"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "band_r",
       "primary_out": "output_var"
     },
@@ -6189,7 +6248,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 90,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Inverts pixel values of an image (creates a photographic negative).",
       "dependencies": [
@@ -6236,7 +6295,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6253,7 +6316,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -6261,16 +6328,7 @@
       "effects": [
         "inverts_luminance"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -6283,7 +6341,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 85,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Maximizes image contrast by mapping darkest pixels to black and lightest to white.",
       "dependencies": [
@@ -6329,7 +6387,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "cutoff": {
           "name": "cutoff",
@@ -6347,7 +6409,11 @@
             "min": 0.0,
             "max": 50.0
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6364,7 +6430,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -6372,16 +6442,7 @@
       "effects": [
         "histogram_stretch"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -6394,7 +6455,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 90,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Pads an image to fit requested dimensions preserving aspect ratio.",
       "dependencies": [
@@ -6445,7 +6506,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "size": {
           "name": "size",
@@ -6460,7 +6525,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(2,)"
+          "shape_contract": "(2,)",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "color": {
           "name": "color",
@@ -6475,7 +6544,11 @@
           "enum_values": null,
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6492,7 +6565,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -6509,16 +6586,7 @@
       "effects": [
         "pads_canvas_edges"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -6531,7 +6599,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 90,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Crops and resizes image to target dimensions with centering.",
       "dependencies": [
@@ -6580,7 +6648,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "size": {
           "name": "size",
@@ -6595,7 +6667,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(2,)"
+          "shape_contract": "(2,)",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -6612,7 +6688,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -6620,16 +6700,7 @@
       "effects": [
         "aspect_crop_and_scale"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -6706,7 +6777,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "dest_path": {
           "name": "dest_path",
@@ -6721,7 +6796,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "jpg",
+            "jpeg",
+            "png",
+            "bmp",
+            "tiff",
+            "webp",
+            "gif",
+            "ico"
+          ]
         }
       },
       "outputs": {},
@@ -6753,7 +6841,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 95,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Exports image to JPEG format with customizable quality compression.",
       "dependencies": [
@@ -6805,7 +6893,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "dest_path": {
           "name": "dest_path",
@@ -6820,7 +6912,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "jpg",
+            "jpeg",
+            "png",
+            "bmp",
+            "tiff",
+            "webp",
+            "gif",
+            "ico"
+          ]
         },
         "quality": {
           "name": "quality",
@@ -6838,7 +6943,11 @@
             "min": 1,
             "max": 100
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {},
@@ -6870,7 +6979,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 95,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Exports image to lossless PNG format with optional deflation optimization.",
       "dependencies": [
@@ -6922,7 +7031,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "dest_path": {
           "name": "dest_path",
@@ -6937,7 +7050,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "jpg",
+            "jpeg",
+            "png",
+            "bmp",
+            "tiff",
+            "webp",
+            "gif",
+            "ico"
+          ]
         },
         "optimize": {
           "name": "optimize",
@@ -6952,7 +7078,11 @@
           "enum_values": null,
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {},
@@ -6975,7 +7105,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 70,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Displays the image using an external platform-specific desktop image viewer.",
       "dependencies": [
@@ -7021,7 +7151,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "title": {
           "name": "title",
@@ -7036,7 +7170,11 @@
           "enum_values": null,
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {},
@@ -7059,7 +7197,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 95,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Constructs an image memory copy from raw byte buffer data.",
       "dependencies": [
@@ -7110,7 +7248,11 @@
           ],
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "size": {
           "name": "size",
@@ -7125,7 +7267,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(2,)"
+          "shape_contract": "(2,)",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "data": {
           "name": "data",
@@ -7140,7 +7286,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7157,7 +7307,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)"
+          "shape_contract": "(H, W, 3)",
+          "structure_kind": "tensor",
+          "rank": 3,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -7174,24 +7328,7 @@
       "effects": [
         "allocates_from_byte_buffer"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_TRANSFORM_AFFINE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        },
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE_WEBP",
-          "affinity_score": 0.5,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "data",
       "primary_out": "output_var"
     },
@@ -7204,7 +7341,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 85,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Generates a 256x256 linear gradient image in mode 'L'.",
       "dependencies": [
@@ -7248,7 +7385,11 @@
           ],
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7265,7 +7406,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(256, 256)"
+          "shape_contract": "(256, 256)",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -7282,16 +7427,7 @@
       "effects": [
         "procedural_gradient_generation"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGEOPS_COLORIZE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "mode",
       "primary_out": "output_var"
     },
@@ -7304,7 +7440,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 85,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Generates a 256x256 radial gradient image in mode 'L'.",
       "dependencies": [
@@ -7348,7 +7484,11 @@
           ],
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7365,7 +7505,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(256, 256)"
+          "shape_contract": "(256, 256)",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -7373,16 +7517,7 @@
       "effects": [
         "procedural_radial_generation"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGEOPS_COLORIZE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "mode",
       "primary_out": "output_var"
     },
@@ -7395,7 +7530,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 95,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Transposes the image to match its embedded EXIF camera orientation tag.",
       "dependencies": [
@@ -7442,7 +7577,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7459,7 +7598,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -7467,16 +7610,7 @@
       "effects": [
         "normalizes_exif_rotation"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_TRANSFORM_AFFINE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -7489,7 +7623,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 90,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Converts RGB image to 8-bit indexed palette mode using an adaptive color quantization palette.",
       "dependencies": [
@@ -7537,7 +7671,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "colors": {
           "name": "colors",
@@ -7555,7 +7693,11 @@
             "min": 2,
             "max": 256
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7572,7 +7714,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)"
+          "shape_contract": "(H, W)",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -7589,16 +7735,7 @@
       "effects": [
         "color_quantization"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE_GIF_ANIMATED",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -7611,7 +7748,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 90,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Converts RGB image to Hue, Saturation, Value (HSV) color space.",
       "dependencies": [
@@ -7654,7 +7791,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)"
+          "shape_contract": "(H, W, 3)",
+          "structure_kind": "tensor",
+          "rank": 3,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7671,7 +7812,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)"
+          "shape_contract": "(H, W, 3)",
+          "structure_kind": "tensor",
+          "rank": 3,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -7697,16 +7842,7 @@
       "effects": [
         "transforms_color_gamut"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_GETCHANNEL",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -7719,7 +7855,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 85,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Converts RGB image to perceptual CIE L*a*b* color space.",
       "dependencies": [
@@ -7761,7 +7897,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)"
+          "shape_contract": "(H, W, 3)",
+          "structure_kind": "tensor",
+          "rank": 3,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7778,7 +7918,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)"
+          "shape_contract": "(H, W, 3)",
+          "structure_kind": "tensor",
+          "rank": 3,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -7795,16 +7939,7 @@
       "effects": [
         "transforms_to_lab"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_GETCHANNEL",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -7817,7 +7952,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 80,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Converts image to 32-bit signed integer pixel mode ('I').",
       "dependencies": [
@@ -7863,7 +7998,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7880,7 +8019,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)"
+          "shape_contract": "(H, W)",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -7897,16 +8040,7 @@
       "effects": [
         "promotes_precision"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_PILLOW_TO_NDARRAY_GENERIC",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -7919,7 +8053,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 80,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Converts image to 32-bit IEEE floating-point pixel mode ('F').",
       "dependencies": [
@@ -7966,7 +8100,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -7983,7 +8121,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)"
+          "shape_contract": "(H, W)",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -8000,16 +8142,7 @@
       "effects": [
         "converts_to_floating_point"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_PILLOW_TO_NDARRAY_GENERIC",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -8022,7 +8155,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 95,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Bridge: Exports any Pillow Image to a generic NumPy ndarray matching underlying bit depth and channel shape.",
       "dependencies": [
@@ -8069,7 +8202,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8086,7 +8223,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -8107,7 +8248,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 95,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Bridge: Ingests a generic numpy ndarray into a Pillow Image.",
       "dependencies": [
@@ -8151,7 +8292,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8168,7 +8313,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -8176,16 +8325,7 @@
       "effects": [
         "creates_image_from_generic_array"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_TRANSFORM_AFFINE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "array",
       "primary_out": "output_var"
     },
@@ -8198,7 +8338,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 90,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Applies an affine transformation matrix (6-tuple) to the image.",
       "dependencies": [
@@ -8249,7 +8389,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "size": {
           "name": "size",
@@ -8264,7 +8408,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(2,)"
+          "shape_contract": "(2,)",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "data": {
           "name": "data",
@@ -8279,7 +8427,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(6,)"
+          "shape_contract": "(6,)",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8296,7 +8448,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -8313,16 +8469,7 @@
       "effects": [
         "affine_warp"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE_WEBP",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -8335,7 +8482,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 90,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Applies a projective perspective transformation using an 8-tuple coefficient vector.",
       "dependencies": [
@@ -8385,7 +8532,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "size": {
           "name": "size",
@@ -8400,7 +8551,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(2,)"
+          "shape_contract": "(2,)",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "data": {
           "name": "data",
@@ -8415,7 +8570,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(8,)"
+          "shape_contract": "(8,)",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8432,7 +8591,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -8449,16 +8612,7 @@
       "effects": [
         "projective_warp"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE_WEBP",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -8471,7 +8625,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 90,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Scales image down proportionally so it fits completely within requested boundary.",
       "dependencies": [
@@ -8521,7 +8675,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "size": {
           "name": "size",
@@ -8536,7 +8694,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(2,)"
+          "shape_contract": "(2,)",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8553,7 +8715,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -8561,16 +8727,7 @@
       "effects": [
         "aspect_ratio_preserving_scale"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE_WEBP",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -8583,7 +8740,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 90,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Scales image proportionally to completely cover requested boundary.",
       "dependencies": [
@@ -8631,7 +8788,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "size": {
           "name": "size",
@@ -8646,7 +8807,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(2,)"
+          "shape_contract": "(2,)",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8663,7 +8828,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -8671,16 +8840,7 @@
       "effects": [
         "cover_scale"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE_WEBP",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -8693,7 +8853,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 90,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Applies an arbitrary NxN convolution kernel with scale and offset.",
       "dependencies": [
@@ -8746,7 +8906,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "size": {
           "name": "size",
@@ -8761,7 +8925,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(2,)"
+          "shape_contract": "(2,)",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "kernel": {
           "name": "kernel",
@@ -8776,7 +8944,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "scale": {
           "name": "scale",
@@ -8791,7 +8963,11 @@
           "enum_values": null,
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "offset": {
           "name": "offset",
@@ -8806,7 +8982,11 @@
           "enum_values": null,
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8823,7 +9003,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -8831,16 +9015,7 @@
       "effects": [
         "spatial_convolution"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE_WEBP",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var",
       "imports": [
@@ -8856,7 +9031,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 85,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Applies a predefined gentle smoothing filter.",
       "dependencies": [
@@ -8901,7 +9076,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -8918,7 +9097,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -8926,16 +9109,7 @@
       "effects": [
         "gentle_low_pass"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE_WEBP",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var",
       "imports": [
@@ -8951,7 +9125,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 90,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Colorizes a grayscale image into two-color duotone RGB space.",
       "dependencies": [
@@ -8997,7 +9171,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)"
+          "shape_contract": "(H, W)",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "black": {
           "name": "black",
@@ -9012,7 +9190,11 @@
           "enum_values": null,
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": "(3,)"
+          "shape_contract": "(3,)",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "white": {
           "name": "white",
@@ -9027,7 +9209,11 @@
           "enum_values": null,
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": "(3,)"
+          "shape_contract": "(3,)",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -9044,7 +9230,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)"
+          "shape_contract": "(H, W, 3)",
+          "structure_kind": "tensor",
+          "rank": 3,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [
@@ -9070,16 +9260,7 @@
       "effects": [
         "duotone_gradient_map"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE_WEBP",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -9092,7 +9273,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 85,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Inverts all pixel values above a given threshold, creating a Sabatier solarization effect.",
       "dependencies": [
@@ -9138,7 +9319,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "threshold": {
           "name": "threshold",
@@ -9156,7 +9341,11 @@
             "min": 0,
             "max": 255
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -9173,7 +9362,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -9181,16 +9374,7 @@
       "effects": [
         "partial_inversion"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE_WEBP",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -9203,7 +9387,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 90,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Renders a rounded rectangle with corner radii on the active draw context.",
       "dependencies": [
@@ -9249,7 +9433,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "xy": {
           "name": "xy",
@@ -9264,7 +9452,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(4,)"
+          "shape_contract": "(4,)",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "radius": {
           "name": "radius",
@@ -9281,7 +9473,11 @@
           "value_constraints": {
             "min": 0
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "fill": {
           "name": "fill",
@@ -9296,7 +9492,11 @@
           "enum_values": null,
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "outline": {
           "name": "outline",
@@ -9311,7 +9511,11 @@
           "enum_values": null,
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "width": {
           "name": "width",
@@ -9328,7 +9532,11 @@
           "value_constraints": {
             "min": 1
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {},
@@ -9337,16 +9545,7 @@
       "effects": [
         "renders_rounded_box"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_DRAW_MULTILINE_TEXT",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "draw",
       "primary_out": "void"
     },
@@ -9359,7 +9558,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 90,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Renders multiline text with line spacing and alignment options.",
       "dependencies": [
@@ -9406,7 +9605,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "xy": {
           "name": "xy",
@@ -9421,7 +9624,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(2,)"
+          "shape_contract": "(2,)",
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "text": {
           "name": "text",
@@ -9436,7 +9643,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         },
         "fill": {
           "name": "fill",
@@ -9451,7 +9662,11 @@
           "enum_values": null,
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "spacing": {
           "name": "spacing",
@@ -9466,7 +9681,11 @@
           "enum_values": null,
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "align": {
           "name": "align",
@@ -9485,7 +9704,11 @@
           ],
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {},
@@ -9507,7 +9730,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 90,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Pastes another image into this image at the specified upper-left corner box coordinates.",
       "dependencies": [
@@ -9554,7 +9777,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "image_src": {
           "name": "image_src",
@@ -9573,7 +9800,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "box": {
           "name": "box",
@@ -9588,7 +9819,11 @@
           "enum_values": null,
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         }
       },
       "outputs": {},
@@ -9597,16 +9832,7 @@
       "effects": [
         "mutates_image_pixels"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE_WEBP",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image_dst",
       "primary_out": "void"
     },
@@ -9619,7 +9845,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 90,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Extracts a single channel from this image as an 8-bit grayscale ('L') image.",
       "dependencies": [
@@ -9669,7 +9895,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "channel": {
           "name": "channel",
@@ -9696,7 +9926,11 @@
           ],
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -9713,7 +9947,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)"
+          "shape_contract": "(H, W)",
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -9730,16 +9968,7 @@
       "effects": [
         "extracts_single_band"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGEOPS_COLORIZE",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "output_var"
     },
@@ -9752,7 +9981,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 85,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Adds two images pixel-by-pixel with optional scale factor and offset: out = (im1 + im2) / scale + offset.",
       "dependencies": [
@@ -9798,7 +10027,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "image2": {
           "name": "image2",
@@ -9813,7 +10046,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "scale": {
           "name": "scale",
@@ -9828,7 +10065,11 @@
           "enum_values": null,
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "offset": {
           "name": "offset",
@@ -9843,7 +10084,11 @@
           "enum_values": null,
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -9860,7 +10105,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -9868,16 +10117,7 @@
       "effects": [
         "pixelwise_addition"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE_WEBP",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image1",
       "primary_out": "output_var"
     },
@@ -9890,7 +10130,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 90,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Computes the absolute pixel difference between two images: out = abs(im1 - im2).",
       "dependencies": [
@@ -9935,7 +10175,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "image2": {
           "name": "image2",
@@ -9950,7 +10194,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -9967,7 +10215,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -9975,16 +10227,7 @@
       "effects": [
         "absolute_difference"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE_WEBP",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image1",
       "primary_out": "output_var"
     },
@@ -9997,7 +10240,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 85,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Multiplies two images pixel-by-pixel: out = (im1 * im2) / 255.",
       "dependencies": [
@@ -10041,7 +10284,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "image2": {
           "name": "image2",
@@ -10056,7 +10303,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -10073,7 +10324,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -10081,16 +10336,7 @@
       "effects": [
         "multiplicative_shading"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_SAVE_WEBP",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image1",
       "primary_out": "output_var"
     },
@@ -10103,7 +10349,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 95,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Exports image to WebP format supporting lossy or lossless compression with alpha support.",
       "dependencies": [
@@ -10158,7 +10404,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "dest_path": {
           "name": "dest_path",
@@ -10173,7 +10423,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "jpg",
+            "jpeg",
+            "png",
+            "bmp",
+            "tiff",
+            "webp",
+            "gif",
+            "ico"
+          ]
         },
         "quality": {
           "name": "quality",
@@ -10191,7 +10454,11 @@
             "min": 0,
             "max": 100
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "lossless": {
           "name": "lossless",
@@ -10206,7 +10473,11 @@
           "enum_values": null,
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "bool",
+          "supported_formats": []
         }
       },
       "outputs": {},
@@ -10229,7 +10500,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 90,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Exports sequence of images as an animated multi-frame GIF.",
       "dependencies": [
@@ -10281,7 +10552,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "dest_path": {
           "name": "dest_path",
@@ -10296,7 +10571,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "path_spec",
+          "rank": 0,
+          "element_type": "string",
+          "supported_formats": [
+            "jpg",
+            "jpeg",
+            "png",
+            "bmp",
+            "tiff",
+            "webp",
+            "gif",
+            "ico"
+          ]
         },
         "append_images": {
           "name": "append_images",
@@ -10311,7 +10599,11 @@
           "enum_values": null,
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "composite",
+          "rank": 0,
+          "element_type": "composite_record",
+          "supported_formats": []
         },
         "duration": {
           "name": "duration",
@@ -10328,7 +10620,11 @@
           "value_constraints": {
             "min": 10
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         },
         "loop": {
           "name": "loop",
@@ -10343,7 +10639,11 @@
           "enum_values": null,
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {},
@@ -10366,7 +10666,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 85,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Seeks to the specified frame index in a multi-frame image sequence.",
       "dependencies": [
@@ -10409,7 +10709,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         },
         "frame": {
           "name": "frame",
@@ -10426,7 +10730,11 @@
           "value_constraints": {
             "min": 0
           },
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "outputs": {},
@@ -10435,16 +10743,7 @@
       "effects": [
         "advances_frame_pointer"
       ],
-      "edges": [
-        {
-          "target_cell_id": "PILLOW_IMAGE_TELL",
-          "affinity_score": 0.8,
-          "score_provenance": "llm_seed",
-          "bridging_precondition": "true",
-          "metadata": {},
-          "needs_mining": true
-        }
-      ],
+      "edges": [],
       "primary_in": "image",
       "primary_out": "void"
     },
@@ -10457,7 +10756,7 @@
       "mutation_type": "pure",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 80,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Returns current active frame number in a multi-frame image container.",
       "dependencies": [
@@ -10496,7 +10795,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {
@@ -10513,7 +10816,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "scalar",
+          "rank": 0,
+          "element_type": "int64",
+          "supported_formats": []
         }
       },
       "preconditions": [],
@@ -10532,7 +10839,7 @@
       "mutation_type": "in_place",
       "is_context_manager": false,
       "verified": true,
-      "source_priority": 80,
+      "source_priority": 100,
       "is_public": true,
       "docstring": "Closes the file pointer and deallocates native resources associated with the image.",
       "dependencies": [
@@ -10579,7 +10886,11 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null
+          "shape_contract": null,
+          "structure_kind": "tensor",
+          "rank": 2,
+          "element_type": "float64",
+          "supported_formats": []
         }
       },
       "outputs": {},
@@ -10671,5 +10982,15 @@
   },
   "output_placeholders": {
     "image": "output_image.png"
-  }
+  },
+  "supported_formats": [
+    "jpg",
+    "jpeg",
+    "png",
+    "bmp",
+    "tiff",
+    "webp",
+    "gif",
+    "ico"
+  ]
 }
