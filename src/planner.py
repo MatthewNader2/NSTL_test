@@ -665,6 +665,8 @@ def _active_vocab(orchestrator: Any = None) -> LatticeVocabulary:
     if orch is None:
         try:
             orch = LatticeOrchestrator.get_active_instance()
+            if orch is None:
+                orch = LatticeOrchestrator()
         except Exception:
             orch = None
     key = id(orch)
@@ -933,8 +935,9 @@ def _segment_prompt_clauses(prompt: str) -> List[str]:
     """
     if not prompt:
         return []
+    norm_prompt = prompt.replace("->", "\n").replace("➔", "\n")
     parts, buf, depth = [], [], 0
-    for ch in prompt:
+    for ch in norm_prompt:
         if ch in "[({":
             depth += 1; buf.append(ch); continue
         if ch in "])}":
@@ -2121,32 +2124,20 @@ class LatticePlanner:
         # clause is above what the candidate set typically shows (mean + one standard deviation
         # of the per-cell evidence).  Adaptive: common words that many cells happen to carry
         # ("values", "data") raise the bar, discriminative tokens clear it.
-        try:
-            from .signature_introspector import introspect_estimator_role
-        except (ImportError, ValueError):
-            from signature_introspector import introspect_estimator_role
-
         _raw_by_cell: Dict[str, List[float]] = {}
         _prec_by_cell: Dict[str, List[float]] = {}
         for c in candidates:
             _c_toks = c.token_set
             _id = core_identity_cache.get(c.cell_id) or getattr(c, "identity_tokens", None) or identity_cache.get(c.cell_id, _c_toks)
-            c_role = introspect_estimator_role(c)
             _c_total_idf = sum(_idf(t) for t in _c_toks)
+            _cid_toks = {t for t in CellTokenizer.tokenize_identifier(str(c.cell_id)) if _idf(t) > 0.0}
+            _cid_mass = sum(_idf(t) for t in _cid_toks)
             raw_list = []
             prec_list = []
             for cl in clause_tokens_list:
-                r_val = _raw_mass(cl, _c_toks, _id)
+                _name_prec = (sum(_idf(t) for t in (cl & _cid_toks)) / _cid_mass) if _cid_mass > 0 else 0.0
+                r_val = _raw_mass(cl, _c_toks, _id) * (1.0 + 0.25 * _name_prec)
                 p_val = (sum(_idf(t) for t in (cl & _c_toks)) / _c_total_idf) if _c_total_idf > 0 else 0.0
-                if c_role:
-                    has_regress = any("regress" in t for t in cl)
-                    has_classif = any("classif" in t for t in cl)
-                    has_cluster = any("cluster" in t for t in cl)
-                    if (has_regress and c_role in ("classifier", "clusterer")) or \
-                       (has_classif and c_role in ("regressor", "clusterer")) or \
-                       (has_cluster and c_role in ("regressor", "classifier")):
-                        r_val *= 0.05
-                        p_val *= 0.05
                 raw_list.append(r_val)
                 prec_list.append(p_val)
             _raw_by_cell[c.cell_id] = raw_list
@@ -2179,7 +2170,8 @@ class LatticePlanner:
             # Clause COVERAGE is decided by core identity only (R6-5); the full
             # identity still feeds ranking via _match_mass below.
             core_toks = core_identity_cache.get(c.cell_id) or id_toks
-            c_role = introspect_estimator_role(c)
+            _cid_toks = {t for t in CellTokenizer.tokenize_identifier(str(c.cell_id)) if _idf(t) > 0.0}
+            _cid_mass = sum(_idf(t) for t in _cid_toks)
             cell_cov_strong[c.cell_id] = content_prompt_tokens & id_toks
             cell_cov_weak[c.cell_id] = non_literal_prompt_tokens & (c_toks - id_toks)
             cell_cov_mass_bonus[c.cell_id] = (
@@ -2189,15 +2181,8 @@ class LatticePlanner:
             masses: List[float] = []
             covered: Set[int] = set()
             for cl_idx, cl_toks in enumerate(clause_tokens_list):
-                m = _match_mass(cl_toks, c_toks, id_toks)
-                if c_role:
-                    has_regress = any("regress" in t for t in cl_toks)
-                    has_classif = any("classif" in t for t in cl_toks)
-                    has_cluster = any("cluster" in t for t in cl_toks)
-                    if (has_regress and c_role in ("classifier", "clusterer")) or \
-                       (has_classif and c_role in ("regressor", "clusterer")) or \
-                       (has_cluster and c_role in ("regressor", "classifier")):
-                        m *= 0.05
+                _name_prec = (sum(_idf(t) for t in (cl_toks & _cid_toks)) / _cid_mass) if _cid_mass > 0 else 0.0
+                m = _match_mass(cl_toks, c_toks, id_toks) * (1.0 + 0.25 * _name_prec)
                 masses.append(m)
                 # Intent coverage: With empirical edge affinity dominating path selection,
                 # the legacy id_mass clamp is replaced with calibrated clause matching and precision.
@@ -2502,13 +2487,18 @@ class LatticePlanner:
         # own NAME vocabulary (cell id, keywords, semantic tags) counts as
         # "what the cell is"; port names describe the interface and are too
         # generic ('data', 'result') to establish that the prompt asked for it.
+        _narrow_id_memo: Dict[str, Set[str]] = {}
         def _narrow_identity(c: Cell) -> Set[str]:
-            toks = set(CellTokenizer.tokenize_identifier(c.cell_id))
-            for kw in getattr(c, "keywords", ()) or ():
-                toks |= set(CellTokenizer.tokenize_identifier(str(kw)))
-            for tag in getattr(c, "semantic_tags", ()) or ():
-                toks |= set(CellTokenizer.tokenize_identifier(str(tag)))
-            return toks
+            hit = _narrow_id_memo.get(c.cell_id)
+            if hit is None:
+                toks = set(CellTokenizer.tokenize_identifier(c.cell_id))
+                for kw in getattr(c, "keywords", ()) or ():
+                    toks |= set(CellTokenizer.tokenize_identifier(str(kw)))
+                for tag in getattr(c, "semantic_tags", ()) or ():
+                    toks |= set(CellTokenizer.tokenize_identifier(str(tag)))
+                _narrow_id_memo[c.cell_id] = toks
+                hit = toks
+            return hit
 
         def _is_bridge_or_carrier(c: Cell) -> bool:
             return (
@@ -2517,13 +2507,20 @@ class LatticePlanner:
                 or (vocab is not None and vocab.is_bridge(c))
             )
 
+        _unreq_narrow_memo: Dict[str, bool] = {}
         def _unrequested_narrow(c: Cell) -> bool:
+            hit = _unreq_narrow_memo.get(c.cell_id)
+            if hit is not None:
+                return hit
             if not _is_transform_stage(c):
-                return False
-            if _is_bridge_or_carrier(c):
+                res = False
+            elif _is_bridge_or_carrier(c):
                 toks = _narrow_identity(c)
-                return bool(toks and not (toks & prompt_toks_all))
-            return not bool(cell_covered.get(c.cell_id))
+                res = bool(toks and not (toks & prompt_toks_all))
+            else:
+                res = not bool(cell_covered.get(c.cell_id))
+            _unreq_narrow_memo[c.cell_id] = res
+            return res
 
         _unreq_memo: Dict[str, bool] = {}
 
@@ -2619,6 +2616,7 @@ class LatticePlanner:
                     "inversions": inversions,
                     "dag_affs": dag_affs,
                     "join_nodes": join_nodes,
+                    "path_id_tokens": prev_st.get("path_id_tokens", set()) | (getattr(new_c, "identity_tokens", None) or identity_cache.get(new_c.cell_id, set())),
                 }
                 _path_state_cache[path_ids] = st
             else:
@@ -2677,12 +2675,23 @@ class LatticePlanner:
                     "inversions": inversions,
                     "dag_affs": dag_affs,
                     "join_nodes": join_nodes,
+                    "path_id_tokens": set().union(*(getattr(c, "identity_tokens", None) or identity_cache.get(c.cell_id, set()) for c in path)),
                 }
                 _path_state_cache[path_ids] = st
 
             # ---- coverage: identity evidence and docstring evidence stay separate terms ----
-            strong_mass = sum(idf_of_prompt.get(t, _idf(t)) for t in strong_tokens) / total_prompt_idf
-            weak_mass = sum(idf_of_prompt.get(t, _idf(t)) for t in (weak_tokens - strong_tokens)) / total_prompt_idf
+            path_id_tokens = st.get("path_id_tokens")
+            if path_id_tokens is None:
+                path_id_tokens = set().union(*(getattr(c, "identity_tokens", None) or identity_cache.get(c.cell_id, set()) for c in path))
+            id_recall = (sum(_idf(t) for t in (content_prompt_tokens & path_id_tokens)) / total_prompt_idf) if total_prompt_idf > 0 else 0.0
+            path_id_total_mass = sum(_idf(t) for t in path_id_tokens)
+            id_prec = (sum(_idf(t) for t in (content_prompt_tokens & path_id_tokens)) / path_id_total_mass) if path_id_total_mass > 0 else 0.0
+            id_cov = (2.0 * id_recall * id_prec / (id_recall + id_prec)) if (id_recall + id_prec) > 0 else 0.0
+
+            strong_mass = id_cov
+            strong_roots = {normalize_token(t) for t in strong_tokens} | strong_tokens
+            uncovered_weak = {t for t in weak_tokens if normalize_token(t) not in strong_roots and t not in strong_roots}
+            weak_mass = sum(idf_of_prompt.get(t, _idf(t)) for t in uncovered_weak) / total_prompt_idf
             coverage = min(1.0, strong_mass + weak_mass)
 
             distinct_matched_clauses = len(covered_clauses)
@@ -3058,7 +3067,7 @@ class LatticePlanner:
                 "economy:no_padding": -float(excess_steps),
                 "economy:no_unrequested": -float(unrequested),
                 "goal:goal": float(goal),
-                "likelihood:likelihood": mean_log_prob,
+                "intent:likelihood": mean_log_prob,
             }
             result = PathScore(defects, terms)
             if _debug_plan:
@@ -3474,11 +3483,12 @@ class LatticePlanner:
                                     sub_plan = self._bind_chain_slots(sub_plan, tunnel, relevance_map, it[1], prompt)
                                     c.bound_slots[slot_name] = sub_plan
                     from route_methods.base import RouteMethod as _RM
-                    _RM.tag_cells_with_clause_indices(cand_private, prompt, orchestrator=self.orchestrator)
                     from route_methods.m1_clause_anchor import M1ClauseAnchorRouteMethod as _Util
                     _u = _Util(orchestrator=self.orchestrator)
                     _u.prompt = prompt
                     _u._current_prompt = prompt
+                    cand_private = _u.prune_unrequested(cand_private, prompt)
+                    _RM.tag_cells_with_clause_indices(cand_private, prompt, orchestrator=self.orchestrator)
                     cand_private = _u.insert_column_commits(cand_private, trace=False)
                     cand_private = _u.insert_property_bridges(
                         cand_private, prompt=prompt, ctx=ExecutionContext(prompt=prompt), trace=False
@@ -3517,7 +3527,7 @@ class LatticePlanner:
                                 repaired_cells.append(c)
                         if any_repaired:
                             cand_test = self._expand_identifier_multiplicity(repaired_cells, prompt)
-                            res = gate.unify_pipeline(cand_test, ExecutionContext(prompt=prompt))
+                            res = gate.unify_pipeline(cand_test, ExecutionContext(prompt=prompt), extract_llm_slots=False)
                             if isinstance(res, Success) and not res.is_bottom():
                                 chosen_candidate = (repaired_cells, res.sigma, it[2], it[3], it[4])
                                 break

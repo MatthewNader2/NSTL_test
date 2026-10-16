@@ -1311,18 +1311,7 @@ class LatticeRouter:
                 _util2 = _Util2(orchestrator=self.orchestrator)
                 _util2.prompt = prompt
                 _util2._current_prompt = prompt
-                from lattice import TypeRegistry
-                _reg = TypeRegistry.get_instance()
-                _col_effects = {str(e).lower() for e in _reg.get_verification_semantics("column_transform_effects")}
-                _has_col_mutations = any(
-                    ({str(e).lower() for e in (getattr(c, "effects", None) or [])} & _col_effects)
-                    or getattr(c, "carrier", "") in ("table", "column", "series")
-                    or getattr(getattr(c, "primary_input", None), "carrier", "") in ("table", "column", "series")
-                    or getattr(getattr(c, "primary_output", None), "carrier", "") in ("table", "column", "series")
-                    for c in path
-                )
-                if _has_col_mutations:
-                    path = _util2.insert_column_commits(path)
+                path = _util2.insert_column_commits(path)
                 path = _util2.insert_property_bridges(path, prompt=prompt, ctx=ctx)
                 self.last_route_trace = list(self.last_route_trace) + list(_util2.trace_events)
             except Exception as _tc_err:

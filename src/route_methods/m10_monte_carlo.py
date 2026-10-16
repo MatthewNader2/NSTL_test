@@ -265,11 +265,11 @@ class M10MonteCarloRouteMethod(RouteMethod):
                 try:
                     gate = UnificationGate(orchestrator=orch)
                     run_ctx = ExecutionContext(prompt=prompt)
-                    ur = gate.unify_pipeline(cells, run_ctx)
+                    ur = gate.unify_pipeline(cells, run_ctx, extract_llm_slots=False)
                     if ur.is_bottom():
                         nviol, note = 10, "unification produced bottom"
                     else:
-                        code = gate.emit_code(ur.value, run_ctx)
+                        code = gate.emit_code(ur.value, run_ctx, extract_llm_slots=False)
                         lint = PreflightLinter.lint(ur.value, prompt=prompt, code_str=code)
                         nviol = len(lint.violations)
                         note = lint.violations[0][:140] if lint.violations else None

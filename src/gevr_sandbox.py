@@ -18,6 +18,7 @@ import multiprocessing
 import os
 import pickle as _pickle
 import queue as _pyqueue
+import re
 import shutil
 import signal
 import socket as _real_socket
@@ -313,14 +314,12 @@ _BLOCKED_MODULES = frozenset({
     "pty",
     "commands",
     "multiprocessing",
-    "threading",
-    "_thread",
 })
 
 
-def _enforce_posix_resource_limits(max_memory_mb: int = 8192, max_cpu_seconds: int = 10) -> None:
+def _enforce_posix_resource_limits(max_memory_mb: int = 16384, max_cpu_seconds: int = 10) -> None:
     """
-    Track 5.1: Enforces strict OS-level memory (RLIMIT_AS) and CPU time
+    Track 5.1: Enforces strict OS-level memory (RLIMIT_AS, RLIMIT_DATA) and CPU time
     (RLIMIT_CPU) bounds on the sandbox worker process.
     """
     if _resource is None:
@@ -332,18 +331,22 @@ def _enforce_posix_resource_limits(max_memory_mb: int = 8192, max_cpu_seconds: i
                 max_memory_mb = max(int(env_mem), max_memory_mb)
             except ValueError:
                 pass
-        # On 64-bit platforms, Python 3.13 + C-extensions (numpy/scipy/sklearn) map
-        # ~1.85 GB of shared objects and thread pools into virtual memory (VmSize).
-        # RLIMIT_AS bounds virtual address space, so ensure at least 8192 MB on 64-bit systems.
+        # On 64-bit platforms, Python 3.13 + C-extensions (torch/numpy/scipy/sklearn) map
+        # multi-gigabyte shared objects, thread pool stacks, and BLAS memory arenas.
+        # Ensure at least 16384 MB (16 GB) virtual address space bounds on 64-bit systems.
         if sys.maxsize > 2**32:
-            max_memory_mb = max(max_memory_mb, 8192)
+            max_memory_mb = max(max_memory_mb, 16384)
         mem_bytes = int(max_memory_mb) * 1024 * 1024
         if hasattr(_resource, "RLIMIT_AS"):
             _, hard_as = _resource.getrlimit(_resource.RLIMIT_AS)
             target_as = mem_bytes if hard_as == _resource.RLIM_INFINITY else min(mem_bytes, hard_as)
             _resource.setrlimit(_resource.RLIMIT_AS, (target_as, target_as))
+        if hasattr(_resource, "RLIMIT_DATA"):
+            _, hard_data = _resource.getrlimit(_resource.RLIMIT_DATA)
+            target_data = mem_bytes if hard_data == _resource.RLIM_INFINITY else min(mem_bytes, hard_data)
+            _resource.setrlimit(_resource.RLIMIT_DATA, (target_data, target_data))
     except Exception as exc:
-        logger.debug("[SANDBOX] RLIMIT_AS setup skipped: %s", exc)
+        logger.debug("[SANDBOX] RLIMIT_AS/DATA setup skipped: %s", exc)
 
     try:
         cpu_s = max(1, int(max_cpu_seconds))
@@ -484,10 +487,10 @@ def _sandbox_worker_exec(
     code_str: str,
     context: Dict[str, Any],
     runtime_aliases: Dict[str, str],
-    result_queue: multiprocessing.Queue,
+    result_conn: Any,
     smoke_test: bool = False,
     egress_paths: Optional[List[str]] = None,
-    max_memory_mb: int = 8192,
+    max_memory_mb: int = 16384,
     max_cpu_seconds: int = 10,
 ) -> None:
     """
@@ -507,6 +510,43 @@ def _sandbox_worker_exec(
 
     captured_stdout = _io.StringIO()
     captured_stderr = _io.StringIO()
+    def _ipc_safe(value: Any) -> Any:
+        try:
+            _pickle.dumps(value)
+            return value
+        except Exception:
+            return f"<unpicklable:{type(value).__name__}>"
+
+    def _send_payload(payload_dict: Dict[str, Any]) -> None:
+        try:
+            if hasattr(result_conn, "send"):
+                result_conn.send(payload_dict)
+            elif hasattr(result_conn, "put"):
+                result_conn.put(payload_dict)
+        except Exception:
+            try:
+                safe_payload = {
+                    "success": payload_dict.get("success", False),
+                    "returncode": payload_dict.get("returncode", 1),
+                    "stdout": str(payload_dict.get("stdout", "")),
+                    "stderr": str(payload_dict.get("stderr", "")),
+                    "error": str(payload_dict.get("error", "")),
+                    "results": {},
+                    "egress": payload_dict.get("egress", {}),
+                }
+                if hasattr(result_conn, "send"):
+                    result_conn.send(safe_payload)
+                elif hasattr(result_conn, "put"):
+                    result_conn.put(safe_payload)
+            except Exception:
+                pass
+        finally:
+            try:
+                if hasattr(result_conn, "close"):
+                    result_conn.close()
+            except Exception:
+                pass
+
     orig_cwd = os.getcwd()
 
     with tempfile.TemporaryDirectory(prefix="nstl_sandbox_") as ephemeral_dir:
@@ -599,16 +639,9 @@ def _sandbox_worker_exec(
                 except Exception as alias_exc:
                     logger.debug("[SANDBOX] Runtime alias bind skipped: %s", alias_exc)
 
-            def _ipc_safe(value: Any) -> Any:
-                try:
-                    _pickle.dumps(value)
-                    return value
-                except Exception:
-                    return f"<unpicklable:{type(value).__name__}>"
-
             extracted_results = {k: _ipc_safe(v) for k, v in raw_results.items()}
 
-            result_queue.put({
+            _send_payload({
                 "success": True,
                 "returncode": 0,
                 "stdout": captured_stdout.getvalue(),
@@ -616,11 +649,9 @@ def _sandbox_worker_exec(
                 "error": None,
                 "results": extracted_results,
             })
-            result_queue.close()
-            result_queue.join_thread()
 
         except SecurityViolationError as sec_err:
-            result_queue.put({
+            _send_payload({
                 "success": False,
                 "returncode": 1,
                 "stdout": captured_stdout.getvalue(),
@@ -628,10 +659,8 @@ def _sandbox_worker_exec(
                 "error": f"SecurityViolation: {str(sec_err)}",
                 "results": {},
             })
-            result_queue.close()
-            result_queue.join_thread()
         except MemoryError as mem_err:
-            result_queue.put({
+            _send_payload({
                 "success": False,
                 "returncode": 1,
                 "stdout": captured_stdout.getvalue(),
@@ -639,11 +668,9 @@ def _sandbox_worker_exec(
                 "error": f"MemoryError: Sandbox exceeded RLIMIT_AS ({max_memory_mb} MB): {mem_err}",
                 "results": {},
             })
-            result_queue.close()
-            result_queue.join_thread()
         except Exception as exc:
             formatted_exc = traceback.format_exc()
-            result_queue.put({
+            _send_payload({
                 "success": False,
                 "returncode": 1,
                 "stdout": captured_stdout.getvalue(),
@@ -651,13 +678,113 @@ def _sandbox_worker_exec(
                 "error": f"{type(exc).__name__}: {str(exc)}\n{formatted_exc}",
                 "results": {},
             })
-            result_queue.close()
-            result_queue.join_thread()
 
 
 # ============================================================================
 # Main GEVR Sandbox Manager (with Closed-Loop CEGIS Integration - Track 8.2)
 # ============================================================================
+
+_IO_SIGNATURES_CACHE: Optional[Tuple[int, Tuple[Set[str], Set[str], Set[str], Set[str]]]] = None
+
+
+def _derive_io_call_signatures() -> Tuple[Set[str], Set[str], Set[str], Set[str]]:
+    """
+    Introspects code templates of all loaded cells in LatticeOrchestrator to derive
+    callables and keyword argument names that accept filesystem paths.
+    Returns:
+        (sink_callables, sink_kw_args, ingress_callables, ingress_kw_args)
+    """
+    global _IO_SIGNATURES_CACHE
+    try:
+        from lattice import LatticeOrchestrator, TypeRegistry, is_path_port
+        orch = LatticeOrchestrator.get_active_instance()
+        if not orch or not getattr(orch, "loaded_cells", None):
+            return set(), set(), set(), set()
+        cell_count = len(orch.loaded_cells)
+        if _IO_SIGNATURES_CACHE is not None and _IO_SIGNATURES_CACHE[0] == cell_count:
+            return _IO_SIGNATURES_CACHE[1]
+
+        sink_callables: Set[str] = set()
+        sink_kw_args: Set[str] = set()
+        ingress_callables: Set[str] = set()
+        ingress_kw_args: Set[str] = set()
+
+        reg = TypeRegistry.get_instance()
+        path_tokens = reg.get_path_port_tokens() if reg else set()
+
+        for cell in orch.loaded_cells.values():
+            c_role = str(getattr(cell, "node_role", "") or "").lower()
+            c_stage = getattr(cell, "stage", None)
+            tpl = getattr(cell, "code_template", "") or ""
+            if not tpl:
+                continue
+
+            path_ports = [
+                p for p in (list(getattr(cell, "inputs", {}).values()) + list(getattr(cell, "outputs", {}).values() if isinstance(getattr(cell, "outputs", {}), dict) else []))
+                if is_path_port(p) or getattr(p, "abstract_type", "") == "path" or getattr(p, "type_name", "") in path_tokens
+            ]
+            if not path_ports:
+                continue
+
+            # Replace {ph} with _nstl_ph_ph so ast.parse succeeds on code templates
+            parsed_tpl_code = re.sub(r'\{([a-zA-Z_][a-zA-Z0-9_]*)\}', r'_nstl_ph_\1', tpl)
+            try:
+                c_ast = ast.parse(parsed_tpl_code)
+            except Exception:
+                continue
+
+            is_sink = (
+                c_stage == 3
+                or c_role in ("sink", "egress", "terminal")
+                or any(str(getattr(getattr(p, "signature", p), "state", "")).lower() in ("materialization", "destination", "serialized", "sink") for p in getattr(cell, "inputs", {}).values())
+            )
+            is_ingress = (
+                c_stage == 1
+                or c_role in ("source", "ingress")
+            )
+
+            for c_node in ast.walk(c_ast):
+                if isinstance(c_node, ast.Call):
+                    func = c_node.func
+                    fn_name = None
+                    if isinstance(func, ast.Attribute):
+                        fn_name = func.attr
+                    elif isinstance(func, ast.Name):
+                        fn_name = func.id
+
+                    if not fn_name:
+                        continue
+
+                    has_path_arg = False
+                    matched_kws: Set[str] = set()
+
+                    for arg in c_node.args:
+                        if isinstance(arg, ast.Name) and arg.id.startswith("_nstl_ph_"):
+                            has_path_arg = True
+                            break
+                    for kw in c_node.keywords:
+                        if kw.arg and any(getattr(p, "name", "") == kw.arg for p in path_ports):
+                            matched_kws.add(kw.arg)
+                            has_path_arg = True
+                        elif isinstance(kw.value, ast.Name) and kw.value.id.startswith("_nstl_ph_"):
+                            if kw.arg:
+                                matched_kws.add(kw.arg)
+                            has_path_arg = True
+
+                    if has_path_arg:
+                        if is_sink:
+                            sink_callables.add(fn_name)
+                            sink_kw_args.update(matched_kws)
+                        elif is_ingress:
+                            ingress_callables.add(fn_name)
+                            ingress_kw_args.update(matched_kws)
+
+        res = (sink_callables, sink_kw_args, ingress_callables, ingress_kw_args)
+        _IO_SIGNATURES_CACHE = (cell_count, res)
+        return res
+    except Exception:
+        return set(), set(), set(), set()
+
 
 class GEVRSandbox:
     """
@@ -799,24 +926,88 @@ class GEVRSandbox:
         try:
             parsed_ast = ast.parse(code)
             egress_set = {str(p).strip() for p in (egress_paths or []) if p}
+
+            # Incorporate any egress/sink bindings from pipeline_bindings
+            for b in kwargs.get("pipeline_bindings") or []:
+                if isinstance(b, dict):
+                    c_role = str(b.get("role", "") or b.get("node_role", "")).lower()
+                    c_stage = b.get("stage")
+                    if c_role in ("sink", "egress") or c_stage == 3:
+                        for v in b.values():
+                            if isinstance(v, str) and not v.startswith("var_"):
+                                cln = v.strip("'\"")
+                                if "." in cln:
+                                    egress_set.add(cln)
+
+            # Dynamically derive ingress vs egress callables and path parameters from loaded cells
+            sink_callables, sink_kw_args, ingress_callables, ingress_kw_args = _derive_io_call_signatures()
+
+            # Pass 1: Identify all output/egress paths written in the code
             for node in ast.walk(parsed_ast):
                 if isinstance(node, ast.Call):
-                    for arg in node.args:
-                        if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
-                            s = arg.value.strip()
-                            if s in egress_set:
-                                continue
-                            _, raw_ext = os.path.splitext(s)
-                            clean_ext = raw_ext.lstrip(".").lower()
-                            if clean_ext and clean_ext.isalnum() and len(clean_ext) <= 6:
-                                is_known_format = False
-                                try:
-                                    from lattice import TypeRegistry
-                                    reg = TypeRegistry.get_instance()
-                                    is_known_format = reg.is_subtype(clean_ext, "format") or reg.is_known_type_name(clean_ext)
-                                except Exception:
-                                    is_known_format = True
-                                if is_known_format:
+                    func = node.func
+                    is_sink_call = False
+                    if isinstance(func, ast.Attribute) and func.attr in sink_callables:
+                        is_sink_call = True
+                    elif isinstance(func, ast.Name) and func.id in sink_callables:
+                        is_sink_call = True
+                    elif isinstance(func, ast.Name) and func.id == "open":
+                        mode = None
+                        if len(node.args) >= 2 and isinstance(node.args[1], ast.Constant):
+                            mode = str(node.args[1].value)
+                        for kw in node.keywords:
+                            if kw.arg == "mode" and isinstance(kw.value, ast.Constant):
+                                mode = str(kw.value.value)
+                        if mode and any(m in mode for m in ("w", "a", "x")):
+                            is_sink_call = True
+
+                    if is_sink_call:
+                        for arg in node.args:
+                            if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                                egress_set.add(arg.value.strip())
+                        for kw in node.keywords:
+                            if (not sink_kw_args or kw.arg in sink_kw_args) and isinstance(kw.value, ast.Constant) and isinstance(kw.value.value, str):
+                                egress_set.add(kw.value.value.strip())
+
+            # Pass 2: Check only ingress/loader calls for required input files
+            for node in ast.walk(parsed_ast):
+                if isinstance(node, ast.Call):
+                    func = node.func
+                    is_ingress_call = False
+                    if isinstance(func, ast.Attribute) and func.attr in ingress_callables:
+                        is_ingress_call = True
+                    elif isinstance(func, ast.Name) and func.id in ingress_callables:
+                        is_ingress_call = True
+                    elif isinstance(func, ast.Name) and func.id == "open":
+                        mode = "r"
+                        if len(node.args) >= 2 and isinstance(node.args[1], ast.Constant):
+                            mode = str(node.args[1].value)
+                        for kw in node.keywords:
+                            if kw.arg == "mode" and isinstance(kw.value, ast.Constant):
+                                mode = str(kw.value.value)
+                        if "r" in mode and not any(m in mode for m in ("w", "a", "x")):
+                            is_ingress_call = True
+
+                    if is_ingress_call:
+                        for arg in node.args:
+                            if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                                s = arg.value.strip()
+                                if s in egress_set:
+                                    continue
+                                _, raw_ext = os.path.splitext(s)
+                                clean_ext = raw_ext.lstrip(".").lower()
+                                if clean_ext and clean_ext.isalnum() and len(clean_ext) <= 6:
+                                    if not os.path.exists(s) and not os.path.exists(os.path.abspath(s)):
+                                        if s not in missing_inputs:
+                                            missing_inputs.append(s)
+                        for kw in node.keywords:
+                            if (not ingress_kw_args or kw.arg in ingress_kw_args) and isinstance(kw.value, ast.Constant) and isinstance(kw.value.value, str):
+                                s = kw.value.value.strip()
+                                if s in egress_set:
+                                    continue
+                                _, raw_ext = os.path.splitext(s)
+                                clean_ext = raw_ext.lstrip(".").lower()
+                                if clean_ext and clean_ext.isalnum() and len(clean_ext) <= 6:
                                     if not os.path.exists(s) and not os.path.exists(os.path.abspath(s)):
                                         if s not in missing_inputs:
                                             missing_inputs.append(s)
@@ -842,7 +1033,7 @@ class GEVRSandbox:
         exec_timeout = timeout if timeout is not None else self.default_timeout
         context = context or {}
         ctx = multiprocessing.get_context("spawn")
-        result_queue: multiprocessing.Queue = ctx.Queue()
+        parent_conn, child_conn = ctx.Pipe(duplex=False)
 
         smoke_test = bool(kwargs.get("smoke_test", False))
         mem_limit = int(kwargs.get("max_memory_mb", self.max_memory_mb))
@@ -854,9 +1045,9 @@ class GEVRSandbox:
                 code,
                 context,
                 dict(runtime_aliases or {}),
-                result_queue,
+                child_conn,
                 smoke_test,
-                list(egress_paths or []),
+                list(egress_set),
                 mem_limit,
                 cpu_limit,
             ),
@@ -864,18 +1055,31 @@ class GEVRSandbox:
         )
 
         worker.start()
+        # Close child endpoint in parent so EOF is cleanly detected
+        try:
+            child_conn.close()
+        except Exception:
+            pass
 
         deadline = time.monotonic() + max(float(exec_timeout), 0.05)
         payload: Optional[Dict[str, Any]] = None
         timed_out = False
         try:
             remaining = max(0.05, deadline - time.monotonic())
-            payload = result_queue.get(timeout=remaining)
-        except _pyqueue.Empty:
+            if parent_conn.poll(timeout=remaining):
+                payload = parent_conn.recv()
+            else:
+                timed_out = True
+        except (EOFError, BrokenPipeError, ConnectionResetError):
             payload = None
         except Exception as recv_err:
             logger.warning("[SANDBOX] Result reception failed: %s", recv_err)
             payload = None
+        finally:
+            try:
+                parent_conn.close()
+            except Exception:
+                pass
 
         if payload is None and worker.is_alive():
             logger.warning("Worker PID %s timed out after %ss. Terminating.", worker.pid, exec_timeout)

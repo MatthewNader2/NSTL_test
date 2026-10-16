@@ -24,6 +24,7 @@ try:
         get_latent_scoring_weights,
     )
     from ..log_config import get_logger
+    from .m1_clause_anchor import _clause_has_egress_intent
 except (ImportError, ValueError):
     from lattice import Cell, LatticeOrchestrator, TypeRegistry
     from tokenizer import CellTokenizer
@@ -35,6 +36,10 @@ except (ImportError, ValueError):
         get_latent_scoring_weights,
     )
     from log_config import get_logger
+    try:
+        from .m1_clause_anchor import _clause_has_egress_intent
+    except (ImportError, ValueError):
+        from route_methods.m1_clause_anchor import _clause_has_egress_intent
 
 logger = get_logger("m11_latent_cognitive")
 
@@ -234,7 +239,10 @@ class M11LatentCognitiveRouteMethod(RouteMethod):
         covered_tokens: Set[str] = set(getattr(best_entry, "identity_tokens", best_entry.token_set) & prompt_tokens)
 
         num_clauses = len(clauses)
-        max_steps = max(32, num_clauses * 4 + 4, max_transforms + 8)
+        max_steps = min(20, max(num_clauses + 6, max_transforms + 4))
+
+        stratified_cands = self.select_stratified_candidates(prompt, candidates, relevance_map, orchestrator=orch)
+        non_bridge_pool = stratified_cands if stratified_cands else candidates
 
         # 3. Latent Geodesic Path Progression
         for step in range(max_steps):
@@ -260,28 +268,38 @@ class M11LatentCognitiveRouteMethod(RouteMethod):
                     return best_j
                 return None
 
-            max_clause_so_far = max((_cand_clause(c) for c in committed_path if _cand_clause(c) is not None), default=0)
-            uncovered_indices = [
-                j for j, cl in enumerate(clauses)
-                if _ev is not None and not all(t in covered_tokens for t in _ev.clause_tokens(cl))
-            ]
+            covered_indices = {
+                _cand_clause(c) for c in committed_path if _cand_clause(c) is not None
+            }
+            if _ev is not None:
+                for j, cl in enumerate(clauses):
+                    cl_toks = _ev.clause_tokens(cl)
+                    if cl_toks and (cl_toks & covered_tokens) and len(cl_toks & covered_tokens) / len(cl_toks) >= 0.5:
+                        covered_indices.add(j)
+            uncovered_indices = [j for j in range(len(clauses)) if j not in covered_indices]
             target_cl_idx = min(uncovered_indices) if uncovered_indices else (num_clauses - 1)
-            target_cl_idx = max(target_cl_idx, max_clause_so_far)
 
-            valid_next = [
-                c for c in candidates
-                if c.cell_id not in visited_ids and (
-                    self.step_unifies(curr, c, prev_path=committed_path)
-                    or self.step_unifies_dag(c, committed_path, ctx=ctx)
-                )
-            ]
+            target_cl = clauses[target_cl_idx] if target_cl_idx < num_clauses else prompt
+            target_is_egress = _clause_has_egress_intent(target_cl)
+
+            valid_next = []
+            for c in non_bridge_pool:
+                if c.cell_id in visited_ids:
+                    continue
+                if _is_sink_node(c, orch) and not target_is_egress and uncovered_indices:
+                    continue
+
+                if self.step_unifies(curr, c, prev_path=committed_path) or self.step_unifies_dag(c, committed_path, ctx=ctx):
+                    valid_next.append(c)
 
             if not valid_next or not any(_cand_clause(c) == target_cl_idx for c in valid_next):
-                for cand in candidates:
+                for cand in non_bridge_pool:
                     if cand.cell_id in visited_ids:
                         continue
+                    if _is_sink_node(cand, orch) and not target_is_egress and uncovered_indices:
+                        continue
                     if _cand_clause(cand) == target_cl_idx:
-                        prod = self._find_type_producer(cand, committed_path, candidates, clauses, orch)
+                        prod = self._find_type_producer(cand, committed_path, non_bridge_pool, clauses, orch)
                         if prod is not None and prod.cell_id not in visited_ids and prod not in valid_next:
                             valid_next.append(prod)
                         bridge = self.find_bridge(curr, cand, candidates, orch, prev_path=committed_path)
@@ -297,7 +315,6 @@ class M11LatentCognitiveRouteMethod(RouteMethod):
 
             cl_idx = target_cl_idx
             target_cl_vec = clause_vecs[cl_idx] if cl_idx < len(clause_vecs) else goal_vec
-            target_cl = clauses[cl_idx] if cl_idx < num_clauses else prompt
             _requested_sink = self.requested_sink(prompt, candidates)
 
             def _score_cand(cand: Cell) -> Tuple[Any, ...]:
@@ -328,7 +345,7 @@ class M11LatentCognitiveRouteMethod(RouteMethod):
                 )
 
                 cand_cl = _cand_clause(cand)
-                is_inversion = bool(cand_cl is not None and cand_cl < max_clause_so_far)
+                is_inversion = bool(cand_cl is not None and uncovered_indices and cand_cl < min(uncovered_indices))
                 is_target_cl = bool(cand_cl is not None and cand_cl == target_cl_idx)
 
                 sae_bonus = 0.25 * sae_boosts.get(cand.cell_id, 0.0)
@@ -338,9 +355,20 @@ class M11LatentCognitiveRouteMethod(RouteMethod):
                 ) + sae_bonus + mk_bonus
                 return (0 if unrequested_egress else (0 if is_inversion else 1), 1 if is_target_cl else 0, composite_latent, progress)
 
-            valid_next.sort(key=_score_cand, reverse=True)
-            best_next = valid_next[0]
-
+            valid_forward = [
+                c for c in valid_next
+                if not (_cand_clause(c) is not None and uncovered_indices and _cand_clause(c) < min(uncovered_indices))
+            ]
+            # Prioritize target clause candidates over future clause candidates
+            target_forward = [
+                c for c in valid_forward
+                if _cand_clause(c) in (None, target_cl_idx)
+            ]
+            active_next = target_forward if target_forward else valid_forward
+            if not active_next:
+                active_next = valid_next
+            active_next.sort(key=_score_cand, reverse=True)
+            best_next = active_next[0]
             committed_path.append(best_next)
             visited_ids.add(best_next.cell_id)
             covered_tokens.update(getattr(best_next, "identity_tokens", best_next.token_set) & prompt_tokens)
@@ -348,6 +376,9 @@ class M11LatentCognitiveRouteMethod(RouteMethod):
             # Update running latent state vector on the unit hypersphere
             next_vec = self.pathfinder.get_cell_vector(best_next)
             current_vec = self.pathfinder.update_state_vector(current_vec, next_vec, momentum=momentum)
+
+            if not uncovered_indices and len(committed_path) >= num_clauses:
+                break
 
             if step >= num_clauses - 1:
                 try:

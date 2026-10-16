@@ -5,6 +5,7 @@ Abstract base class and shared utilities for pluggable RouteMethods (M0 - M6).
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
+import copy
 import math
 from typing import Dict, List, Optional, Set, Tuple, Any
 
@@ -478,12 +479,7 @@ class RouteMethod(ABC):
                             break
 
             if not is_declared_bridge and not resolves_property_mismatch:
-                # Operational transforms require positive lexical/semantic evidence in the prompt to act as bridges
-                cand_toks = set(getattr(cand, "token_set", set())) | set(getattr(cand, "keywords", []) or []) | set(getattr(cand, "semantic_tags", []) or [])
-                cand_toks = {str(t).lower() for t in cand_toks}
-                prompt_toks = set(tokenize_alphanumeric(prompt_l))
-                if not (cand_toks & prompt_toks):
-                    continue
+                continue
             can_src_to_cand = self.step_unifies(src_cell, cand, prev_path=current_scope) or self.step_unifies_dag(cand, current_scope)
             can_cand_to_dst = self.step_unifies(cand, dst_cell, prev_path=current_scope + [cand]) or self.step_unifies_dag(dst_cell, current_scope + [cand])
             if can_src_to_cand and can_cand_to_dst:
@@ -518,14 +514,16 @@ class RouteMethod(ABC):
                 from dag_plan import TypedHoleCell
                 from inference import ModelManager
                 from preflight import PreFlightValidator
+                from lattice import TypeRegistry
+                reg = TypeRegistry.get_instance()
 
                 dst_in = dst_cell.primary_input
                 dst_in_role = str(getattr(dst_in, "port_role", "") or getattr(dst_in, "derived_role", "") or "").lower()
                 dst_in_type = str(getattr(dst_in, "type_name", "") or "").lower()
                 is_obj_receiver = (
                     PreFlightValidator._is_object_receiver_role(dst_in_role)
-                    or dst_in_role in ("model", "estimator", "receiver", "classifier", "regressor")
-                    or dst_in_type in ("model", "baseestimator", "classifier", "regressor", "clusterer")
+                    or (bool(dst_in_role) and bool(reg and reg.is_subtype(dst_in_role, "model")))
+                    or (bool(dst_in_type) and bool(reg and reg.is_subtype(dst_in_type, "model")))
                 )
 
                 has_unmet_model_req = False
@@ -535,13 +533,13 @@ class RouteMethod(ABC):
                         p_type = str(getattr(p_sig, "type_name", "") or "").lower()
                         if (
                             PreFlightValidator._is_object_receiver_role(p_role)
-                            or p_role in ("model", "estimator", "receiver", "classifier", "regressor")
-                            or p_type in ("model", "baseestimator", "classifier", "regressor", "clusterer")
+                            or (bool(p_role) and bool(reg and reg.is_subtype(p_role, "model")))
+                            or (bool(p_type) and bool(reg and reg.is_subtype(p_type, "model")))
                         ):
                             has_producer_in_scope = any(
                                 (
-                                    getattr(c, "node_role", "") in ("estimator", "model")
-                                    or getattr(getattr(c, "primary_output", None), "type_name", "").lower() in ("model", "baseestimator", "classifier", "regressor", "clusterer")
+                                    bool(reg and reg.is_subtype(getattr(c, "node_role", ""), "model"))
+                                    or bool(reg and reg.is_subtype(str(getattr(getattr(c, "primary_output", None), "type_name", "")).lower(), "model"))
                                     or PreFlightValidator._is_object_receiver_role(str(getattr(getattr(c, "primary_output", None), "port_role", "")).lower())
                                 )
                                 for c in current_scope
@@ -615,11 +613,10 @@ class RouteMethod(ABC):
         Tag path cells with the prompt clause they SERVE (matched_clause_idx).
 
         Evidence comes from token_evidence (corpus IDF, identity precision x
-        recall). A clause is served by the path cell(s) with the best identity
-        F-score for it; a cell that is merely a weaker partial match for a clause
-        another path cell explains better stays clause-neutral, so downstream
-        dead-output and coverage checks can see it is unrequested. Returns the
-        decision table (also used by the --debug coverage panel).
+        recall). Enforces monotonic causal ordering: primary evidence winners
+        are assigned in causal sequence, and intermediate connectors/bridges
+        are topologically bounded within [c_prev, c_next], eliminating spurious
+        lexical overlaps that violate causality.
         """
         decisions: List[Dict[str, Any]] = []
         if not path or not prompt:
@@ -636,52 +633,79 @@ class RouteMethod(ABC):
         if ev is None or not clauses:
             return decisions
         clause_toks = [ev.clause_tokens(cl) for cl in clauses]
+
+        # Distinct morphism instances: each step in the path must have independent state
+        seen_ids = set()
+        for idx in range(len(path)):
+            if id(path[idx]) in seen_ids:
+                path[idx] = path[idx].clone() if hasattr(path[idx], "clone") else copy.copy(path[idx])
+            seen_ids.add(id(path[idx]))
+
+        for cell in path:
+            cell.matched_clause_idx = None
+            cell.clause_literals = None
+
         # F matrix: path cell x clause
         table = []
         for cell in path:
             row = [ev.identity_overlap(ct, cell) if ct else {"f": 0.0, "hit": 0.0, "rank": (0.0, 0.0, 0.0), "tokens": []} for ct in clause_toks]
             table.append(row)
-        winner_f = []
+
+        # Pass 1: Monotonic primary evidence winners
+        # Primary winners establish the anchors of each clause in forward execution order.
+        prev_i = 0
         for j in range(len(clauses)):
-            winner_f.append(max((table[i][j]["rank"] for i in range(len(path))), default=(0.0, 0.0, 0.0)))
+            best_i, best_rank = None, (0.0, 0.0, 0.0)
+            for i in range(prev_i, len(path)):
+                if table[i][j]["hit"] > 0.0 and table[i][j]["rank"] > best_rank:
+                    best_i, best_rank = i, table[i][j]["rank"]
+            if best_i is not None and getattr(path[best_i], "matched_clause_idx", None) is None:
+                path[best_i].matched_clause_idx = j
+                prev_i = best_i
+
+        # Pass 2: Remaining cells (bridges, connectors, secondary operations)
+        # Topologically bounded by preceding and succeeding primary anchors.
         for i, cell in enumerate(path):
             if getattr(cell, "matched_clause_idx", None) is not None:
                 continue
-            best_j, best_f = None, (0.0, 0.0, 0.0)
-            for j in range(len(clauses)):
-                f = table[i][j]["rank"]
-                if table[i][j]["hit"] > 0.0 and f >= winner_f[j] and f > best_f:
-                    best_j, best_f = j, f
-            if best_j is None:
-                # Not the winner anywhere: still serves a clause if it explains tokens the winner left over
-                # (e.g. "train a model ... to predict": predict wins, fit explains the rest). Same rule as
-                # the planner's secondary anchors and the coverage audit.
-                best_res = (0.0, 0.0, 0.0)
-                for j in range(len(clauses)):
-                    if table[i][j]["hit"] <= 0.0 or not clause_toks[j]:
-                        continue
-                    w_tokens = set()
-                    for k in range(len(path)):
-                        if table[k][j]["rank"] == winner_f[j]:
-                            w_tokens |= set(table[k][j]["tokens"])
-                    res = ev.identity_overlap(clause_toks[j] - w_tokens, cell)
-                    if res["hit"] > 0.0 and res["rank"] > best_res:
-                        best_j, best_res = j, res["rank"]
+            c_min = max([path[k].matched_clause_idx for k in range(i) if getattr(path[k], "matched_clause_idx", None) is not None] or [0])
+            c_max = min([path[k].matched_clause_idx for k in range(i + 1, len(path)) if getattr(path[k], "matched_clause_idx", None) is not None] or [len(clauses) - 1])
+            if c_min > c_max:
+                c_max = c_min
+
+            best_j, best_res = None, (0.0, 0.0, 0.0)
+            for j in range(c_min, c_max + 1):
+                if table[i][j]["hit"] <= 0.0 or not clause_toks[j]:
+                    continue
+                w_tokens = set()
+                for k in range(len(path)):
+                    if getattr(path[k], "matched_clause_idx", None) == j:
+                        w_tokens |= set(table[k][j]["tokens"])
+                res = ev.identity_overlap(clause_toks[j] - w_tokens, cell)
+                if res["hit"] > 0.0 and res["rank"] > best_res:
+                    best_j, best_res = j, res["rank"]
+
             if best_j is not None:
                 cell.matched_clause_idx = best_j
+            elif i > 0 and getattr(path[i - 1], "matched_clause_idx", None) is not None:
+                cell.matched_clause_idx = min(path[i - 1].matched_clause_idx, c_max)
+            else:
+                cell.matched_clause_idx = c_min
+
             decisions.append({
-                "cell": cell.cell_id, "tagged_clause": best_j,
-                "best_rank": tuple(round(x, 3) for x in best_f),
+                "cell": cell.cell_id, "tagged_clause": cell.matched_clause_idx,
+                "best_rank": tuple(round(x, 3) for x in best_res),
                 "outranked_on": [j for j in range(len(clauses))
-                                 if table[i][j]["hit"] > 0.0 and table[i][j]["rank"] < winner_f[j]],
+                                 if table[i][j]["hit"] > 0.0 and table[i][j]["rank"] < (best_res or (0.0, 0.0, 0.0))],
             })
-        # A connector (zero identity evidence anywhere: a bridge/cast/property-establishing cell) is part of the
-        # realisation of the cell it extends, so it inherits that cell's clause. Without a clause it lost every
-        # adjacency contest and its output was routed to the wrong consumer.
+
         for i, cell in enumerate(path):
-            if i > 0 and getattr(cell, "matched_clause_idx", None) is None and \
-                    getattr(path[i - 1], "matched_clause_idx", None) is not None:
-                cell.matched_clause_idx = path[i - 1].matched_clause_idx
+            if getattr(cell, "matched_clause_idx", None) is None:
+                if i > 0 and getattr(path[i - 1], "matched_clause_idx", None) is not None:
+                    cell.matched_clause_idx = path[i - 1].matched_clause_idx
+                else:
+                    cell.matched_clause_idx = 0
+
         # Clause-scoped literals (column names, quoted strings) travel with the clause a cell
         # serves. Only M1/M6 used to attach them, so literal-scoped binding (target column,
         # feature columns, provenance gates) was silently off for every other method.
@@ -752,16 +776,7 @@ class RouteMethod(ABC):
     def _find_lens_commit_cell(self, cell: Cell, reg: Any) -> Optional[Cell]:
         if self.orchestrator is None:
             return None
-        commit_ids = {
-            str(e).upper()
-            for key in ("component_commit_cells", "column_commit_cell")
-            for e in (reg.get_verification_semantics(key) or ())
-        }
         loaded = getattr(self.orchestrator, "loaded_cells", {}) or {}
-        if commit_ids:
-            for c_id, c in loaded.items():
-                if c_id.upper() in commit_ids:
-                    return c
         target_domain = getattr(cell, "domain_name", "") or ""
         carrier_bind_tags = {"data_carrier", "receiver", "carrier"}
         key_bind_tags = {"key", "column_key", "field_key", "attr_key"}
@@ -896,7 +911,7 @@ class RouteMethod(ABC):
             )
 
             gate = UnificationGate(orchestrator=self.orchestrator)
-            res = gate.unify_pipeline(path, probe_ctx)
+            res = gate.unify_pipeline(path, probe_ctx, extract_llm_slots=False)
             if res.is_bottom() or not gate.last_pipeline_bindings:
                 return path
             issues = _prop_analyze(gate.last_pipeline_bindings, self.orchestrator)
@@ -1027,6 +1042,38 @@ class RouteMethod(ABC):
                 break
             if not pruned_any:
                 break
+
+        # Pass 2: Verifier-guided bridge minimization.
+        # Any explicit bridge cell is redundant iff removing it still unifies and
+        # passes all static preflight contracts (including property preconditions).
+        b_roles = _bridge_roles()
+        idx = 1
+        while idx < len(current) - 1:
+            c = current[idx]
+            c_role = str(getattr(c, "node_role", "") or "").lower()
+            if c_role in b_roles or getattr(c, "node_type", "") == "tunnel":
+                trial = [x.clone() if hasattr(x, "clone") else x for x in (current[:idx] + current[idx + 1:])]
+                for x in trial[idx:]:
+                    x.planned_port_wires = {}
+                    x.bound_parent_ids = set()
+                try:
+                    from unification import UnificationGate, ExecutionContext
+                    from preflight import PreflightLinter
+                    gate = UnificationGate(orchestrator=self.orchestrator)
+                    probe_ctx = ExecutionContext(prompt=prompt)
+                    probe_trial = self.insert_property_bridges(trial, prompt=prompt, ctx=probe_ctx, trace=False)
+                    u_res = gate.unify_pipeline(probe_trial, probe_ctx, extract_llm_slots=False)
+                    if not u_res.is_bottom():
+                        emitted = gate.emit_code(u_res.value, probe_ctx, extract_llm_slots=False)
+                        lint_res = PreflightLinter.lint(u_res.value, prompt=prompt, code_str=emitted)
+                        if lint_res.is_valid:
+                            self._trace("pruned_redundant_bridge", cell=c.cell_id, reason="pipeline unifies and passes preflight without explicit bridge")
+                            current = trial
+                            idx = 1
+                            continue
+                except Exception:
+                    pass
+            idx += 1
         try:
             from dag_plan import OpenPortFrontier
             active_ids = {c.cell_id for c in current}
@@ -1147,80 +1194,53 @@ class RouteMethod(ABC):
                     continue
             filtered_cands.append(c)
 
-        for idx, cl in enumerate(clauses):
-            cl_toks = CellTokenizer.tokenize_prompt(cl) - STOPWORDS
-            if not cl_toks:
-                continue
+        try:
+            from token_evidence import get_evidence, anchors_for_clause
+        except (ImportError, ValueError):
+            from ..token_evidence import get_evidence, anchors_for_clause
 
+        ev = get_evidence(orch)
+
+        for idx, cl in enumerate(clauses):
             if idx == 0 and len(clauses) > 1:
                 stage_pool = [c for c in filtered_cands if getattr(c, "stage", None) == 1] or filtered_cands
             else:
                 stage_pool = [c for c in filtered_cands if getattr(c, "stage", None) != 1] or filtered_cands
 
-            scored: List[Tuple[Cell, float]] = []
-            for c in stage_pool:
-                cid = c.cell_id
-                cid_lower = cid.lower()
-                c_toks = c.token_set - STOPWORDS
-                id_toks = getattr(c, "identity_tokens", c_toks) - STOPWORDS
+            if ev is not None:
+                anchors = anchors_for_clause(ev, cl, stage_pool, relevance_map, clause_idx=idx)
+            else:
+                anchors = []
 
-                strong = len(cl_toks & id_toks)
-                if strong == 0 and relevance_map.get(cid, 0.0) < 0.15:
-                    continue
-                weak = len((cl_toks & c_toks) - id_toks)
-
-                cid_toks = CellTokenizer.tokenize_identifier(cid_lower)
-                id_match = sum(2.0 for t in cl_toks if t in cid_toks or t in c.keywords)
-                rel = relevance_map.get(cid, 0.0)
-                score = (strong * 4.0) + (weak * 1.5) + id_match + (rel * 2.0)
-
-                # Format/modality verification from clause literal
-                cl_file_ext = None
-                for w in cl.split():
-                    clean_w = w.strip(" '\"`(),;:")
-                    if "." in clean_w and not clean_w.startswith("."):
-                        ext = clean_w.rsplit(".", 1)[1].lower()
-                        if ext and len(ext) <= 5 and ext.isalnum():
-                            cl_file_ext = ext
-                            break
-
-                if cl_file_ext:
-                    if not self.is_file_format_compatible(c, f"file.{cl_file_ext}"):
-                        score = 0.0
-
-                # Estimator mathematical contract verification via declared role semantics
-                try:
-                    from signature_introspector import introspect_estimator_role
-                    role = introspect_estimator_role(c)
-                    if role in {"regressor", "classifier", "clusterer"}:
-                        matched_families = set()
-                        for ct in cl_toks:
-                            ct_low = str(ct).lower()
-                            if ct_low.startswith("regress"):
-                                matched_families.add("regressor")
-                            elif ct_low.startswith("classif"):
-                                matched_families.add("classifier")
-                            elif ct_low.startswith("cluster"):
-                                matched_families.add("clusterer")
-                        if len(matched_families) == 1 and role not in matched_families:
-                            score = 0.0
-                except Exception:
-                    pass
-
-                if score <= 0.0:
-                    continue
-                scored.append((c, score))
-
-            if not scored:
+            if not anchors:
                 continue
-            scored.sort(key=lambda x: x[1], reverse=True)
-            top_sc = scored[0][1]
-            for c, sc in scored[:2]:
-                if sc < top_sc * 0.70:
-                    break
+
+            primary_c, primary_overlap = anchors[0]
+            primary_f = primary_overlap.get("f", 0.0)
+
+            clause_selected = [primary_c]
+            if primary_f > 0.0 and ev is not None:
+                threshold = primary_f * 0.70
+                cl_tokens = ev.clause_tokens(cl)
+                for c in stage_pool:
+                    if c.cell_id == primary_c.cell_id:
+                        continue
+                    o = ev.identity_overlap(cl_tokens, c)
+                    if o.get("hit", 0.0) > 0.0 and o.get("f", 0.0) >= threshold:
+                        clause_selected.append(c)
+
+            for c in clause_selected:
                 if c.cell_id not in selected_ids:
                     selected_cells.append(c)
                     selected_ids.add(c.cell_id)
+
+                try:
+                    prod = self._find_type_producer(c, selected_cells, filtered_cands, clauses, orch)
+                    if prod is not None and prod.cell_id not in selected_ids:
+                        selected_cells.append(prod)
+                        selected_ids.add(prod.cell_id)
+                except Exception:
+                    pass
 
         # Carrier bridges: active domain bridges via ontology metadata
         active_domains = {getattr(c, "domain_name", "") for c in selected_cells if getattr(c, "domain_name", "")}

@@ -316,9 +316,21 @@ class TypeRegistry:
         bootstrap_runtime_poset(self)
 
     def _bootstrap_state_hierarchy(self):
-        """No-op: universal egress states (saved, written_to_disk, exported, default)
-        are declared in trees/_primitives.json.  Loaded by _bootstrap_plugin_types()."""
-        pass
+        """Bootstraps universal typestates and materialization state hierarchy from first principles."""
+        self.register_state("source_identifier", None, carrier_type="str")
+        self.register_state("exported", None)
+        self.register_state("written_to_disk", "exported")
+        self.register_state("saved", "written_to_disk")
+        self.register_state("default", None)
+        self.register_identifier_root_states(["source_identifier"])
+        self.register_materialization_states(["saved", "written_to_disk", "exported"])
+        self.register_terminal_states(["saved", "written_to_disk", "exported"])
+        self.register_state_role_ancestors({
+            "saved": ["terminal"],
+            "written_to_disk": ["terminal"],
+            "exported": ["terminal"],
+        })
+
 
     @_locked
     def register_artifact_reader(self, category: str, module_name: str, function_name: str) -> None:
@@ -443,6 +455,8 @@ class TypeRegistry:
                                     s_carrier = s_entry.get("carrier_type")
                                     props = s_entry.get("properties") or {}
                                     self.register_state(s_name, s_parent, carrier_type=s_carrier, properties=props)
+                                    if isinstance(props, dict) and props.get("estimator_type"):
+                                        self.register_type(str(props["estimator_type"]).lower(), "model")
                         # --- New data-driven structural fields ---
                         if "advisory_qualifiers" in data and isinstance(data["advisory_qualifiers"], list):
                             self.register_advisory_qualifiers(data["advisory_qualifiers"])
@@ -927,11 +941,9 @@ class TypeRegistry:
 
     def get_sentence_connectives(self) -> FrozenSet[str]:
         """Declared sentence connectives (trees own the vocabulary). When nothing is
-        declared, fall back to harvested corpus function words; the engine itself
-        carries no language literals."""
-        if self._sentence_connectives:
-            return frozenset(self._sentence_connectives)
-        return self.get_function_words()
+        declared, return empty set; function words (articles/prepositions) are NOT
+        sentence connectives."""
+        return frozenset(self._sentence_connectives)
 
     # --- Coordinating conjunctions (data-driven from tree declarations) ---
     @_locked
@@ -975,9 +987,8 @@ class TypeRegistry:
                 self._prompt_filler_tokens.add(s)
 
     def get_prompt_filler_tokens(self) -> FrozenSet[str]:
-        if self._prompt_filler_tokens:
-            return frozenset(self._prompt_filler_tokens)
-        return self.get_function_words()
+        base = frozenset(self._prompt_filler_tokens) if self._prompt_filler_tokens else frozenset()
+        return base | self.get_function_words()
 
     # --- Verification semantics (data-driven from tree declarations) --------
     @_locked
@@ -1393,6 +1404,49 @@ class TypeRegistry:
         return False
 
     is_registered = is_known_type_name
+
+    def get_type_ancestors(self, type_name: str) -> List[str]:
+        """Returns all transitive ancestors of type_name in the poset in BFS order (including itself)."""
+        name = str(type_name).strip().lower()
+        if not name:
+            return []
+        visited: Set[str] = set()
+        order: List[str] = []
+        from collections import deque
+        queue = deque([name])
+        while queue:
+            curr = queue.popleft()
+            if curr in visited:
+                continue
+            visited.add(curr)
+            order.append(curr)
+            for parent in tuple(self._parents.get(curr, ())):
+                p_l = str(parent).strip().lower()
+                if p_l and p_l not in visited:
+                    queue.append(p_l)
+        return order
+
+    def get_type_descendants(self, root_type: str) -> Set[str]:
+        """Returns all types in the poset that have root_type as a transitive ancestor (excluding root_type itself)."""
+        root = str(root_type).strip().lower()
+        if not root:
+            return set()
+        children_map: Dict[str, Set[str]] = {}
+        for child, parents in tuple(self._parents.items()):
+            for p in parents:
+                children_map.setdefault(str(p).strip().lower(), set()).add(str(child).strip().lower())
+        descendants: Set[str] = set()
+        from collections import deque
+        queue = deque(children_map.get(root, ()))
+        while queue:
+            curr = queue.popleft()
+            if curr in descendants or curr == root:
+                continue
+            descendants.add(curr)
+            for ch in children_map.get(curr, ()):
+                if ch not in descendants:
+                    queue.append(ch)
+        return descendants
 
     def is_subtype(self, sub: str, super_: str) -> bool:
         """Memoised poset query. The cache is per-instance and generation-guarded:
@@ -2201,6 +2255,41 @@ class PortSignature:
         self._cached_derived_role = role
         return role
 
+    @property
+    def canonical_rank(self) -> Optional[int]:
+        if self._cached_ndim is not None:
+            return self._cached_ndim
+
+        if isinstance(self.shape_contract, dict):
+            for k in ("ndim", "rank", "dimensions"):
+                if k in self.shape_contract:
+                    try:
+                        r = int(self.shape_contract[k])
+                        self._cached_ndim = r
+                        return r
+                    except (ValueError, TypeError):
+                        pass
+
+        reg = TypeRegistry.get_instance()
+        if reg:
+            t_name = str(self.type_name).lower()
+            # Atomic scalar: rank 0
+            for sc in ("scalar", "numeric", "logical"):
+                if t_name == sc or reg.is_subtype(t_name, sc):
+                    self._cached_ndim = 0
+                    return 0
+
+        return None
+
+    @canonical_rank.setter
+    def canonical_rank(self, val: Optional[int]) -> None:
+        self._cached_ndim = val
+        if val is not None:
+            if not isinstance(self.shape_contract, dict):
+                self.shape_contract = {}
+            self.shape_contract["ndim"] = val
+            self.shape_contract["rank"] = val
+
     def is_top(self) -> bool:
         return self.signature.is_top()
 
@@ -2542,6 +2631,79 @@ class Cell(ABC):
         for p in self.outputs.values():
             registry.register_type(p.type_name)
 
+        # Mathematical structural rank derivation for projections, setters, and paired morphisms
+        is_setter = False
+        key_input_is_collection = False
+        key_input_is_scalar = False
+        val_port = None
+        key_port = None
+
+        key_roles = set(registry.get_verification_semantics("key_roles")) | {"key", "column_key", "field_key"}
+        key_port_names = set(registry.get_verification_semantics("projection_port_names")) | {"column", "key", "columns", "keys", "field", "fields"}
+        val_roles = set(registry.get_verification_semantics("assigned_value_roles")) | {"assigned_value", "column_value", "field_value"}
+
+        for p_name, p_sig in self.inputs.items():
+            bind = str(getattr(p_sig, "binds", "") or "").lower()
+            role = str(getattr(p_sig, "port_role", "") or getattr(p_sig, "role", "") or "").lower()
+            p_tn = str(getattr(getattr(p_sig, "signature", p_sig), "type_name", "")).lower()
+            if bind in key_roles or role in key_roles or p_name in key_port_names:
+                key_port = p_sig
+                if "list" in p_tn or "collection" in p_tn or registry.is_subtype(p_tn, "collection") or p_name in ("columns", "keys", "fields"):
+                    key_input_is_collection = True
+                else:
+                    key_input_is_scalar = True
+            elif bind in val_roles or role in val_roles or p_name in ("value", "assigned_value"):
+                val_port = p_sig
+                is_setter = True
+
+        prim_out = self.primary_output if self.outputs else None
+        prim_in = self.primary_input if self.inputs else None
+
+        # Projections
+        if self.projection:
+            if self.projection in ("columns", "keys", "fields") or key_input_is_collection:
+                if prim_out and prim_out.canonical_rank is None:
+                    prim_out.canonical_rank = 2
+            elif self.projection in ("column", "key", "field") or key_input_is_scalar:
+                if prim_out and prim_out.canonical_rank is None:
+                    prim_out.canonical_rank = 1
+        elif key_input_is_collection and not is_setter:
+            if prim_out and prim_out.canonical_rank is None:
+                prim_out.canonical_rank = 2
+        elif key_input_is_scalar and not is_setter:
+            if prim_out and prim_out.canonical_rank is None:
+                prim_out.canonical_rank = 1
+
+        # Unary endomorphisms F -> F where input has rank 1
+        if prim_in and prim_out and len(self.inputs) == 1 and len(self.outputs) == 1:
+            in_r = prim_in.canonical_rank
+            if in_r == 1 and prim_out.canonical_rank is None:
+                prim_out.canonical_rank = 1
+
+        # Lens setter: port V demands rank 1
+        if is_setter and val_port and key_input_is_scalar:
+            if val_port.canonical_rank is None:
+                val_port.canonical_rank = 1
+
+        # Dual-input paired morphism (g: X x Y -> M where X in feature_roles and Y in target_roles)
+        feature_roles = set(registry.get_verification_semantics("feature_roles")) | {"feature_input", "feature", "features"}
+        target_roles = set(registry.get_verification_semantics("target_roles")) | {"target_input", "target", "targets"}
+        feat_port = None
+        tgt_port = None
+        for p_name, p_sig in self.inputs.items():
+            bind = str(getattr(p_sig, "binds", "") or "").lower()
+            role = str(getattr(p_sig, "port_role", "") or getattr(p_sig, "role", "") or "").lower()
+            if role in feature_roles or bind in feature_roles:
+                feat_port = p_sig
+            elif role in target_roles or bind in target_roles:
+                tgt_port = p_sig
+
+        if feat_port and tgt_port:
+            if feat_port.canonical_rank is None:
+                feat_port.canonical_rank = 2
+            if tgt_port.canonical_rank is None:
+                tgt_port.canonical_rank = 1
+
     @property
     def token_set(self) -> Set[str]:
         if self._token_set is None:
@@ -2782,6 +2944,8 @@ class Cell(ABC):
             c.bound_parent_ids = set(self.bound_parent_ids)
         if getattr(self, "planned_port_wires", None):
             c.planned_port_wires = dict(self.planned_port_wires)
+        if getattr(self, "clause_literals", None):
+            c.clause_literals = list(self.clause_literals)
         return c
 
     def effect_names(self) -> Set[str]:
@@ -2925,18 +3089,16 @@ def _apply_declared_estimator_identity(cell: Any) -> None:
         return getattr(obj, field_name, default)
 
     reg = TypeRegistry.get_instance()
-    estimator_types = {"model", "estimator", "regressor", "classifier", "clusterer", "transformer"}
 
     # 1. Producer side: stamp (owner_qual,) ONLY on output ports where port_role == "model_sink"
-    # or where type_name is a subtype of estimator_types (returning fitted self instance)
+    # or where type_name is a subtype of "model" in the poset (returning fitted self instance)
     for out_p in (getattr(cell, "outputs", {}) or {}).values():
         port_role = str(getattr(out_p, "port_role", "") or "").lower()
         out_sig = getattr(out_p, "signature", None)
         out_tn = str(getattr(out_sig, "type_name", "") or getattr(out_p, "type_name", "") or "").lower()
         is_model_output = (
             port_role == "model_sink"
-            or out_tn in estimator_types
-            or any(reg.is_subtype(out_tn, et) for et in estimator_types)
+            or (bool(out_tn) and bool(reg and reg.is_subtype(out_tn, "model")))
         )
         if is_model_output:
             _stamp(out_p, owner_qual)
@@ -3271,7 +3433,7 @@ class LatticeOrchestrator:
             normalized_fnames = [f for f in all_fnames if f.endswith("_normalized.json")]
             target_fnames = normalized_fnames if (normalized_fnames and s_dir == target_dir) else all_fnames
             for fname in sorted(target_fnames):
-                base_domain = fname.replace("_v1.1.0_normalized.json", "").replace("_normalized.json", "").replace(".json", "")
+                base_domain = fname.split("_v1.")[0].replace("_normalized.json", "").replace(".json", "").split("#")[0].replace("_raw", "").replace("_merged", "")
                 if base_domain in loaded_domains:
                     continue
                 fpath = os.path.join(s_dir, fname)
@@ -3770,9 +3932,9 @@ class LatticeOrchestrator:
                         reg.register_operation_tokens(CellTokenizer.tokenize_identifier(str(kw)))
                 reg.register_operation_tokens(CellTokenizer.tokenize_identifier(c.cell_id))
 
-            # Harvest egress tokens and materialization states from stage-3/sink cells
+            # Harvest egress tokens, materialization states, terminal states from stage-3/sink cells
             for c in all_cells:
-                is_egress = getattr(c, "stage", None) == 3 or str(getattr(c, "node_role", "")).lower() == "egress" or str(getattr(c, "mutation_type", "")).lower() in ("io", "sink")
+                is_egress = getattr(c, "stage", None) == 3 or str(getattr(c, "node_role", "")).lower() in ("egress", "sink", "terminal") or str(getattr(c, "mutation_type", "")).lower() in ("io", "sink")
                 if is_egress:
                     if getattr(c, "keywords", None):
                         src_toks = reg.get_source_port_tokens()
@@ -3784,11 +3946,12 @@ class LatticeOrchestrator:
                         reg.register_egress_tokens(valid_kw)
                     for p in getattr(c, "outputs", {}).values():
                         p_st = getattr(getattr(p, "signature", p), "state", None)
-                        if p_st:
-                            reg.register_materialization_states([p_st])
+                        if p_st and str(p_st).lower() not in ("any", "unknown", "*"):
+                            reg.register_materialization_states([str(p_st)])
+                            reg.register_terminal_states([str(p_st)])
 
-                # Harvest ingress tokens from stage-1/ingress/source cells
-                is_ingress = getattr(c, "stage", None) == 1 or str(getattr(c, "node_role", "")).lower() == "ingress" or str(getattr(c, "mutation_type", "")).lower() in ("io", "source", "ingress")
+                # Harvest ingress tokens and identifier root states from stage-1/ingress/source cells
+                is_ingress = getattr(c, "stage", None) == 1 or str(getattr(c, "node_role", "")).lower() in ("ingress", "source") or str(getattr(c, "mutation_type", "")).lower() in ("io", "source", "ingress")
                 if is_ingress:
                     if getattr(c, "keywords", None):
                         reg.register_source_port_tokens(c.keywords)
@@ -3796,8 +3959,18 @@ class LatticeOrchestrator:
                         p_name = getattr(p, "name", "")
                         if p_name:
                             reg.register_source_port_tokens([p_name])
+                        if is_path_port(p) or getattr(p, "abstract_type", "") == "path":
+                            p_st = getattr(getattr(p, "signature", p), "state", None)
+                            if p_st and str(p_st).lower() not in ("any", "unknown", "*"):
+                                reg.register_identifier_root_states([str(p_st)])
 
-                # Harvest data-bearing roles and port tokens from declared port roles
+                # Harvest data-bearing roles and port tokens from declared port roles, and state_role_ancestors
+                for p in list(getattr(c, "inputs", {}).values()) + list(getattr(c, "outputs", {}).values()):
+                    role = getattr(p, "port_role", None) or getattr(p, "role", None)
+                    p_st = getattr(getattr(p, "signature", p), "state", None)
+                    if role and p_st and str(p_st).lower() not in ("any", "unknown", "*"):
+                        reg.register_state_role_ancestors({str(role): [str(p_st)]})
+
                 for p_name, p in getattr(c, "inputs", {}).items():
                     role = getattr(p, "port_role", None) or getattr(p, "role", None)
                     if role:

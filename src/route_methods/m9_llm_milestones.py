@@ -69,12 +69,9 @@ SYSTEM_PROMPT_MILESTONES = (
     "of available typed operations (cells). Each cell has an ID, domain, stage, "
     "input ports with types, and output ports with types.\n"
     "Identify the essential MUST-HAVE operations (milestones) required to fulfill "
-    "ALL steps of the request from start to finish.\n"
-    "- When operations apply to distinct columns or variables (e.g. normalizing column X, calculating mean of column Y, "
-    "and combining X and Y), include column selection and transformation cells for EACH branch so both branches exist in the pipeline.\n"
-    "- NEVER select multiple redundant alternatives for the same step "
-    "(e.g. choose either dropna or imputer, NOT both; choose either normalize or standardscaler, NOT both; "
-    "choose either add or sum, NOT both).\n"
+    "- When operations apply to distinct inputs or branches, include the appropriate selection and transformation cells for EACH branch so all branches exist in the pipeline.\n"
+    "- NEVER select multiple redundant alternatives for the same step; choose exactly one operation per requested step.\n"
+    "- Do NOT select operations that have no evidence in the prompt.\n"
     "- Do NOT include intermediate adapters or bridge cells -- only the primary operations "
     "in their proper chronological execution order.\n"
     "Respond with ONLY a JSON object of the form: "
@@ -158,13 +155,14 @@ class M9LLMMilestonePathfinderRouteMethod(RouteMethod):
                     or (isinstance(e, str) and e in ("removes_columns", "drops_columns"))
                     for e in effects
                 )
+                if has_destructive_effect:
+                    continue
+
                 cand_toks = set(getattr(cand, "token_set", set())) | set(getattr(cand, "keywords", []) or []) | set(getattr(cand, "semantic_tags", []) or [])
                 cand_toks = {str(t).lower() for t in cand_toks}
                 cand_role = str(getattr(cand, "node_role", "") or getattr(cand, "role", "") or "").lower()
                 is_declared_bridge = cand_role in declared_bridge_roles
 
-                if has_destructive_effect and not (cand_toks & prompt_toks):
-                    continue
                 if not is_declared_bridge and not (cand_toks & prompt_toks):
                     continue
 
@@ -317,7 +315,7 @@ class M9LLMMilestonePathfinderRouteMethod(RouteMethod):
             # 5. Type-directed repair: if milestone target requires a prerequisite type (e.g. model fit producer)
             try:
                 p_clauses = self.segment_prompt_clauses(prompt)
-                producer = self._find_type_producer(target, chain, candidates, p_clauses, orch)
+                producer = self._find_type_producer(target, chain, shown, p_clauses, orch)
                 if producer is not None:
                     chain.extend([producer, target])
                     continue

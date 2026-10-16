@@ -100,9 +100,6 @@ class M4LLMStepwiseRouteMethod(RouteMethod):
             clauses = self.segment_prompt_clauses(prompt)
         max_steps = max(2, min(16, max(max_transforms + 2, (len(clauses) if clauses else 1) + 3)))
 
-        has_reg = bool(prompt_tokens & {"regression", "regressor", "continuous"}) and not bool(prompt_tokens & {"classification", "classifier"})
-        has_cls = bool(prompt_tokens & {"classification", "classifier"}) and not bool(prompt_tokens & {"regression", "regressor"})
-
         def _cov_cnt(pc):
             return sum(1 for cl in clauses
                        if any(len(CellTokenizer.tokenize_prompt(cl) & getattr(c, "identity_tokens", c.token_set)) > 0
@@ -125,13 +122,6 @@ class M4LLMStepwiseRouteMethod(RouteMethod):
                     continue
                 if not (self.step_unifies(curr, c, prev_path=path) or self.step_unifies_dag(c, path, ctx=ctx)):
                     drop_reasons["unification_failure"] = drop_reasons.get("unification_failure", 0) + 1
-                    continue
-                c_out = str(getattr(c.primary_output, "state", "")).lower()
-                if has_reg and ("label" in c_out or c_out == "predicted_labels"):
-                    drop_reasons["reg_label_conflict"] = drop_reasons.get("reg_label_conflict", 0) + 1
-                    continue
-                if has_cls and c_out == "predicted_values":
-                    drop_reasons["cls_value_conflict"] = drop_reasons.get("cls_value_conflict", 0) + 1
                     continue
                 if is_pred and (getattr(c, "node_role", "") in ("estimator", "model") or "fit" in c.cell_id.lower()):
                     drop_reasons["post_pred_estimator"] = drop_reasons.get("post_pred_estimator", 0) + 1

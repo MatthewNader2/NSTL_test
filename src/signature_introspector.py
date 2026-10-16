@@ -1555,44 +1555,6 @@ def get_callable_parameters(
     }
 
 
-_ESTIMATOR_ROLE_CACHE: Dict[str, Optional[str]] = {}
-
-
 def introspect_estimator_role(cell_or_obj: Any) -> Optional[str]:
-    """
-    Pure metadata/poset lookup for mutually-exclusive estimator roles:
-    {"regressor", "classifier", "clusterer"} (or None). Zero runtime importlib calls.
-    """
-    if cell_or_obj is None:
-        return None
-
-    cid = str(getattr(cell_or_obj, "cell_id", "") or (cell_or_obj if isinstance(cell_or_obj, str) else "")).lower()
-    if cid and cid in _ESTIMATOR_ROLE_CACHE:
-        return _ESTIMATOR_ROLE_CACHE[cid]
-
-    nr = str(getattr(cell_or_obj, "node_role", "") or "").lower()
-    po = getattr(cell_or_obj, "primary_output", None)
-    pi = getattr(cell_or_obj, "primary_input", None)
-    po_tn = str(getattr(po, "type_name", "") or "").lower()
-    po_st = str(getattr(po, "state", "") or "").lower()
-    pi_tn = str(getattr(pi, "type_name", "") or "").lower()
-    tags = {str(t).lower() for t in (getattr(cell_or_obj, "semantic_tags", []) or [])}
-
-    role = None
-    if nr in ("regressor", "classifier", "clusterer"):
-        role = nr
-    elif po_st in ("regressor", "classifier", "clusterer"):
-        role = po_st
-    elif "label" in po_st or "class" in po_st or "classifier" in po_tn or "classifier" in pi_tn or "logistic" in cid:
-        role = "classifier"
-    elif any("classif" in s for s in (nr, po_tn, po_st, pi_tn, cid)) or any("classif" in t for t in tags):
-        role = "classifier"
-    elif any("regress" in s for s in (nr, po_tn, po_st, pi_tn, cid)) or any("regress" in t for t in tags):
-        role = "regressor"
-    elif any(k in s for s in (nr, po_tn, po_st, pi_tn, cid) for k in ("cluster", "kmeans")) or any(k in t for t in tags for k in ("cluster", "kmeans")):
-        role = "clusterer"
-
-    if cid:
-        _ESTIMATOR_ROLE_CACHE[cid] = role
-    return role
+    return None
 

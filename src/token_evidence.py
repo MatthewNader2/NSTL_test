@@ -34,10 +34,14 @@ class TokenEvidence:
         cells = list(getattr(orchestrator, "loaded_cells", {}).values())
         self.n = max(len(cells), 1)
         df: Dict[str, int] = {}
+        identity_df: Dict[str, int] = {}
         for c in cells:
             for t in c.token_set:
                 df[t] = df.get(t, 0) + 1
+            for t in getattr(c, "identity_tokens", ()) or ():
+                identity_df[t] = identity_df.get(t, 0) + 1
         self._df = df
+        self._identity_df = identity_df
         self._idf_cache: Dict[str, float] = {}
         self._skip: Optional[Set[str]] = None
 
@@ -70,7 +74,10 @@ class TokenEvidence:
 
     def clause_tokens(self, clause: str) -> Set[str]:
         skip = self._non_evidence()
-        return {t for t in CellTokenizer.tokenize_prompt(clause) if self.idf(t) > 0.0 and t not in skip}
+        return {
+            t for t in CellTokenizer.tokenize_prompt(clause)
+            if len(t) > 2 and self.idf(t) > 0.0 and self._identity_df.get(t, 0) > 0 and t not in skip
+        }
 
     def identity_overlap(self, clause_toks: Set[str], cell: Any) -> Dict[str, float]:
         """Evidence a clause gives for a cell.
@@ -92,28 +99,6 @@ class TokenEvidence:
         name_toks = {t for t in CellTokenizer.tokenize_identifier(str(getattr(cell, "cell_id", ""))) if self.idf(t) > 0.0}
         n_mass = self.mass(name_toks)
         name_precision = (self.mass(clause_toks & name_toks) / n_mass) if n_mass > 0 else 0.0
-
-        # Mathematical contract verification: disambiguate estimator families dynamically
-        try:
-            from signature_introspector import introspect_estimator_role
-            role = introspect_estimator_role(cell)
-            if role in {"regressor", "classifier", "clusterer"}:
-                matched_families = set()
-                for ct in clause_toks:
-                    ct_low = str(ct).lower()
-                    if ct_low.startswith("regress"):
-                        matched_families.add("regressor")
-                    elif ct_low.startswith("classif"):
-                        matched_families.add("classifier")
-                    elif ct_low.startswith("cluster"):
-                        matched_families.add("clusterer")
-                if len(matched_families) == 1 and role not in matched_families:
-                    recall *= 0.05
-                    precision *= 0.05
-                    f *= 0.05
-                    name_precision *= 0.05
-        except Exception:
-            pass
 
         return {"hit": hit_mass, "recall": recall, "precision": precision, "f": f,
                 "name_precision": name_precision,

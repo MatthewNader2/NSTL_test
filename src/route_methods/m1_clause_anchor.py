@@ -224,7 +224,7 @@ class M1ClauseAnchorRouteMethod(RouteMethod):
                 except (ImportError, ValueError):
                     from unification import UnificationGate
                 gate = UnificationGate(orchestrator=orch)
-                test_res = gate.unify_pipeline(routed_path, ExecutionContext(prompt=prompt))
+                test_res = gate.unify_pipeline(routed_path, ExecutionContext(prompt=prompt), extract_llm_slots=False)
                 if test_res.is_bottom():
                     is_broken = True
             except Exception:

@@ -203,67 +203,9 @@ class PreflightLinter:
                     continue
         return verbs
 
-    @classmethod
-    def _feature_roles(cls) -> Set[str]:
-        # Declared role vocabulary (trees' verification_semantics); falls back
-        # to the legacy accessor names when a registry provides them.
-        roles = {
-            str(r).lower()
-            for r in TypeRegistry.get_instance().get_verification_semantics("feature_roles")
-        }
-        return roles or cls._role_set("get_feature_roles", "get_feature_bearing_roles")
-
-    @classmethod
-    def _target_roles(cls) -> Set[str]:
-        roles = {
-            str(r).lower()
-            for r in TypeRegistry.get_instance().get_verification_semantics("target_roles")
-        }
-        return roles or cls._role_set("get_target_roles", "get_target_bearing_roles")
-
-    @classmethod
-    def _supervised_verbs(cls) -> Set[str]:
-        return cls._verb_set("get_supervised_estimator_verbs", "get_supervised_verbs", "get_estimator_verbs")
-
-    @classmethod
-    def _unsupervised_verbs(cls) -> Set[str]:
-        return cls._verb_set("get_unsupervised_estimator_verbs", "get_unsupervised_verbs")
-
     # ------------------------------------------------------------------
     # Structural predicates
     # ------------------------------------------------------------------
-
-    @classmethod
-    def _prompt_is_supervised(cls, prompt: str) -> bool:
-        """
-        Decide whether a prompt describes a supervised (features -> target) relation.
-
-        Rules (fail-closed — never infer supervision that isn't attested):
-          * If the registry exposes unsupervised verbs and any appear in the prompt,
-            the prompt is treated as unsupervised -> returns False.
-          * If the registry does not expose supervised verbs, returns False so the
-            estimator check is skipped rather than risk a false positive.
-          * Otherwise, returns True iff at least one supervised verb appears.
-        """
-        if not prompt:
-            return False
-        # Zero-regex tokenization via the shared CellTokenizer (structural
-        # identifier splitting only — no pattern scanning, no domain vocab).
-        try:
-            tokens = {t.lower() for t in CellTokenizer.tokenize_prompt(prompt)}
-        except Exception:
-            tokens = set()
-        if not tokens:
-            return False
-
-        unsupervised = cls._unsupervised_verbs()
-        if unsupervised and (tokens & unsupervised):
-            return False
-
-        supervised = cls._supervised_verbs()
-        if not supervised:
-            return False
-        return bool(tokens & supervised)
 
     @classmethod
     def _port_role(cls, port_sig: Any) -> str:
@@ -1491,61 +1433,6 @@ class PreflightLinter:
                         },
                     )
 
-        # -----------------------------------------------------------------
-        # Check 5: Structural Estimator Fit/Predict Contract
-        #
-        # Fire ONLY when:
-        #   (a) the prompt carries >= 2 data identifiers (relation declared), AND
-        #   (b) the prompt is classified as SUPERVISED by the registry verbs.
-        # Unsupervised prompts (clustering / DR / anomaly detection) never trip
-        # this check because their target ports are not required.
-        # -----------------------------------------------------------------
-        data_ids = list(dict.fromkeys(
-            val for _, kind, val in extracted_literals
-            if kind in ("identifier", "quoted_str")
-        ))
-        has_multi_data_relation = len(data_ids) >= 2
-
-        if has_multi_data_relation and cls._prompt_is_supervised(prompt):
-            feature_roles = cls._feature_roles()
-            target_roles = cls._target_roles()
-
-            for cell, bindings in pipeline_bindings:
-                required_features: List[str] = []
-                required_targets: List[str] = []
-
-                for p_name, port_sig in cell.inputs.items():
-                    role = cls._port_role(port_sig)
-                    if not role:
-                        continue
-                    if cls._port_is_optional(port_sig):
-                        # Optional ports are outside the estimator contract.
-                        continue
-                    if role in feature_roles:
-                        required_features.append(p_name)
-                    elif role in target_roles:
-                        required_targets.append(p_name)
-
-                # Only enforce when the cell *structurally* exposes both sides of
-                # the estimator contract (feature + target) as required ports.
-                if not (required_features and required_targets):
-                    continue
-
-                for p_name in required_features:
-                    if _is_unbound(bindings.get(p_name)):
-                        msg = (
-                            f"Estimator-shaped cell '{cell.cell_id}' requires feature port "
-                            f"'{p_name}', which was left unbound or None."
-                        )
-                        _add_violation("estimator_contract", msg, cell_id=cell.cell_id, port_name=p_name, details={"role": "feature"})
-                for p_name in required_targets:
-                    if _is_unbound(bindings.get(p_name)):
-                        msg = (
-                            f"Estimator-shaped cell '{cell.cell_id}' requires target port "
-                            f"'{p_name}' for the supervised relation implied by data "
-                            f"identifiers {data_ids}, but it was left unbound or None."
-                        )
-                        _add_violation("estimator_contract", msg, cell_id=cell.cell_id, port_name=p_name, details={"role": "target", "data_ids": data_ids})
 
         # -----------------------------------------------------------------
         # Check 3b: Explicit Unresolved Port Detection

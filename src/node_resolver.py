@@ -172,26 +172,50 @@ def _safe_extract_json(raw_text: str) -> Optional[Dict[str, Any]]:
     return extract_json_object(raw_text)
 
 
-def _create_mock_input_code(var_name: str, type_name: str, domain_name: str = "") -> str:
+def _create_mock_input_code(var_name: str, type_name: str, domain_name: str = "", abstract_type: str = "") -> str:
     """
     Generates a dry-run mock instantiation for a port.
-
-    Domain knowledge lives in the pluggable trees, not here: mock probes are
-    harvested from trees/*.json (`mock_probes` declarations) via the
-    TypeRegistry, so adding a tree for domain X teaches the engine how to
-    construct X's carriers without any engine change. Only the final,
-    domain-neutral collection fallback remains in engine code.
+    Domain knowledge lives in pluggable trees: mock probes are harvested from trees.
+    Fallback synthesizes values by abstract carrier protocol: table, tensor, scalar, text, collection.
     """
     try:
         from lattice import TypeRegistry
-        probe = TypeRegistry.get_instance().find_mock_probe(type_name, domain_name)
+        reg = TypeRegistry.get_instance()
+        probe = reg.find_mock_probe(type_name, domain_name) if reg else None
     except Exception:
+        reg = None
         probe = None
+
     if probe:
         return probe.replace("{var_name}", var_name)
 
-    # Domain-neutral fallback: a dynamic mock carrier that subclasses list and tolerates
-    # arbitrary method calls, attribute accesses, and indexing during dry-run sandbox probes.
+    t_low = (type_name or "").lower()
+    abs_low = (abstract_type or "").lower()
+
+    if (reg and reg.is_subtype(t_low, "table")) or abs_low == "table" or t_low == "table":
+        return (
+            f"try:\n"
+            f"    import pandas as pd\n"
+            f"    {var_name} = pd.DataFrame({{'a': [1.0, 2.0, 3.0], 'b': [4.0, 5.0, 6.0]}})\n"
+            f"except Exception:\n"
+            f"    {var_name} = {{'a': [1.0, 2.0, 3.0], 'b': [4.0, 5.0, 6.0]}}"
+        )
+    elif (reg and reg.is_subtype(t_low, "tensor")) or abs_low == "tensor" or t_low == "tensor":
+        return (
+            f"try:\n"
+            f"    import numpy as np\n"
+            f"    {var_name} = np.ones((3, 3))\n"
+            f"except Exception:\n"
+            f"    {var_name} = [[1.0, 1.0], [1.0, 1.0]]"
+        )
+    elif (reg and reg.is_subtype(t_low, "scalar")) or abs_low == "scalar" or t_low in ("scalar", "numeric", "float", "int", "number"):
+        return f"{var_name} = 1.0"
+    elif (reg and reg.is_subtype(t_low, "text")) or abs_low == "text" or t_low in ("text", "str", "string"):
+        return f'{var_name} = "sample"'
+    elif (reg and reg.is_subtype(t_low, "collection")) or abs_low == "collection" or t_low in ("collection", "list", "sequence"):
+        return f"{var_name} = [1.0, 2.0]"
+
+    # Universal dynamic mock carrier fallback
     return (
         f"class _NSTLMockCarrier(list):\n"
         f"    def __getattr__(self, name): return lambda *a, **kw: _NSTLMockCarrier([1, 2, 3])\n"
@@ -222,12 +246,15 @@ def _generate_mock_code_probe(
     for idx, (p_name, p_info) in enumerate((inputs or {}).items()):
         var_name = f"in_mock_{idx}"
         type_name = ""
+        abstract_type = ""
         if isinstance(p_info, dict):
             type_name = str(p_info.get("type_name", "")).lower()
+            abstract_type = str(p_info.get("abstract_type", "")).lower()
         elif hasattr(p_info, "type_name"):
             type_name = str(p_info.type_name).lower()
+            abstract_type = str(getattr(p_info, "abstract_type", "")).lower()
 
-        lines.append(_create_mock_input_code(var_name, type_name, domain_name))
+        lines.append(_create_mock_input_code(var_name, type_name, domain_name, abstract_type=abstract_type))
         mock_vars[p_name] = var_name
 
     bindings = dict(mock_vars)
