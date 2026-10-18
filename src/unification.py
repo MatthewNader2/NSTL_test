@@ -9,6 +9,7 @@ Conforms strictly to Section 3.2 of the NSTL paper:
 """
 
 from __future__ import annotations
+import os
 import ast
 import collections
 import copy
@@ -2313,7 +2314,7 @@ class ExecutionContext:
         new_ctx.unresolved_ports = list(self.unresolved_ports)
         new_ctx.unbindable_count = self.unbindable_count
         new_ctx.var_counter = self.var_counter
-        new_ctx.llm_slots = {k: dict(v) for k, v in self.llm_slots.items()}
+        new_ctx.llm_slots = {k: dict(v) if isinstance(v, dict) else v for k, v in self.llm_slots.items()}
         new_ctx.target_col = self.target_col
         new_ctx.columns = list(self.columns)
         new_ctx.hyperparameters = dict(self.hyperparameters)
@@ -3268,7 +3269,8 @@ class ExecutionContext:
         port_sig: PortSignature,
         cell_stage: Optional[int] = None,
         cell_inputs: Optional[Dict[str, PortSignature]] = None,
-        cell_tokens: Optional[Set[str]] = None
+        cell_tokens: Optional[Set[str]] = None,
+        cell: Optional[Any] = None
     ) -> Optional[str]:
         """
         Resolves a value for a port using parameters, declared defaults, or literals.
@@ -3284,6 +3286,13 @@ class ExecutionContext:
           numeric ports. `cell_inputs` enables the cross-port guard that prevents
           auxiliary str ports from stealing file assets on cells that own a path port.
         """
+        if cell is not None:
+            if cell_stage is None:
+                cell_stage = getattr(cell, "stage", None)
+            if cell_inputs is None:
+                cell_inputs = getattr(cell, "inputs", None)
+            if cell_tokens is None:
+                cell_tokens = getattr(cell, "token_set", None)
         p_name = (port_sig.name or "").lower() if port_sig and getattr(port_sig, "name", None) else ""
         t_name = (port_sig.type_name or "").lower() if port_sig and getattr(port_sig, "type_name", None) else ""
 
@@ -3546,14 +3555,16 @@ class ExecutionContext:
         is_path = _lattice_is_path_port(port_sig)
         is_path_role = port_role in ("path", "file", "filepath", "filename", "pathlike")
         is_sink_ctx = (
-            getattr(cell, "node_role", "") in ("sink", "terminal", "egress")
-            or not getattr(cell, "outputs", None)
+            (cell is not None and getattr(cell, "node_role", "") in ("sink", "terminal", "egress"))
+            or (cell is not None and not getattr(cell, "outputs", None))
+            or (cell_stage is not None and cell_stage == 3)
             or port_role in ("model_sink", "destination", "output_file", "dest_identifier", "sink")
             or str(getattr(port_sig, "state", "")).lower() in ("dest_identifier", "filepath_written", "destination_written")
         )
         is_source_ctx = (
-            getattr(cell, "node_role", "") in ("source", "ingress")
-            or len(getattr(cell, "inputs", {})) == 0
+            (cell is not None and getattr(cell, "node_role", "") in ("source", "ingress"))
+            or (cell is not None and len(getattr(cell, "inputs", {})) == 0)
+            or (cell_stage is not None and cell_stage == 1)
             or port_role in ("source_data", "source", "input_file", "source_identifier")
             or str(getattr(port_sig, "state", "")).lower() in ("source_identifier", "file_path")
         )
@@ -3706,8 +3717,14 @@ class ExecutionContext:
                 return json.dumps(fallback[1])
             return None
 
+        is_column_port = (
+            getattr(port_sig, "binds", "") in ("column_key", "key", "projection_key")
+            or str(getattr(port_sig, "state", "")).lower() in ("column_name", "column_projection")
+            or getattr(port_sig, "port_role", "") in _declared_role_semantics("projection_port_roles")
+        )
         allow_str_asset = (
-            (is_sink_ctx or is_source_ctx or (cell_stage is not None and cell_stage in (1, 3)))
+            not is_column_port
+            and (is_sink_ctx or is_source_ctx or (cell_stage is not None and cell_stage in (1, 3)))
             and is_str
             and not getattr(port_sig, "enum_values", None)
             and not _cell_has_path_port()
@@ -4555,10 +4572,24 @@ class UnificationGate:
         if p_name in cell_bindings:
             return None
 
-        p_role = getattr(p_sig, "port_role", None) or getattr(p_sig, "derived_role", "")
+        registry = TypeRegistry.get_instance()
+        estimator_roles = (
+            {str(r).lower() for r in (registry.get_verification_semantics("estimator_roles") or ())}
+            | {str(r).lower() for r in (registry.get_verification_semantics("model_roles") or ())}
+        )
+        c_role = str(getattr(cell, "node_role", "") or "").lower()
+        c_type = str(getattr(cell, "node_type", "") or "").lower()
+        is_model_cell = (
+            c_role in estimator_roles
+            or c_type in estimator_roles
+        )
+        has_explicit_port_role = bool(getattr(p_sig, "port_role", None)) or bool(getattr(p_sig, "binds", None))
+        if not (is_model_cell or has_explicit_port_role):
+            return None
+
+        p_role = getattr(p_sig, "port_role", None) or (getattr(p_sig, "derived_role", "") if is_model_cell else "")
         p_role_str = str(p_role or "").lower()
 
-        registry = TypeRegistry.get_instance()
         target_roles = {
             str(r).lower() for r in (
                 registry.get_verification_semantics("target_roles")
@@ -4779,7 +4810,9 @@ class UnificationGate:
                 ]
                 feat_cols = [c for c in unconsumed_lits if c.lower() != str(t_col or "").strip().lower()]
 
-            if not feat_cols:
+            if feat_cols:
+                feat_cols = list(dict.fromkeys(feat_cols))
+            else:
                 return None
 
             v_carrier, v_carrier_tn, k_name, _ = self._find_fibered_carrier_bridge(ctx, registry, is_multi_key=True)
@@ -5532,8 +5565,22 @@ class UnificationGate:
                             or getattr(v_sig, "abstract_type", "") in ("table", "tensor")
                             for v_sig, _ in getattr(ctx, "variables", {}).values()
                         )
+                        c_role = str(getattr(cell, "node_role", "") or "").lower()
+                        c_type = str(getattr(cell, "node_type", "") or "").lower()
+                        estimator_roles = (
+                            _declared_role_semantics("estimator_roles")
+                            | _declared_role_semantics("model_roles")
+                        )
+                        is_model_cell = (
+                            c_role in estimator_roles
+                            or c_type in estimator_roles
+                        )
                         has_proj = any(
-                            (getattr(p, "port_role", "") in projective_roles or getattr(p, "derived_role", "") in projective_roles)
+                            (
+                                getattr(p, "port_role", "") in projective_roles
+                                or getattr(p, "binds", "") in ("feature", "target", "projection")
+                                or (is_model_cell and getattr(p, "derived_role", "") in projective_roles)
+                            )
                             for p in req_ports
                         )
                         all_req_bound = all(p_name in cell_bindings for p_name, p in cell.inputs.items() if p.required)
@@ -5845,7 +5892,7 @@ class UnificationGate:
                         accumulated_sigma.bind(p_name, formatted_val)
                         continue
 
-                    resolved_literal = ctx.resolve_literal_for_port(concrete_sig, cell_stage=cell.stage, cell_inputs=cell.inputs, cell_tokens=getattr(cell, "token_set", set()))
+                    resolved_literal = ctx.resolve_literal_for_port(concrete_sig, cell_stage=cell.stage, cell_inputs=cell.inputs, cell_tokens=getattr(cell, "token_set", set()), cell=cell)
                     if resolved_literal is not None:
                         cell_bindings[p_name] = resolved_literal
                         accumulated_sigma.bind(p_name, resolved_literal)
@@ -5873,7 +5920,7 @@ class UnificationGate:
                         accumulated_sigma.bind(p_name, formatted_val)
                         continue
 
-                    _lit = ctx.resolve_literal_for_port(concrete_sig, cell_stage=cell.stage, cell_inputs=cell.inputs, cell_tokens=getattr(cell, "token_set", set()))
+                    _lit = ctx.resolve_literal_for_port(concrete_sig, cell_stage=cell.stage, cell_inputs=cell.inputs, cell_tokens=getattr(cell, "token_set", set()), cell=cell)
                     if _lit is not None:
                         cell_bindings[p_name] = _lit
                         accumulated_sigma.bind(p_name, _lit)
@@ -5897,6 +5944,12 @@ class UnificationGate:
                 _target_roles = _declared_role_semantics("target_roles")
                 _feature_roles = _declared_role_semantics("feature_roles")
                 _model_roles = _declared_role_semantics("model_roles")
+                val_roles = set(registry.get_verification_semantics("assigned_value_roles") or ()) | {"assigned_value", "column_value", "field_value"}
+                is_assigned_val = (
+                    str(getattr(p_sig, "binds", "") or "").lower() in val_roles
+                    or str(getattr(p_sig, "port_role", "") or "").lower() in val_roles
+                    or str(p_name).lower() in ("value", "val", "values", "new_column")
+                )
 
                 for v_name, (v_sig, _) in reversed(list(ctx.variables.items())):
                     # Heterogeneous products project member-wise; the whole container
@@ -5967,7 +6020,7 @@ class UnificationGate:
                         or getattr(p_sig, "port_role", "") in ("receiver", "data_carrier")
                         or (_cell_consumes_name_literal(cell) and registry.is_subtype(str(getattr(concrete_sig, "type_name", "")).lower(), "table"))
                     )
-                    if target_col_for_cell is None or has_matching_origin or is_dest_carrier:
+                    if target_col_for_cell is None or has_matching_origin or is_dest_carrier or is_assigned_val:
                         if candidate_vars[0][0][2] >= 0:
                             _, scoped_var, accumulated_sigma = candidate_vars[0]
 
@@ -5976,7 +6029,11 @@ class UnificationGate:
                     cell_bindings[p_name] = _fresh_sc if _fresh_sc is not None else scoped_var
                     continue
 
-                if scoped_var is None and target_col_for_cell is not None:
+                known_cols = {str(c).strip().lower() for c in getattr(ctx, "columns", []) if str(c).strip()}
+                if hasattr(ctx, "written_columns"):
+                    known_cols |= {str(c).strip().lower() for c in ctx.written_columns if str(c).strip()}
+
+                if scoped_var is None and target_col_for_cell is not None and not is_assigned_val and (not known_cols or str(target_col_for_cell).lower() in known_cols):
                     df_carrier = None
                     for v_n, (v_s, _) in reversed(list(ctx.variables.items())):
                         sig_o = getattr(v_s, "signature", v_s)
@@ -6056,7 +6113,7 @@ class UnificationGate:
                 # that literal was already consumed by an earlier read of the same column (read X, then write X).
                 # The generic resolver below hands out "the next unconsumed literal", which wrote the
                 # normalized X into column Y when X had already been projected.
-                if getattr(p_sig, "binds", None) == "column_key" and target_col_for_cell is not None and llm_slot_val is None:
+                if getattr(p_sig, "binds", None) == "column_key" and target_col_for_cell is not None:
                     _name_lit = _format_literal_value(target_col_for_cell, concrete_sig)
                     ctx.trace_binding("column_key_from_clause", cell=cell.cell_id, port=p_name, clause=cell_clause,
                                       target_col=target_col_for_cell, value=_name_lit)
@@ -6078,7 +6135,7 @@ class UnificationGate:
                     accumulated_sigma.bind(p_name, formatted_val)
                     continue
 
-                resolved_literal = ctx.resolve_literal_for_port(concrete_sig, cell_stage=cell.stage, cell_inputs=cell.inputs, cell_tokens=getattr(cell, "token_set", set()))
+                resolved_literal = ctx.resolve_literal_for_port(concrete_sig, cell_stage=cell.stage, cell_inputs=cell.inputs, cell_tokens=getattr(cell, "token_set", set()), cell=cell)
                 if resolved_literal is not None:
                     cell_bindings[p_name] = resolved_literal
                     accumulated_sigma.bind(p_name, resolved_literal)
@@ -7181,7 +7238,14 @@ class UnificationGate:
                     from .synthesis import InductiveKernelGenerator
                 gen = InductiveKernelGenerator()
                 in_sigs = {bnd_v: p.type_name for p_k, p in cell.inputs.items() if (bnd_v := bindings.get(p_k))}
-                out_v = bindings.get("output_var") or "var_out"
+                out_port = getattr(cell, "primary_output", None)
+                out_port_name = getattr(out_port, "name", None) if out_port else (list(cell.outputs.keys())[0] if getattr(cell, "outputs", None) else None)
+                out_v = (
+                    bindings.get("output_var")
+                    or (bindings.get(out_port_name) if out_port_name else None)
+                    or next((bindings.get(k) for k in getattr(cell, "outputs", {}) if bindings.get(k)), None)
+                    or "var_out"
+                )
                 out_sigs = {out_v: getattr(cell.primary_output, "type_name", "any")}
                 code_lines.append(
                     gen.generate_kernel(
@@ -8503,11 +8567,18 @@ def unify_cell_with_scope(
             continue
         desc = getattr(p_sig, "description", None) or getattr(p_sig, "doc", "") or ""
         registry = TypeRegistry.get_instance()
-        model_roles = {
-            str(r).lower()
-            for r in (registry.get_verification_semantics("model_roles") or ())
-        } | {"model", "estimator", "model_input", "receiver"}
-        p_role = str(getattr(p_sig, "port_role", None) or getattr(p_sig, "derived_role", "") or "").lower()
+        model_roles = (
+            {str(r).lower() for r in (registry.get_verification_semantics("model_roles") or ())}
+            | {str(r).lower() for r in (registry.get_verification_semantics("estimator_roles") or ())}
+        )
+        c_role = str(getattr(cand, "node_role", "") or "").lower()
+        c_type = str(getattr(cand, "node_type", "") or "").lower()
+        is_model_cand = (
+            c_role in model_roles
+            or c_type in model_roles
+        )
+        has_explicit_port_role = bool(getattr(p_sig, "port_role", None)) or bool(getattr(p_sig, "binds", None))
+        p_role = str(getattr(p_sig, "port_role", None) or (getattr(p_sig, "derived_role", "") if is_model_cand else "") or "").lower()
         p_binds = str(getattr(p_sig, "binds", "") or "").lower()
         is_receiver = (
             p_name in ("data", "self", "this", "model", "estimator")
@@ -8526,24 +8597,38 @@ def unify_cell_with_scope(
                     _declared_role_semantics("projective_roles")
                     | _declared_role_semantics("feature_roles")
                     | _declared_role_semantics("target_roles")
-                    | {"feature_input", "target_input", "projection", "data_input"}
+                    | {"feature_input", "target_input", "projection"}
                 )
-                if p_role in projective_roles:
-                    has_carrier = any(
-                        registry.is_subtype(str(getattr(out_s.signature, "type_name", "")).lower(), "table")
-                        or getattr(out_s, "abstract_type", "") in ("table", "tensor")
-                        for prev_c in available_cells
-                        for out_s in prev_c.outputs.values()
+                if (is_model_cand or has_explicit_port_role) and p_role in projective_roles:
+                    can_project_type = (
+                        registry.is_subtype(t_name, "series")
+                        or registry.is_subtype(t_name, "ndarray")
+                        or registry.is_subtype(t_name, "table")
+                        or registry.is_subtype(t_name, "scalar")
+                        or registry.is_subtype(t_name, "vector")
+                        or registry.is_subtype(t_name, "matrix")
+                        or registry.is_subtype(t_name, "column")
+                        or registry.is_subtype("series", t_name)
+                        or registry.is_subtype("ndarray", t_name)
+                        or registry.is_subtype("scalar", t_name)
+                        or not t_name
                     )
-                    if not has_carrier and context is not None:
+                    if can_project_type:
                         has_carrier = any(
-                            registry.is_subtype(str(getattr(v_sig.signature, "type_name", "")).lower(), "table")
-                            or getattr(v_sig, "abstract_type", "") in ("table", "tensor")
-                            for v_sig, _ in getattr(context, "variables", {}).values()
+                            registry.is_subtype(str(getattr(out_s.signature, "type_name", "")).lower(), "table")
+                            or getattr(out_s, "abstract_type", "") in ("table", "tensor")
+                            for prev_c in available_cells
+                            for out_s in prev_c.outputs.values()
                         )
-                    if has_carrier:
-                        satisfied = True
-                        bound_count += 1
+                        if not has_carrier and context is not None:
+                            has_carrier = any(
+                                registry.is_subtype(str(getattr(v_sig.signature, "type_name", "")).lower(), "table")
+                                or getattr(v_sig, "abstract_type", "") in ("table", "tensor")
+                                for v_sig, _ in getattr(context, "variables", {}).values()
+                            )
+                        if has_carrier:
+                            satisfied = True
+                            bound_count += 1
         if not satisfied:
             return None
 
@@ -8654,7 +8739,7 @@ def analyze_property_contracts(
             have = None
             rec = typed_bindings.get(port)
             if rec is not None:
-                if rec.kind == "wire" and rec.root_var:
+                if rec.kind in ("wire", "variable") and rec.root_var:
                     have = props.get(rec.root_var, {}).get(prop)
                 elif rec.kind == "projection" and rec.root_var and rec.projection:
                     k = rec.projection.get("key")
@@ -8705,7 +8790,7 @@ def analyze_property_contracts(
                         kn = None
                         rec = typed_bindings.get(port_name)
                         if rec is not None:
-                            if rec.kind == "wire" and rec.root_var:
+                            if rec.kind in ("wire", "variable") and rec.root_var:
                                 kn = props.get(rec.root_var, {})
                             elif rec.kind == "projection" and rec.root_var and rec.projection:
                                 k = rec.projection.get("key")
@@ -8734,7 +8819,7 @@ def analyze_property_contracts(
             col = str(k_rec.value_expr).strip().strip("'\"") if (k_rec and k_rec.value_expr) else str(bindings[key_port]).strip().strip("'\"")
             vp = None
             v_rec = typed_bindings.get(val_port)
-            if v_rec and v_rec.root_var and v_rec.kind == "wire":
+            if v_rec and v_rec.root_var and v_rec.kind in ("wire", "variable"):
                 vp = props.get(v_rec.root_var)
             if not vp:
                 vp = _prop_known(bindings[val_port], props, col_props)

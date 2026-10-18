@@ -292,6 +292,9 @@ def audit_clause_coverage(cells: List[Any], prompt: str, orchestrator: Any = Non
             out["issues"].append({"kind": "clause_unserved", "clause_idx": j, "clause": clauses[j],
                                   "path_recall": round(path_best, 3), "lattice_best_recall": round(lattice_best, 3),
                                   "best_on_path": cells[best_i].cell_id if best_i is not None else None})
+    total_cl = len(out["clauses"])
+    served_cl = sum(1 for c in out["clauses"] if c.get("status") in ("served", "no-evidence"))
+    out["coverage"] = (served_cl / total_cl) if total_cl > 0 else 1.0
     return out
 
 

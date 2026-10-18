@@ -22,6 +22,7 @@ domain-specific identifiers.
 
 from __future__ import annotations
 import ast
+import sys
 from typing import List, Dict, Set, Tuple, Any, Optional
 from dataclasses import dataclass, field
 

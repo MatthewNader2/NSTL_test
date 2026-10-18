@@ -325,6 +325,24 @@ class DynamicNodeResolver:
                 if len(candidates) == 1:
                     cell = candidates[0]
 
+            if cell is None:
+                try:
+                    from token_evidence import get_evidence
+                    ev = get_evidence(orchestrator)
+                    if ev is not None:
+                        q_tokens = ev.clause_tokens(clean_id)
+                        best_overlap_cell = None
+                        best_f = 0.0
+                        for c_cand in orchestrator.loaded_cells.values():
+                            o = ev.identity_overlap(q_tokens, c_cand)
+                            if o.get("f", 0.0) > best_f:
+                                best_f = o["f"]
+                                best_overlap_cell = c_cand
+                        if best_overlap_cell is not None and best_f >= 0.35:
+                            cell = best_overlap_cell
+                except Exception:
+                    pass
+
         if cell is not None:
             # Case A: Found in catalog! Boost in RAG so it surfaces naturally
             if active_rag is not None and hasattr(active_rag, "boost_cell"):

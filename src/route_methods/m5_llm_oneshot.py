@@ -109,6 +109,47 @@ class M5LLMOneShotRouteMethod(RouteMethod):
                 start_sig=start_sig, goal_sig=goal_sig, max_transforms=max_transforms)
 
         chain = [proposed[0]]
+        first = chain[0]
+        if getattr(first, "stage", None) != 1 and any(getattr(p, "required", False) and getattr(p, "default_value", None) is None for p in first.inputs.values()):
+            s1_candidates = [c for c in candidates if getattr(c, "stage", None) == 1]
+            if not s1_candidates and orch and hasattr(orch, "loaded_cells"):
+                s1_candidates = [c for c in orch.loaded_cells.values() if getattr(c, "stage", None) == 1]
+            if s1_candidates:
+                best_s1 = None
+                best_bridge = None
+                best_score = -1.0
+                for s1 in s1_candidates:
+                    rel = relevance_map.get(s1.cell_id, 0.0) if relevance_map else 0.0
+                    if self.step_unifies(s1, first, prev_path=[s1]):
+                        score = 10.0 + rel
+                        if score > best_score:
+                            best_score = score
+                            best_s1 = s1
+                            best_bridge = None
+                    else:
+                        brg = self.find_bridge(s1, first, candidates, orch, prev_path=[s1])
+                        if not brg and orch and hasattr(orch, "loaded_cells"):
+                            brg = self.find_bridge(s1, first, list(orch.loaded_cells.values()), orch, prev_path=[s1])
+                        if brg:
+                            score = 5.0 + rel
+                            if score > best_score:
+                                best_score = score
+                                best_s1 = s1
+                                best_bridge = brg
+                if best_s1 is None:
+                    try:
+                        p_clauses = self.segment_prompt_clauses(prompt)
+                        producer = self._find_type_producer(first, [], candidates, p_clauses, orch)
+                        if producer is not None and getattr(producer, "stage", None) == 1:
+                            best_s1 = producer
+                    except Exception:
+                        pass
+                if best_s1 is not None:
+                    if best_bridge is not None:
+                        chain = [best_s1, best_bridge] + chain
+                    else:
+                        chain = [best_s1] + chain
+
         for nxt in proposed[1:]:
             curr = chain[-1]
             if self.step_unifies(curr, nxt, prev_path=chain) or self.step_unifies_dag(nxt, chain, ctx=ctx):

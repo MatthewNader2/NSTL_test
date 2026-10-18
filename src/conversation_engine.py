@@ -19,12 +19,12 @@ from log_config import get_logger
 
 try:
     from .lattice import Cell, LatticeOrchestrator
-    from .unification import ExecutionContext, UnificationGate
+    from .unification import ExecutionContext, UnificationGate, Substitution
     from .dag_plan import DAGPlan, OpenPortFrontier
     from .synthesis import InductiveKernelGenerator
 except (ImportError, ValueError):
     from lattice import Cell, LatticeOrchestrator
-    from unification import ExecutionContext, UnificationGate
+    from unification import ExecutionContext, UnificationGate, Substitution
     from dag_plan import DAGPlan, OpenPortFrontier
     from synthesis import InductiveKernelGenerator
 

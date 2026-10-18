@@ -256,8 +256,87 @@ class M9LLMMilestonePathfinderRouteMethod(RouteMethod):
         if not milestones:
             return _fallback("LLM proposed no milestones")
 
+        # Prune redundant alternative milestones targeting the same prompt clause
+        if len(milestones) > 1:
+            try:
+                from token_evidence import get_evidence
+                ev = get_evidence(orch)
+                if ev is not None:
+                    p_clauses = self.segment_prompt_clauses(prompt)
+                    pruned_milestones: List[Cell] = []
+                    clause_winners: Dict[int, Cell] = {}
+                    for m in milestones:
+                        best_cl_idx = None
+                        best_f = -1.0
+                        for idx, cl in enumerate(p_clauses):
+                            toks = ev.clause_tokens(cl)
+                            o = ev.identity_overlap(toks, m)
+                            if o["f"] > best_f and o["recall"] > 0.0:
+                                best_f = o["f"]
+                                best_cl_idx = idx
+                        if best_cl_idx is not None and best_f > 0.0:
+                            if best_cl_idx not in clause_winners:
+                                clause_winners[best_cl_idx] = m
+                                pruned_milestones.append(m)
+                            else:
+                                prev_w = clause_winners[best_cl_idx]
+                                prev_toks = ev.clause_tokens(p_clauses[best_cl_idx])
+                                prev_o = ev.identity_overlap(prev_toks, prev_w)
+                                prev_f = prev_o["f"]
+                                if best_f > prev_f:
+                                    pruned_milestones[pruned_milestones.index(prev_w)] = m
+                                    clause_winners[best_cl_idx] = m
+                                elif self.step_unifies(prev_w, m) or self.step_unifies(m, prev_w):
+                                    pruned_milestones.append(m)
+                        else:
+                            pruned_milestones.append(m)
+                    if pruned_milestones:
+                        milestones = pruned_milestones
+            except Exception:
+                pass
+
         # Phase 2: Topological Path Synthesis between Milestones
         chain: List[Cell] = [milestones[0]]
+        first = chain[0]
+        if getattr(first, "stage", None) != 1 and any(getattr(p, "required", False) and getattr(p, "default_value", None) is None for p in first.inputs.values()):
+            s1_candidates = [c for c in candidates if getattr(c, "stage", None) == 1]
+            if not s1_candidates and orch and hasattr(orch, "loaded_cells"):
+                s1_candidates = [c for c in orch.loaded_cells.values() if getattr(c, "stage", None) == 1]
+            if s1_candidates:
+                best_s1 = None
+                best_bridge = None
+                best_score = -1.0
+                for s1 in s1_candidates:
+                    rel = relevance_map.get(s1.cell_id, 0.0) if relevance_map else 0.0
+                    if self.step_unifies(s1, first, prev_path=[s1]):
+                        score = 10.0 + rel
+                        if score > best_score:
+                            best_score = score
+                            best_s1 = s1
+                            best_bridge = None
+                    else:
+                        brg = self.find_bridge(s1, first, candidates, orch, prev_path=[s1])
+                        if not brg and orch and hasattr(orch, "loaded_cells"):
+                            brg = self.find_bridge(s1, first, list(orch.loaded_cells.values()), orch, prev_path=[s1])
+                        if brg:
+                            score = 5.0 + rel
+                            if score > best_score:
+                                best_score = score
+                                best_s1 = s1
+                                best_bridge = brg
+                if best_s1 is None:
+                    try:
+                        p_clauses = self.segment_prompt_clauses(prompt)
+                        producer = self._find_type_producer(first, [], candidates, p_clauses, orch)
+                        if producer is not None and getattr(producer, "stage", None) == 1:
+                            best_s1 = producer
+                    except Exception:
+                        pass
+                if best_s1 is not None:
+                    if best_bridge is not None:
+                        chain = [best_s1, best_bridge] + chain
+                    else:
+                        chain = [best_s1] + chain
 
         for target in milestones[1:]:
             if any(c.cell_id == target.cell_id for c in chain):

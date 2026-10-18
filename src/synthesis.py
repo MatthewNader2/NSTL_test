@@ -8,6 +8,7 @@ import asyncio
 import ast
 import importlib
 import os
+import textwrap
 from typing import Dict, Any, List, Optional, Set, Tuple, Type
 from log_config import get_logger
 
@@ -634,19 +635,38 @@ class InductiveKernelGenerator:
         If the model wrapped the logic in a `def func(...):` or appended `assert` statements
         or `print()` calls, this strips them and extracts only the core state-transition statements.
         """
+        dedented = textwrap.dedent(code).strip()
         try:
-            tree = ast.parse(code)
+            tree = ast.parse(dedented)
         except SyntaxError:
             return code
 
+        out_var = list(state_outputs.keys())[0] if state_outputs else None
+
         def _filter_statements(stmts: List[ast.stmt]) -> List[ast.stmt]:
             cleaned: List[ast.stmt] = []
+            has_out_assign = any(
+                isinstance(s, (ast.Assign, ast.AnnAssign))
+                and any(
+                    (isinstance(t, ast.Name) and t.id == out_var)
+                    for t in (s.targets if isinstance(s, ast.Assign) else [s.target])
+                )
+                for s in stmts
+            )
             for stmt in stmts:
                 # 1. Strip `assert ...` statements (ast.Assert is a statement, not ast.Call)
                 if isinstance(stmt, ast.Assert):
                     continue
-                # 2. Strip top-level `return ...` statements from unwrapped functions
+                # 2. Convert or strip `return ...` statements from unwrapped functions
                 if isinstance(stmt, ast.Return):
+                    if stmt.value is not None and out_var and not has_out_assign:
+                        cleaned.append(
+                            ast.Assign(
+                                targets=[ast.Name(id=out_var, ctx=ast.Store())],
+                                value=stmt.value,
+                            )
+                        )
+                        has_out_assign = True
                     continue
                 # 3. Strip standalone docstrings and `print(...)` call expressions
                 if isinstance(stmt, ast.Expr):

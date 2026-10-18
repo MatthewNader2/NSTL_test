@@ -5,6 +5,41 @@
     "np": "numpy",
     "array_like": "array-like"
   },
+  "abstract_carriers": [
+    "tensor"
+  ],
+  "abstract_carrier_mapping": {
+    "ndarray": "tensor",
+    "tensor": "tensor",
+    "matrix": "tensor",
+    "array-like": "tensor",
+    "array_like": "tensor"
+  },
+  "top_level_carriers": [
+    "tensor"
+  ],
+  "verification_semantics": {
+    "tensor_context_tokens": [
+      "array",
+      "tensor",
+      "ndarray",
+      "matrix",
+      "vector",
+      "grid",
+      "volume",
+      "signal",
+      "dim",
+      "dims",
+      "dimension",
+      "ndim"
+    ],
+    "array_types": [
+      "ndarray",
+      "tensor",
+      "matrix",
+      "array"
+    ]
+  },
   "asset_placeholders": {
     "array": "input_array.npy"
   },
@@ -11920,6 +11955,12 @@
     },
     "matrix": {
       "parent": "array-like"
+    },
+    "array-like": {
+      "parent": "tensor"
+    },
+    "tensor": {
+      "parent": "sequence"
     },
     "arrayformat": {
       "parent": "format"

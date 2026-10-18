@@ -12,6 +12,11 @@
     "svg",
     "eps"
   ],
+  "verification_semantics": {
+    "headless_environment": [
+      "MPLBACKEND=Agg"
+    ]
+  },
   "typestates": {
     "domain": "matplotlib",
     "initial_state": "empty_figure",

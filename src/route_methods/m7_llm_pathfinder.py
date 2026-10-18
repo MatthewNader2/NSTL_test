@@ -77,7 +77,8 @@ SYSTEM_PROMPT = (
     "- When operations apply to distinct columns or variables (e.g. normalizing column X, calculating mean of column Y, "
     "and combining X and Y), select column extraction and transformation cells for EACH branch so both branches exist in the pipeline.\n"
     "- NEVER select multiple redundant alternatives for the same step "
-    "(e.g. choose either dropna or imputer, NOT both; choose either normalize or standardscaler, NOT both).\n"
+    "(e.g. choose either dropna or imputer, NOT both; choose either normalize or standardscaler, NOT both; choose exactly one model).\n"
+    "- Do NOT select operations that have no evidence in the prompt (e.g. do NOT select file exporters/writers unless the prompt explicitly asks to save to a file).\n"
     "- Chain transformations in logical execution order from input data source to final output.\n"
     "Respond with ONLY a JSON object: {\"path\": [\"CELL_ID\", ...]}"
 )
@@ -187,13 +188,102 @@ class M7LLMPathfinderRouteMethod(RouteMethod):
         if not proposed:
             return _fallback("LLM proposed no resolvable cell ids")
 
+        # Prune redundant alternative proposed cells targeting the same prompt clause
+        if len(proposed) > 1:
+            try:
+                from token_evidence import get_evidence
+                ev = get_evidence(orch)
+                if ev is not None:
+                    p_clauses = self.segment_prompt_clauses(prompt)
+                    pruned_proposed: List[Cell] = []
+                    clause_winners: Dict[int, Cell] = {}
+                    for m in proposed:
+                        best_cl_idx = None
+                        best_f = -1.0
+                        for idx, cl in enumerate(p_clauses):
+                            toks = ev.clause_tokens(cl)
+                            o = ev.identity_overlap(toks, m)
+                            if o["f"] > best_f and o["recall"] > 0.0:
+                                best_f = o["f"]
+                                best_cl_idx = idx
+                        if best_cl_idx is not None and best_f > 0.0:
+                            if best_cl_idx not in clause_winners:
+                                clause_winners[best_cl_idx] = m
+                                pruned_proposed.append(m)
+                            else:
+                                prev_w = clause_winners[best_cl_idx]
+                                prev_toks = ev.clause_tokens(p_clauses[best_cl_idx])
+                                prev_o = ev.identity_overlap(prev_toks, prev_w)
+                                prev_f = prev_o["f"]
+                                if best_f > prev_f:
+                                    pruned_proposed[pruned_proposed.index(prev_w)] = m
+                                    clause_winners[best_cl_idx] = m
+                                elif self.step_unifies(prev_w, m) or self.step_unifies(m, prev_w):
+                                    pruned_proposed.append(m)
+                        else:
+                            b_roles = set()
+                            try:
+                                from lattice import TypeRegistry
+                                b_roles = {str(r).lower() for r in TypeRegistry.get_instance().get_verification_semantics("bridge_roles")}
+                            except Exception:
+                                pass
+                            if str(getattr(m, "node_role", "") or "").lower() in b_roles or getattr(m, "node_type", "") in ("bridge", "tunnel"):
+                                pruned_proposed.append(m)
+                    if pruned_proposed:
+                        proposed = pruned_proposed
+            except Exception:
+                pass
+
         # Re-verify the model's proposed order against real type unification
         # rather than trusting it -- same machinery every other route method
         # uses, so a model that got the order slightly wrong still yields a
         # type-sound pipeline (or a bridge cell fills the gap) instead of
         # unification failing downstream.
         chain = [proposed[0]]
+        first = chain[0]
+        if getattr(first, "stage", None) != 1 and any(getattr(p, "required", False) and getattr(p, "default_value", None) is None for p in first.inputs.values()):
+            s1_candidates = [c for c in candidates if getattr(c, "stage", None) == 1]
+            if not s1_candidates and orch and hasattr(orch, "loaded_cells"):
+                s1_candidates = [c for c in orch.loaded_cells.values() if getattr(c, "stage", None) == 1]
+            if s1_candidates:
+                best_s1 = None
+                best_bridge = None
+                best_score = -1.0
+                for s1 in s1_candidates:
+                    rel = relevance_map.get(s1.cell_id, 0.0) if relevance_map else 0.0
+                    if self.step_unifies(s1, first, prev_path=[s1]):
+                        score = 10.0 + rel
+                        if score > best_score:
+                            best_score = score
+                            best_s1 = s1
+                            best_bridge = None
+                    else:
+                        brg = self.find_bridge(s1, first, candidates, orch, prev_path=[s1])
+                        if not brg and orch and hasattr(orch, "loaded_cells"):
+                            brg = self.find_bridge(s1, first, list(orch.loaded_cells.values()), orch, prev_path=[s1])
+                        if brg:
+                            score = 5.0 + rel
+                            if score > best_score:
+                                best_score = score
+                                best_s1 = s1
+                                best_bridge = brg
+                if best_s1 is None:
+                    try:
+                        p_clauses = self.segment_prompt_clauses(prompt)
+                        producer = self._find_type_producer(first, [], candidates, p_clauses, orch)
+                        if producer is not None and getattr(producer, "stage", None) == 1:
+                            best_s1 = producer
+                    except Exception:
+                        pass
+                if best_s1 is not None:
+                    if best_bridge is not None:
+                        chain = [best_s1, best_bridge] + chain
+                    else:
+                        chain = [best_s1] + chain
+
         for nxt in proposed[1:]:
+            if any(c.cell_id == nxt.cell_id for c in chain):
+                continue
             curr = chain[-1]
             if self.step_unifies(curr, nxt, prev_path=chain) or self.step_unifies_dag(nxt, chain, ctx=ctx):
                 chain.append(nxt)
@@ -248,6 +338,15 @@ class M7LLMPathfinderRouteMethod(RouteMethod):
             return _fallback("verified chain shorter than 2 cells")
 
         self.tag_cells_with_clause_indices(chain, prompt)
+
+        try:
+            from token_evidence import audit
+            aud = audit(chain, prompt, orch)
+            if aud.get("available") and any(iss.get("kind") == "clause_unserved" for iss in aud.get("issues", [])):
+                return _fallback("LLM proposed path has unserved clauses")
+        except Exception:
+            pass
+
         clauses = self.segment_prompt_clauses(prompt)
         max_allowed = max(32, len(clauses) * 4 + 4, max_transforms + 8)
         return chain[:max_allowed]

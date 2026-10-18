@@ -3048,7 +3048,7 @@ class NSTLInteractiveShell(cmd.Cmd):
         # Step 3: Synthesis & Code Generation
         t_synth_start = time.perf_counter()
         try:
-            final_code = self.gate.unify_and_emit(cells, prompt, intent_data=intent_data)
+            final_code = self.gate.unify_and_emit(cells, effective_prompt, intent_data=intent_data)
         except (UnresolvedPlaceholderError, UnificationFailure) as e:
             console.print(f"\n[bold red][!] Could not synthesize code for: '{prompt}'[/bold red]")
             console.print(f"[red]    {e}[/red]\n")
@@ -3064,7 +3064,7 @@ class NSTLInteractiveShell(cmd.Cmd):
         # Step 3b: Static Pre-Flight Linting
         lint_valid = True
         if not query_no_lint and hasattr(self.gate, "last_pipeline_bindings") and self.gate.last_pipeline_bindings:
-            lint_res = PreflightLinter.lint(self.gate.last_pipeline_bindings, prompt=prompt, code_str=final_code)
+            lint_res = PreflightLinter.lint(self.gate.last_pipeline_bindings, prompt=effective_prompt, code_str=final_code)
             lint_valid = lint_res.is_valid
             if not lint_res.is_valid:
                 console.print("\n[bold red][!] Static Pre-Flight Lint Violations:[/bold red]")
@@ -3218,6 +3218,7 @@ class NSTLInteractiveShell(cmd.Cmd):
             "route_ms": route_dt,
             "synth_ms": synth_dt,
             "sandbox_ms": sandbox_dt,
+            "sandbox_result": sandbox_res,
             "sandbox_error": sandbox_res.get("error", "")
         })
 
@@ -3311,6 +3312,15 @@ def cmd_run(args):
         allowed_capabilities=getattr(args, "allow_capabilities", ""),
     )
     shell.default(f"{prompt} --debug" if debug_mode else prompt)
+
+    if shell.history:
+        last = shell.history[-1]
+        if last.get("internal_error"):
+            sys.exit(1)
+        if not last.get("code"):
+            sys.exit(2)
+        if getattr(args, "exec_sandbox", False) and not last.get("sandbox_result", {}).get("success", False):
+            sys.exit(3)
 
 
 def cmd_audit(args):

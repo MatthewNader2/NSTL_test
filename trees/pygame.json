@@ -11,6 +11,16 @@
     "ogg",
     "mp3"
   ],
+  "verification_semantics": {
+    "headless_environment": [
+      "SDL_VIDEODRIVER=dummy",
+      "SDL_AUDIODRIVER=dummy",
+      "PYGAME_HIDE_SUPPORT_PROMPT=1"
+    ],
+    "smoke_test_loop_bound": [
+      "5"
+    ]
+  },
   "types": [
     {
       "name": "object",

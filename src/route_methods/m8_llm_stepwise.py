@@ -218,15 +218,15 @@ class M8LLMStepwisePathfinderRouteMethod(RouteMethod):
         if entry_cell is None and entry_candidates:
             entry_cell = entry_candidates[0]
 
-        path: List[Cell] = [entry_cell]
-        visited_ids = {entry_cell.cell_id}
-        max_steps = min(16, max_transforms + 4)
-
         _ev = self._evidence()
         clauses = self.segment_prompt_clauses(prompt)
         if not clauses:
             clauses = [prompt]
         num_clauses = len(clauses)
+
+        path: List[Cell] = [entry_cell]
+        visited_ids = {entry_cell.cell_id}
+        max_steps = max(24, num_clauses * 3 + 4, max_transforms + 8)
 
         def _cand_clause(c: Cell) -> Optional[int]:
             idx = getattr(c, "matched_clause_idx", None)
@@ -312,17 +312,20 @@ class M8LLMStepwisePathfinderRouteMethod(RouteMethod):
                 break
 
             # Sort transitions by clause alignment, anti-inversion, candidate relevance and edge affinity
-            def _trans_score(t: Tuple[Cell, Optional[Cell], str]) -> Tuple[int, int, float]:
+            def _trans_score(t: Tuple[Cell, Optional[Cell], str]) -> Tuple[int, int, float, float, float]:
                 tgt, brg, _ = t
                 cand_cl = _cand_clause(tgt)
                 is_target_cl = bool(cand_cl is not None and cand_cl == target_cl_idx)
                 is_inversion = bool(cand_cl is not None and uncovered_indices and cand_cl < min(uncovered_indices))
 
+                cl_text = clauses[target_cl_idx] if target_cl_idx < len(clauses) else ""
+                fit_rec, fit_name_prec, fit_f = self.clause_fit(cl_text, tgt) if cl_text else (0.0, 0.0, 0.0)
+
                 score = relevance_map.get(tgt.cell_id, 0.0) * 2.0
                 score += self.calculate_edge_affinity(curr, brg if brg else tgt, orch, relevance_map=relevance_map)
                 if brg:
                     score += self.calculate_edge_affinity(brg, tgt, orch, relevance_map=relevance_map) * 0.8
-                return (0 if is_inversion else 1, 1 if is_target_cl else 0, score)
+                return (0 if is_inversion else 1, 1 if is_target_cl else 0, fit_rec, fit_name_prec, score)
 
             valid_forward = [
                 t for t in transitions
@@ -372,6 +375,7 @@ class M8LLMStepwisePathfinderRouteMethod(RouteMethod):
                 raw_step = mm.generate_text(
                     step_msg, max_tokens=128, schema=STEP_SCHEMA, system_prompt=SYSTEM_PROMPT_STEP
                 )
+                chosen_id = _parse_next_node(raw_step)
                 logger.debug("[M8] curr=%s target_cl=%s LLM=%s", curr.cell_id, target_cl_idx, chosen_id)
             except Exception as e:
                 logger.debug("[M8] ModelManager generate_text failed: %s", e)
@@ -494,5 +498,18 @@ class M8LLMStepwisePathfinderRouteMethod(RouteMethod):
                                 return _fallback(f"adapter synthesis raised {type(_brg_err).__name__}: {_brg_err}")
             path = verified
 
+        if len(path) < 2:
+            return _fallback("verified chain shorter than 2 cells")
+
         self.tag_cells_with_clause_indices(path, prompt, orchestrator=orch)
-        return path[:min(20, max(max_transforms + 4, 6))]
+
+        try:
+            from token_evidence import audit
+            aud = audit(path, prompt, orch)
+            if aud.get("available") and any(iss.get("kind") == "clause_unserved" for iss in aud.get("issues", [])):
+                return _fallback("LLM proposed path has unserved clauses")
+        except Exception:
+            pass
+
+        max_allowed = max(32, len(clauses) * 4 + 4, max_transforms + 8)
+        return path[:max_allowed]

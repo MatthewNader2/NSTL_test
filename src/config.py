@@ -2,6 +2,7 @@
 src/config.py - Centralized Configuration for NSTL
 Uses Pydantic BaseSettings for validated, type-safe configuration with .env file support.
 """
+import json
 from pathlib import Path
 from typing import Any, List, Optional, Union
 

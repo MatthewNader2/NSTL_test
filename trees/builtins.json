@@ -2,6 +2,69 @@
   "domain": "builtins",
   "version": "1.0.0",
   "description": "Standard Python built-in functions, primitive collection transformers, and predicate constructor morphisms for NSTL.",
+  "abstract_carriers": [
+    "collection",
+    "scalar",
+    "logical",
+    "text"
+  ],
+  "abstract_carrier_mapping": {
+    "collection": "collection",
+    "sequence": "collection",
+    "mapping": "collection",
+    "list": "collection",
+    "tuple": "collection",
+    "dict": "collection",
+    "set": "collection",
+    "scalar": "scalar",
+    "numeric": "scalar",
+    "int": "scalar",
+    "float": "scalar",
+    "logical": "logical",
+    "bool": "logical",
+    "text": "text",
+    "str": "text"
+  },
+  "top_level_carriers": [
+    "collection",
+    "scalar",
+    "logical",
+    "text"
+  ],
+  "verification_semantics": {
+    "dataflow_roles": [
+      "carrier",
+      "data_input"
+    ],
+    "source_roles": [
+      "source",
+      "ingress"
+    ],
+    "ingress_roles": [
+      "source",
+      "ingress"
+    ],
+    "sink_roles": [
+      "sink",
+      "terminal",
+      "egress"
+    ],
+    "terminal_roles": [
+      "sink",
+      "model_sink",
+      "evaluator",
+      "export",
+      "terminal",
+      "output"
+    ],
+    "bridge_roles": [
+      "bridge",
+      "tunnel",
+      "adapter",
+      "cast",
+      "coercion"
+    ]
+  },
   "types": [
     {
       "name": "collection",

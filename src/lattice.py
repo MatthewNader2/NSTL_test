@@ -770,11 +770,15 @@ class TypeRegistry:
     def register_advisory_qualifiers(self, qualifiers: Any) -> None:
         for q in qualifiers or ():
             if isinstance(q, (list, tuple)):
-                self._advisory_qualifiers.add(tuple(str(x).strip() for x in q))
+                tup = tuple(str(x).strip() for x in q)
+                self._advisory_qualifiers.add(tup)
+                if len(tup) == 1:
+                    self._advisory_qualifiers.add(tup[0])
             elif isinstance(q, str):
                 self._advisory_qualifiers.add((q.strip(),))
+                self._advisory_qualifiers.add(q.strip())
 
-    def get_advisory_qualifiers(self) -> FrozenSet[Tuple[str, ...]]:
+    def get_advisory_qualifiers(self) -> FrozenSet[Any]:
         return frozenset(self._advisory_qualifiers)
 
     # --- Abstract carriers (data-driven from tree declarations) ---
@@ -2881,8 +2885,25 @@ class Cell(ABC):
             "verified": self.verified,
             "semantic_tags": list(self.semantic_tags),
             "docstring": self.docstring,
+            "source_priority": getattr(self, "source_priority", 100),
+            "is_public": getattr(self, "is_public", True),
+            "mutation_type": getattr(self, "mutation_type", "pure"),
+            "is_context_manager": getattr(self, "is_context_manager", False),
+            "raises": list(getattr(self, "raises", []) or []),
+            "type_vars": list(getattr(self, "type_vars", []) or []),
+            "preconditions": [dict(x) if isinstance(x, dict) else x for x in (getattr(self, "preconditions", []) or [])],
+            "postconditions": [dict(x) if isinstance(x, dict) else x for x in (getattr(self, "postconditions", []) or [])],
+            "effects": list(getattr(self, "effects", []) or []),
+            "edges": list(getattr(self, "edges", []) or []),
+            "endable": getattr(self, "endable", None),
+            "primary_in": getattr(self, "primary_in", None),
+            "primary_out": getattr(self, "primary_out", None),
+            "fixture_needs": list(getattr(self, "fixture_needs", []) or []),
+            "projection": getattr(self, "projection", None),
             "topology_type": self.topology_type,
+            "feedback_state_type": getattr(self, "feedback_state_type", None),
             "slots": self.slots,
+            "bound_slots": getattr(self, "bound_slots", {}),
             "inputs": {
                 name: {
                     "type_name": p.type_name,
@@ -2890,6 +2911,23 @@ class Cell(ABC):
                     "required": p.required,
                     "default_value": p.default_value,
                     "role": getattr(p, "port_role", None) or getattr(p, "role", None),
+                    "port_role": getattr(p, "port_role", None) or getattr(p, "role", None),
+                    "binds": getattr(p, "binds", None),
+                    "qualifiers": [list(q) if isinstance(q, (tuple, set, list)) else q for q in (getattr(getattr(p, "signature", None), "qualifiers", []) or getattr(p, "qualifiers", []))],
+                    "rejected_qualifiers": list(getattr(p, "rejected_qualifiers", []) or []),
+                    "doc": getattr(p, "doc", ""),
+                    "domain": getattr(p, "domain", ""),
+                    "abstract_type": getattr(p, "abstract_type", None),
+                    "enum_values": getattr(p, "enum_values", None),
+                    "param_kind": getattr(p, "param_kind", "standard"),
+                    "value_constraints": getattr(p, "value_constraints", None),
+                    "shape_contract": getattr(p, "shape_contract", None),
+                    "accepted_states": list(getattr(p, "accepted_states", []) or []),
+                    "parent_state": getattr(p, "parent_state", None),
+                    "structure_kind": getattr(p, "structure_kind", None),
+                    "rank": getattr(p, "rank", None),
+                    "element_type": getattr(p, "element_type", None),
+                    "supported_formats": getattr(p, "supported_formats", None),
                 }
                 for name, p in self.inputs.items()
             },
@@ -2899,6 +2937,22 @@ class Cell(ABC):
                     "state": p.state,
                     "required": p.required,
                     "role": getattr(p, "port_role", None) or getattr(p, "role", None),
+                    "port_role": getattr(p, "port_role", None) or getattr(p, "role", None),
+                    "binds": getattr(p, "binds", None),
+                    "qualifiers": [list(q) if isinstance(q, (tuple, set, list)) else q for q in (getattr(getattr(p, "signature", None), "qualifiers", []) or getattr(p, "qualifiers", []))],
+                    "doc": getattr(p, "doc", ""),
+                    "domain": getattr(p, "domain", ""),
+                    "abstract_type": getattr(p, "abstract_type", None),
+                    "enum_values": getattr(p, "enum_values", None),
+                    "param_kind": getattr(p, "param_kind", "standard"),
+                    "value_constraints": getattr(p, "value_constraints", None),
+                    "shape_contract": getattr(p, "shape_contract", None),
+                    "accepted_states": list(getattr(p, "accepted_states", []) or []),
+                    "parent_state": getattr(p, "parent_state", None),
+                    "structure_kind": getattr(p, "structure_kind", None),
+                    "rank": getattr(p, "rank", None),
+                    "element_type": getattr(p, "element_type", None),
+                    "supported_formats": getattr(p, "supported_formats", None),
                 }
                 for name, p in self.outputs.items()
             },
@@ -2909,6 +2963,12 @@ class Cell(ABC):
             d["algorithmic_steps"] = list(self.algorithmic_steps)
         if hasattr(self, "internal_topology"):
             d["internal_topology"] = dict(self.internal_topology)
+        if getattr(self, "bound_parent_ids", None):
+            d["bound_parent_ids"] = list(self.bound_parent_ids)
+        if getattr(self, "planned_port_wires", None):
+            d["planned_port_wires"] = dict(self.planned_port_wires)
+        if getattr(self, "matched_clause_idx", None) is not None:
+            d["matched_clause_idx"] = self.matched_clause_idx
         return d
 
     @classmethod
@@ -2927,6 +2987,13 @@ class Cell(ABC):
             c.planned_port_wires = dict(self.planned_port_wires)
         if getattr(self, "clause_literals", None):
             c.clause_literals = list(self.clause_literals)
+        if getattr(self, "preconditions", None):
+            c.preconditions = [dict(x) if isinstance(x, dict) else x for x in self.preconditions]
+        if getattr(self, "postconditions", None):
+            c.postconditions = [dict(x) if isinstance(x, dict) else x for x in self.postconditions]
+        if getattr(self, "effects", None):
+            c.effects = list(self.effects)
+        c.typed_bindings = dict(getattr(self, "typed_bindings", {}) or {})
         return c
 
     def effect_names(self) -> Set[str]:
@@ -3133,7 +3200,7 @@ def build_cell_from_raw(c_dict: Dict[str, Any], domain: str = "generic", default
         or has_slots
     )
     cell_cls = MacroCell if is_macro else MicroCell
-    return cell_cls(
+    cell_instance = cell_cls(
         cell_id=c_dict.get("cell_id"),
         stage=c_dict.get("stage", 2),
         keywords=c_dict.get("keywords", []),
@@ -3170,6 +3237,13 @@ def build_cell_from_raw(c_dict: Dict[str, Any], domain: str = "generic", default
         feedback_state_type=c_dict.get("feedback_state_type"),
         bound_slots=c_dict.get("bound_slots", {}),
     )
+    if "bound_parent_ids" in c_dict and c_dict["bound_parent_ids"]:
+        cell_instance.bound_parent_ids = set(c_dict["bound_parent_ids"])
+    if "planned_port_wires" in c_dict and c_dict["planned_port_wires"]:
+        cell_instance.planned_port_wires = dict(c_dict["planned_port_wires"])
+    if "matched_clause_idx" in c_dict and c_dict["matched_clause_idx"] is not None:
+        cell_instance.matched_clause_idx = c_dict["matched_clause_idx"]
+    return cell_instance
 
 
 class LatticeOrchestrator:
@@ -3986,6 +4060,30 @@ class LatticeOrchestrator:
                             desc_matches = [t for t in desc_toks if t in ("descending", "largest", "highest", "top", "max", "decreasing")]
                             if desc_matches:
                                 reg.register_polarity_hints("descending", desc_matches)
+
+            # Dynamic Advisory Qualifier Harvesting (Zero-Hardcode Compliant):
+            # Collect all qualifiers declared on input ports across all loaded cells
+            # that do not intersect with declared rejected_qualifiers.
+            all_rejected_quals = set()
+            for c in all_cells:
+                for p in getattr(c, "inputs", {}).values():
+                    p_rej = getattr(p, "rejected_qualifiers", None)
+                    if p_rej:
+                        for r in p_rej:
+                            all_rejected_quals.add(str(r).strip().lower())
+
+            advisory_quals_to_register = set()
+            for c in all_cells:
+                for p in getattr(c, "inputs", {}).values():
+                    p_sig = getattr(p, "signature", p)
+                    quals = getattr(p_sig, "qualifiers", None)
+                    if quals:
+                        for q in quals:
+                            q_tokens = {str(item).strip().lower() for item in q} if isinstance(q, (tuple, list, set)) else {str(q).strip().lower()}
+                            if q_tokens.isdisjoint(all_rejected_quals):
+                                advisory_quals_to_register.add(q)
+            if advisory_quals_to_register:
+                reg.register_advisory_qualifiers(list(advisory_quals_to_register))
 
     def audit_topology(self) -> Any:
         try:

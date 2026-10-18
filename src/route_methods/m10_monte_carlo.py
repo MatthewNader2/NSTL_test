@@ -25,7 +25,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from .base import RouteMethod, Cell
 from lattice import LatticeOrchestrator
-from unification import ExecutionContext
+from unification import ExecutionContext, unify
 
 
 def _cond_get(obj: Any, key: str, default: Any = None) -> Any:
@@ -113,11 +113,6 @@ class M10MonteCarloRouteMethod(RouteMethod):
                        and (_cond_get(q, "property"), repr(_cond_get(q, "value"))) in needs for q in (getattr(c, "postconditions", None) or [])):
                     bridges.append(c)
                     proto.setdefault(c.cell_id, c)
-            # Prioritize unary element-wise dimension-preserving functors (abs, real, imag) over complex inverse transforms
-            bridges.sort(key=lambda c: (
-                0 if len(c.inputs) == 1 and not any(getattr(p, "state", None) == "transform_length" for p in c.inputs.values()) else 1,
-                c.cell_id
-            ))
         self._trace("mcts_space", clauses=len(clauses), groups=[[g[0] for g in gl] for gl in groups],
                     bridges=[b.cell_id for b in bridges])
 
@@ -184,7 +179,7 @@ class M10MonteCarloRouteMethod(RouteMethod):
                                 for q in (getattr(b, "postconditions", None) or []))
                     if not flips:
                         continue
-                    if b.cell_id not in {c for c, _ in path_t} and (self.step_unifies(cells[-1], b, prev_path=cells) or self.step_unifies_dag(b, cells)):
+                    if b.cell_id not in {c for c, _ in path_t} and self.step_unifies(cells[-1], b, prev_path=cells):
                         acts.append(("bridge", b.cell_id))
             return acts
 
@@ -225,18 +220,7 @@ class M10MonteCarloRouteMethod(RouteMethod):
                                 for q in (getattr(cand, "postconditions", None) or []))
                 if not flips:
                     return 0.02
-                score = 0.9
-                # Harmonize with find_bridge scoring:
-                # Unary element-wise dimension-preserving transforms (e.g. abs, real, imag)
-                # are vastly preferred as bridges over complex multi-argument or length-transforming operators
-                if cand is not None:
-                    # Functor contract: unary element-wise dimension-preserving transforms (abs, real, imag)
-                    # are given overwhelming priority when bridging value domain properties
-                    if len(cand.inputs) == 1 and not any(getattr(p, "state", None) == "transform_length" for p in cand.inputs.values()):
-                        score += 1.5
-                    if len(cand.inputs) > 1 or any(getattr(p, "state", None) == "transform_length" for p in cand.inputs.values()) or "inverse" in getattr(cand, "semantic_tags", []):
-                        score -= 1.5
-                return max(0.01, score)
+                return 0.9
             return 0.01
 
         from unification import UnificationGate, UnificationFailure

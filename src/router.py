@@ -15,6 +15,9 @@ runnable standalone; production profiles should override via settings.
 """
 
 from __future__ import annotations
+import os
+import json
+import time
 import math
 from typing import Optional, List, Dict, Set, Tuple, Any, Union
 from collections import defaultdict
@@ -322,6 +325,7 @@ class LatticeRouter:
             return math.log(1.0 + (N + 1) / (df + 1.0))
 
         match_weights: Dict[Cell, float] = {}
+        cells_with_identity: Set[Cell] = set()
         idf_ratio = float(_cfg("lexical_idf_max_freq_ratio", 0.3))
         idf_body_w = float(_cfg("lexical_idf_body_weight", 0.3))
         for tok in eval_tokens:
@@ -329,10 +333,15 @@ class LatticeRouter:
             if N < 20 or len(cells) < idf_ratio * N:
                 w = _idf(tok)
                 for cell in cells:
-                    weight = w if tok in cell.identity_tokens else idf_body_w * w
-                    match_weights[cell] = match_weights.get(cell, 0.0) + weight
+                    if tok in getattr(cell, "identity_tokens", ()):
+                        cells_with_identity.add(cell)
+                        match_weights[cell] = match_weights.get(cell, 0.0) + w
+                    else:
+                        match_weights[cell] = match_weights.get(cell, 0.0) + idf_body_w * w
 
         for cell, weight_sum in match_weights.items():
+            if cells_with_identity and cell not in cells_with_identity:
+                continue
             c_len = max(getattr(cell, "token_count", len(cell.token_set)), 1)
             sc = (weight_sum * inv_q_len) * LEN_NORM_TABLE[min(c_len, 499)]
             clause_scores[cell] = sc
@@ -607,13 +616,17 @@ class LatticeRouter:
         token_index = getattr(self.orchestrator, "token_index", None)
         N = len(self.orchestrator.loaded_cells)
 
-        # Decompose prompt into constituent clauses (sub-goals). Prefer the
-        # model-compiled IR steps; fall back to the punctuation/vocabulary
-        # segmenter only when no IR was available.
-        clauses = ir_clauses if ir_clauses else _segment_prompt_clauses(prompt)
+        # Decompose prompt into constituent clauses (sub-goals) from the authorative
+        # user prompt. Model-compiled IR step fragments are included in search_texts
+        # as auxiliary retrieval queries without displacing full user clause semantics.
+        raw_clauses = _segment_prompt_clauses(prompt)
+        clauses = raw_clauses
         if not num_semantic_clauses:
             num_semantic_clauses = len(clauses)
         search_texts = [prompt.strip()] + [c for c in clauses if c != prompt.strip()]
+        for ic in ir_clauses:
+            if ic and ic not in search_texts:
+                search_texts.append(ic)
         for q in self._generate_query_spans(prompt.strip()):
             if q not in search_texts:
                 search_texts.append(q)
@@ -1310,7 +1323,6 @@ class LatticeRouter:
                 from route_methods.m1_clause_anchor import M1ClauseAnchorRouteMethod as _Util2
                 _util2 = _Util2(orchestrator=self.orchestrator)
                 _util2.prompt = prompt
-                _util2._current_prompt = prompt
                 path = _util2.insert_column_commits(path)
                 path = _util2.insert_property_bridges(path, prompt=prompt, ctx=ctx)
                 self.last_route_trace = list(self.last_route_trace) + list(_util2.trace_events)

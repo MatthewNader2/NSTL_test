@@ -783,11 +783,12 @@ class RouteMethod(ABC):
         return inst
 
 
-    def chain_is_valid(self, path: List[Cell]) -> bool:
+    def chain_is_valid(self, path: List[Cell], prompt: Optional[str] = None) -> bool:
         """Every step unifies with its predecessor or with the DAG scope of the prefix."""
+        p = prompt or getattr(self, "_current_prompt", "") or getattr(self, "prompt", "")
         for i in range(1, len(path)):
-            if not (self.step_unifies(path[i - 1], path[i], prev_path=path[:i])
-                    or self.step_unifies_dag(path[i], path[:i])):
+            if not (self.step_unifies(path[i - 1], path[i], prev_path=path[:i], prompt=p)
+                    or self.step_unifies_dag(path[i], path[:i], ctx=ExecutionContext(prompt=p) if p else None)):
                 return False
         return True
 
@@ -886,7 +887,7 @@ class RouteMethod(ABC):
                         commit.matched_clause_idx = getattr(c, "matched_clause_idx", None)
                         commit.clause_literals = list(lits)
                         trial = out[: i + 1] + [commit] + out[i + 1:]
-                        if self.chain_is_valid(trial):
+                        if self.chain_is_valid(trial, prompt=getattr(self, "prompt", None)):
                             if trace:
                                 self._trace("lens_commit_inserted", after=c.cell_id, commit=commit.cell_id, key=list(lits),
                                             carrier=carrier_tn, reason="component transform is followed by carrier-consuming cell")
@@ -1012,7 +1013,21 @@ class RouteMethod(ABC):
                             dw_parents.discard(prod_id)
                             dw_parents.add(b_cell.cell_id)
 
-                    if self.chain_is_valid(trial):
+                    trial_unified = False
+                    try:
+                        probe_ctx_trial = ExecutionContext(
+                            prompt=resolved_prompt,
+                            parameters=dict(getattr(ctx, "parameters", {}) or {}),
+                        )
+                        u_trial = gate.unify_pipeline(trial, probe_ctx_trial, extract_llm_slots=False)
+                        trial_unified = not u_trial.is_bottom()
+                    except Exception:
+                        trial_unified = False
+
+                    if not trial_unified:
+                        trial_unified = self.chain_is_valid(trial, prompt=resolved_prompt)
+
+                    if trial_unified:
                         if trace:
                             self._trace("property_bridge_inserted", after=prod_id, bridge=b_cell.cell_id,
                                         property=iss.get("property"), reason="resolves downstream property precondition")
@@ -1037,61 +1052,69 @@ class RouteMethod(ABC):
         except (ImportError, ValueError):
             from token_evidence import audit
         current = list(path)
-        for _ in range(len(current)):
-            res = audit(current, prompt, self.orchestrator)
-            if not res.get("available"):
-                break
-            pruned_any = False
-            for victim in res.get("issues", []):
-                if victim.get("kind") != "unrequested_cell":
-                    continue
-                idx = next((k for k, c in enumerate(current) if c.cell_id == victim["cell"]), None)
-                if idx is None or idx == 0:
-                    continue
-                trial = current[:idx] + current[idx + 1:]
-                if not self.chain_is_valid(trial):
-                    self._trace("prune_blocked", cell=victim["cell"], reason="chain would not unify without it",
-                                winners=victim.get("winners"))
-                    continue
-                self._trace("pruned_unrequested", cell=victim["cell"], winners=victim.get("winners"),
-                            reason="outranked on every clause it touches and explains no leftover clause token")
-                current = trial
-                pruned_any = True
-                break
-            if not pruned_any:
-                break
+        changed = True
+        outer_iters = 0
+        while changed and outer_iters < len(current):
+            outer_iters += 1
+            changed = False
+            # Pass 1: Unrequested cell pruning
+            for _ in range(len(current)):
+                res = audit(current, prompt, self.orchestrator)
+                if not res.get("available"):
+                    break
+                pruned_any = False
+                for victim in res.get("issues", []):
+                    if victim.get("kind") != "unrequested_cell":
+                        continue
+                    idx = next((k for k, c in enumerate(current) if c.cell_id == victim["cell"]), None)
+                    if idx is None or idx == 0:
+                        continue
+                    trial = current[:idx] + current[idx + 1:]
+                    if not self.chain_is_valid(trial, prompt=prompt):
+                        self._trace("prune_blocked", cell=victim["cell"], reason="chain would not unify without it",
+                                    winners=victim.get("winners"))
+                        continue
+                    self._trace("pruned_unrequested", cell=victim["cell"], winners=victim.get("winners"),
+                                reason="outranked on every clause it touches and explains no leftover clause token")
+                    current = trial
+                    pruned_any = True
+                    changed = True
+                    break
+                if not pruned_any:
+                    break
 
-        # Pass 2: Verifier-guided bridge minimization.
-        # Any explicit bridge cell is redundant iff removing it still unifies and
-        # passes all static preflight contracts (including property preconditions).
-        b_roles = _bridge_roles()
-        idx = 1
-        while idx < len(current) - 1:
-            c = current[idx]
-            c_role = str(getattr(c, "node_role", "") or "").lower()
-            if c_role in b_roles or getattr(c, "node_type", "") == "tunnel":
-                trial = [x.clone() if hasattr(x, "clone") else x for x in (current[:idx] + current[idx + 1:])]
-                for x in trial[idx:]:
-                    x.planned_port_wires = {}
-                    x.bound_parent_ids = set()
-                try:
-                    from unification import UnificationGate, ExecutionContext
-                    from preflight import PreflightLinter
-                    gate = UnificationGate(orchestrator=self.orchestrator)
-                    probe_ctx = ExecutionContext(prompt=prompt)
-                    probe_trial = self.insert_property_bridges(trial, prompt=prompt, ctx=probe_ctx, trace=False)
-                    u_res = gate.unify_pipeline(probe_trial, probe_ctx, extract_llm_slots=False)
-                    if not u_res.is_bottom():
-                        emitted = gate.emit_code(u_res.value, probe_ctx, extract_llm_slots=False)
-                        lint_res = PreflightLinter.lint(u_res.value, prompt=prompt, code_str=emitted)
-                        if lint_res.is_valid:
-                            self._trace("pruned_redundant_bridge", cell=c.cell_id, reason="pipeline unifies and passes preflight without explicit bridge")
-                            current = trial
-                            idx = 1
-                            continue
-                except Exception:
-                    pass
-            idx += 1
+            # Pass 2: Verifier-guided bridge minimization.
+            # Any explicit bridge cell is redundant iff removing it still unifies and
+            # passes all static preflight contracts (including property preconditions).
+            b_roles = _bridge_roles()
+            idx = 1
+            while idx < len(current) - 1:
+                c = current[idx]
+                c_role = str(getattr(c, "node_role", "") or "").lower()
+                if c_role in b_roles or getattr(c, "node_type", "") == "tunnel":
+                    trial = [x.clone() if hasattr(x, "clone") else x for x in (current[:idx] + current[idx + 1:])]
+                    for x in trial[idx:]:
+                        x.planned_port_wires = {}
+                        x.bound_parent_ids = set()
+                    try:
+                        from unification import UnificationGate, ExecutionContext
+                        from preflight import PreflightLinter
+                        gate = UnificationGate(orchestrator=self.orchestrator)
+                        probe_ctx = ExecutionContext(prompt=prompt)
+                        probe_trial = self.insert_property_bridges(trial, prompt=prompt, ctx=probe_ctx, trace=False)
+                        u_res = gate.unify_pipeline(probe_trial, probe_ctx, extract_llm_slots=False)
+                        if not u_res.is_bottom():
+                            emitted = gate.emit_code(probe_trial, probe_ctx, extract_llm_slots=False)
+                            lint_res = PreflightLinter.lint(gate.last_pipeline_bindings, prompt=prompt, code_str=emitted)
+                            if lint_res.is_valid:
+                                self._trace("pruned_redundant_bridge", cell=c.cell_id, reason="pipeline unifies and passes preflight without explicit bridge")
+                                current = probe_trial
+                                changed = True
+                                idx = 1
+                                continue
+                    except Exception:
+                        pass
+                idx += 1
         try:
             from dag_plan import OpenPortFrontier
             active_ids = {c.cell_id for c in current}
@@ -1219,6 +1242,8 @@ class RouteMethod(ABC):
 
         ev = get_evidence(orch)
 
+        primary_domains: Set[str] = set()
+        primary_cells: List[Cell] = []
         for idx, cl in enumerate(clauses):
             if idx == 0 and len(clauses) > 1:
                 stage_pool = [c for c in filtered_cands if getattr(c, "stage", None) == 1] or filtered_cands
@@ -1233,58 +1258,69 @@ class RouteMethod(ABC):
             if not anchors:
                 continue
 
-            primary_c, primary_overlap = anchors[0]
-            primary_f = primary_overlap.get("f", 0.0)
+            primary_c, _ = anchors[0]
+            primary_cells.append(primary_c)
+            p_dom = getattr(primary_c, "domain_name", "")
+            if p_dom:
+                primary_domains.add(p_dom)
 
-            clause_selected = [primary_c]
-            if primary_f > 0.0 and ev is not None:
-                threshold = primary_f * 0.70
+        for primary_c in primary_cells:
+            if primary_c.cell_id not in selected_ids and len(selected_cells) < max_shown:
+                selected_cells.append(primary_c)
+                selected_ids.add(primary_c.cell_id)
+            try:
+                prod = self._find_type_producer(primary_c, selected_cells, filtered_cands, clauses, orch)
+                if prod is not None and prod.cell_id not in selected_ids and len(selected_cells) < max_shown:
+                    selected_cells.append(prod)
+                    selected_ids.add(prod.cell_id)
+            except Exception:
+                pass
+
+        # Secondary matching candidates in the primary workflow domains
+        if len(selected_cells) < max_shown and ev is not None:
+            for idx, cl in enumerate(clauses):
+                if len(selected_cells) >= max_shown:
+                    break
+                stage_pool = [c for c in filtered_cands if getattr(c, "stage", None) != 1] or filtered_cands
                 cl_tokens = ev.clause_tokens(cl)
                 for c in stage_pool:
-                    if c.cell_id == primary_c.cell_id:
+                    if len(selected_cells) >= max_shown:
+                        break
+                    if c.cell_id in selected_ids:
+                        continue
+                    c_dom = getattr(c, "domain_name", "")
+                    if primary_domains and c_dom and c_dom not in primary_domains:
                         continue
                     o = ev.identity_overlap(cl_tokens, c)
-                    if o.get("hit", 0.0) > 0.0 and o.get("f", 0.0) >= threshold:
-                        clause_selected.append(c)
+                    if o.get("hit", 0.0) > 0.0 and o.get("f", 0.0) >= 0.25:
+                        selected_cells.append(c)
+                        selected_ids.add(c.cell_id)
 
-            for c in clause_selected:
-                if c.cell_id not in selected_ids:
-                    selected_cells.append(c)
-                    selected_ids.add(c.cell_id)
-
-                try:
-                    prod = self._find_type_producer(c, selected_cells, filtered_cands, clauses, orch)
-                    if prod is not None and prod.cell_id not in selected_ids:
-                        selected_cells.append(prod)
-                        selected_ids.add(prod.cell_id)
-                except Exception:
-                    pass
-
-        # Carrier bridges: active domain bridges via ontology metadata
-        active_domains = {getattr(c, "domain_name", "") for c in selected_cells if getattr(c, "domain_name", "")}
-        all_cells = list(orch.loaded_cells.values()) if orch and hasattr(orch, "loaded_cells") else candidates
-        for c in all_cells:
-            cid = c.cell_id
-            c_dom = getattr(c, "domain_name", "")
-            if c_dom and c_dom not in active_domains and not any(d in cid.lower() for d in active_domains):
-                continue
-            if getattr(c, "is_combinator", False) or getattr(c, "node_role", "") == "combinator" or getattr(c, "role", "") == "combinator" or getattr(c, "node_type", "") == "combinator":
-                continue
-            is_bridge = (
-                getattr(c, "node_role", "") == "bridge"
-                or getattr(c, "node_type", "") == "tunnel"
-            )
-            if is_bridge and cid not in selected_ids:
+        # Carrier bridges in active workflow domains
+        if len(selected_cells) < max_shown:
+            candidate_bridges = [
+                c for c in filtered_cands
+                if (getattr(c, "node_role", "") == "bridge" or getattr(c, "node_type", "") == "tunnel")
+                and c.cell_id not in selected_ids
+                and (not getattr(c, "domain_name", "") or not primary_domains or getattr(c, "domain_name", "") in primary_domains)
+            ]
+            candidate_bridges.sort(key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)
+            for c in candidate_bridges:
+                if len(selected_cells) >= max_shown:
+                    break
                 selected_cells.append(c)
-                selected_ids.add(cid)
+                selected_ids.add(c.cell_id)
 
         # Top globally relevant cells fill up only if sparse
-        if len(selected_cells) < 12:
+        if len(selected_cells) < max_shown:
             sorted_by_rel = sorted(filtered_cands, key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)
             for c in sorted_by_rel:
-                if len(selected_cells) >= max_shown or len(selected_cells) >= 16:
+                if len(selected_cells) >= max_shown:
                     break
                 if c.cell_id not in selected_ids:
+                    c_dom = getattr(c, "domain_name", "")
+                    if primary_domains and c_dom and c_dom not in primary_domains:
+                        continue
                     selected_cells.append(c)
                     selected_ids.add(c.cell_id)
 

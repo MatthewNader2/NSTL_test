@@ -581,7 +581,7 @@ def corpus_idf_split_clauses(prompt: str, orchestrator: Any = None) -> List[str]
         op_idfs.append(max(ev.idf(clean.lower()), ev.idf(stem)))
 
     # Detect boundaries at punctuation or zero-IDF valleys between two operation peaks
-    split_Word_indices: List[int] = []
+    split_word_indices: List[int] = []
     seen_op_peak = False
     for i, (s, e, raw_w) in enumerate(words):
         if op_idfs[i] > 1.0 and not is_literal_tok[i]:

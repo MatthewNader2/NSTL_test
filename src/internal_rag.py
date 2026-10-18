@@ -735,7 +735,7 @@ class LocalRAG:
         self,
         prompts: List[str],
         top_k: int = 25,
-        max_fanout: int = 16
+        max_fanout: int = 32
     ) -> List[List[Dict[str, Any]]]:
         """
         Batched retrieval: embeds unique query spans in a single model call with
@@ -745,19 +745,10 @@ class LocalRAG:
             if self.index is None or self.index.ntotal == 0 or not prompts:
                 return [[] for _ in prompts]
 
-            # 1. Cap fan-out to prevent unconstrained query multiplication
-            effective_prompts = prompts
-            if max_fanout and len(prompts) > max_fanout:
-                logger.warning(
-                    f"[RAG] Batch query fan-out of {len(prompts)} exceeds cap ({max_fanout}); "
-                    f"capping retrieval to first {max_fanout} spans."
-                )
-                effective_prompts = prompts[:max_fanout]
-
-            # 2. Deduplicate unique prompts while preserving input mapping
+            # 1. Deduplicate unique prompts while preserving input mapping
             unique_prompts: List[str] = []
             seen: Dict[str, int] = {}
-            for p in effective_prompts:
+            for p in prompts:
                 p_clean = p.strip()
                 if p_clean and p_clean not in seen:
                     seen[p_clean] = len(unique_prompts)
@@ -766,10 +757,19 @@ class LocalRAG:
             if not unique_prompts:
                 return [[] for _ in prompts]
 
+            # 2. Cap fan-out of unique prompts to prevent unconstrained query multiplication
+            effective_prompts = unique_prompts
+            if max_fanout and len(unique_prompts) > max_fanout:
+                logger.warning(
+                    f"[RAG] Batch unique query fan-out of {len(unique_prompts)} exceeds cap ({max_fanout}); "
+                    f"capping retrieval to first {max_fanout} unique spans."
+                )
+                effective_prompts = unique_prompts[:max_fanout]
+
             # 3. Batch embed only unique queries
-            embeddings = ModelManager.get_instance().get_embeddings(unique_prompts, mode="query")
+            embeddings = ModelManager.get_instance().get_embeddings(effective_prompts, mode="query")
             matrix = np.array(embeddings, dtype=np.float32)
-            if matrix.ndim != 2 or matrix.shape[0] != len(unique_prompts):
+            if matrix.ndim != 2 or matrix.shape[0] != len(effective_prompts):
                 return [[] for _ in prompts]
 
             norms = np.linalg.norm(matrix, axis=1, keepdims=True)
@@ -782,19 +782,16 @@ class LocalRAG:
 
             # 5. Hybrid blend per unique query
             unique_results: List[List[Dict[str, Any]]] = []
-            for p, row_d, row_i in zip(unique_prompts, distances, indices):
+            for p, row_d, row_i in zip(effective_prompts, distances, indices):
                 dense_pairs = list(zip(row_d, row_i))
                 unique_results.append(self._blend_dense_and_lexical(p, dense_pairs, top_k=top_k))
 
             # 6. Map back to original prompt list
             output: List[List[Dict[str, Any]]] = []
-            for idx, p in enumerate(prompts):
-                if idx < len(effective_prompts):
-                    p_clean = p.strip()
-                    if p_clean in seen:
-                        output.append(unique_results[seen[p_clean]])
-                    else:
-                        output.append([])
+            for p in prompts:
+                p_clean = p.strip()
+                if p_clean in seen and seen[p_clean] < len(unique_results):
+                    output.append(unique_results[seen[p_clean]])
                 else:
                     output.append([])
 

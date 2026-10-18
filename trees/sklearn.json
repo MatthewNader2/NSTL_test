@@ -25,6 +25,62 @@
     "source_data",
     "model_sink"
   ],
+  "abstract_carriers": [
+    "model"
+  ],
+  "abstract_carrier_mapping": {
+    "baseestimator": "model",
+    "classifier": "model",
+    "regressor": "model",
+    "clusterer": "model",
+    "model": "model",
+    "estimator": "model"
+  },
+  "top_level_carriers": [
+    "model"
+  ],
+  "carrier_roles": {
+    "model_input": [
+      "model",
+      "BaseEstimator",
+      "estimator"
+    ],
+    "feature_input": [
+      "ndarray",
+      "DataFrame",
+      "table",
+      "tensor"
+    ]
+  },
+  "verification_semantics": {
+    "model_roles": [
+      "model_input",
+      "model_sink",
+      "model",
+      "estimator",
+      "regressor",
+      "classifier",
+      "clusterer"
+    ],
+    "estimator_roles": [
+      "estimator",
+      "regressor",
+      "classifier",
+      "clusterer",
+      "model"
+    ],
+    "mutually_exclusive_roles": [
+      "regressor",
+      "classifier",
+      "clusterer"
+    ],
+    "feature_roles": [
+      "feature_input"
+    ],
+    "target_roles": [
+      "target_input"
+    ]
+  },
   "typestates": {
     "domain": "sklearn",
     "states": [
@@ -15888,6 +15944,9 @@
       "parent": "ModelFormat"
     },
     "Estimator": {
+      "parent": "model"
+    },
+    "model": {
       "parent": "object"
     },
     "Classifier": {

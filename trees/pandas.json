@@ -13,6 +13,79 @@
     "projection",
     "fields"
   ],
+  "abstract_carriers": [
+    "table"
+  ],
+  "abstract_carrier_mapping": {
+    "dataframe": "table",
+    "series": "sequence",
+    "table": "table"
+  },
+  "top_level_carriers": [
+    "table"
+  ],
+  "carrier_roles": {
+    "feature_input": [
+      "table",
+      "DataFrame"
+    ]
+  },
+  "verification_semantics": {
+    "row_set_effects": [
+      "cleans_missing",
+      "drops_rows",
+      "filters_rows",
+      "row_filter",
+      "extent_mutating"
+    ],
+    "extent_mutating_effects": [
+      "cleans_missing",
+      "drops_rows",
+      "filters_rows",
+      "row_filter",
+      "extent_mutating"
+    ],
+    "component_transform_effects": [
+      "normalizes_column",
+      "transforms_column",
+      "encodes_column",
+      "scales_column",
+      "component_transform"
+    ],
+    "column_transform_effects": [
+      "normalizes_column",
+      "transforms_column",
+      "encodes_column",
+      "scales_column",
+      "component_transform"
+    ],
+    "projection_port_names": [
+      "column",
+      "columns",
+      "key",
+      "keys",
+      "field",
+      "fields"
+    ],
+    "projection_port_roles": [
+      "column_projection",
+      "columns"
+    ],
+    "projective_roles": [
+      "column_projection",
+      "columns",
+      "projection",
+      "feature_projection",
+      "target_projection"
+    ],
+    "projection_port_states": [
+      "column_projection",
+      "columns",
+      "feature_names",
+      "column_name",
+      "target_name"
+    ]
+  },
   "asset_placeholders": {
     "table": "input_data.csv"
   },
@@ -12810,6 +12883,9 @@
     },
     "tabularformat": {
       "parent": "format"
+    },
+    "table": {
+      "parent": "object"
     }
   },
   "egress_intent_tokens": [

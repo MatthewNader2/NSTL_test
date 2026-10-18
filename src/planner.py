@@ -28,6 +28,11 @@ except (ImportError, ValueError):
     from tokenizer import CellTokenizer, normalize_token
     from utils import tokenize_alphanumeric
 
+try:
+    from .config import settings
+except (ImportError, ValueError):
+    from config import settings
+
 logger = get_logger('planner')
 
 registry = TypeRegistry.get_instance()
@@ -1687,6 +1692,35 @@ class LatticePlanner:
                             return False
             return True
 
+        mut_excl_roles = registry.get_verification_semantics("mutually_exclusive_roles") or ()
+
+        def _cell_mutually_exclusive_roles(cell: Cell) -> Set[str]:
+            if not mut_excl_roles:
+                return set()
+            roles = set()
+            all_ports = list(cell.inputs.values()) + list(cell.outputs.values())
+            for p in all_ports:
+                sig = getattr(p, "signature", p)
+                t_name = str(getattr(sig, "type_name", "")).lower()
+                t_state = str(getattr(sig, "state", "")).lower()
+                for r in mut_excl_roles:
+                    r_low = r.lower()
+                    if registry.is_subtype(t_name, r_low) or registry.is_subtype(t_state, r_low) or r_low in t_name or r_low in t_state:
+                        roles.add(r)
+            for tag in getattr(cell, "semantic_tags", []) or []:
+                t_low = str(tag).lower()
+                for r in mut_excl_roles:
+                    r_low = r.lower()
+                    if r_low == t_low or (len(r_low) >= 4 and t_low.startswith(r_low[:4])):
+                        roles.add(r)
+            for r_attr in (getattr(cell, "node_role", ""), getattr(cell, "role", "")):
+                if r_attr:
+                    r_low = str(r_attr).lower()
+                    for r in mut_excl_roles:
+                        if r.lower() in r_low:
+                            roles.add(r)
+            return roles
+
         numeric_literals = [
             v for _, t, v in ExecutionContext._extract_universal_literals(prompt or "")
             if t == "numeric" or registry.is_subtype(str(t).lower(), "numeric")
@@ -2167,12 +2201,22 @@ class LatticePlanner:
             clause_min_evidence.append(max(_cl_ev_ratio * max_ev, _cl_wt_ratio * cl_weight))
             clause_min_precision.append(_cl_prec_ratio * max_prec)
 
+        clause_demanded_roles: List[Optional[str]] = []
+        for cl_toks in clause_tokens_list:
+            demanded = next((
+                r for r in mut_excl_roles
+                if any(normalize_token(t)[:5] == normalize_token(r)[:5] or (len(t) >= 4 and t.lower().startswith(r.lower()[:4])) for t in cl_toks)
+            ), None)
+            clause_demanded_roles.append(demanded)
+        pipeline_demanded_roles = {r for r in clause_demanded_roles if r}
+
         for c in candidates:
             c_toks = c.token_set
             id_toks = getattr(c, "identity_tokens", None) or identity_cache.get(c.cell_id, c_toks)
             # Clause COVERAGE is decided by core identity only (R6-5); the full
             # identity still feeds ranking via _match_mass below.
             core_toks = core_identity_cache.get(c.cell_id) or id_toks
+            c_excl_roles = _cell_mutually_exclusive_roles(c)
             _cid_toks = {t for t in CellTokenizer.tokenize_identifier(str(c.cell_id)) if _idf(t) > 0.0}
             _cid_mass = sum(_idf(t) for t in _cid_toks)
             cell_cov_strong[c.cell_id] = content_prompt_tokens & id_toks
@@ -2184,6 +2228,10 @@ class LatticePlanner:
             masses: List[float] = []
             covered: Set[int] = set()
             for cl_idx, cl_toks in enumerate(clause_tokens_list):
+                demanded = clause_demanded_roles[cl_idx] if cl_idx < len(clause_demanded_roles) else None
+                if demanded and c_excl_roles and any(r != demanded for r in c_excl_roles):
+                    masses.append(0.0)
+                    continue
                 _name_prec = (sum(_idf(t) for t in (cl_toks & _cid_toks)) / _cid_mass) if _cid_mass > 0 else 0.0
                 m = _match_mass(cl_toks, c_toks, id_toks) * (1.0 + 0.25 * _name_prec)
                 masses.append(m)
@@ -3045,9 +3093,21 @@ class LatticePlanner:
                 if c_cov.issubset(other_cov):
                     redundant_cell_count += 1
 
+            # Mutually exclusive role gating
+            role_conflicts = 0
+            if mut_excl_roles and pipeline_demanded_roles:
+                for c in path:
+                    c_excl = _cell_mutually_exclusive_roles(c)
+                    if not c_excl:
+                        continue
+                    for demanded in pipeline_demanded_roles:
+                        if any(excl != demanded for excl in c_excl):
+                            role_conflicts += 1
+
             defects = (
                 float(unbindable),
                 float(unrequested_transforms),
+                float(role_conflicts),
                 float(uncovered_clauses) if is_final else 0.0,
                 float(inversions),
                 float(redundant_cell_count),
@@ -3449,9 +3509,9 @@ class LatticePlanner:
             # and are accepted as opaque single nodes).
             gate = UnificationGate(orchestrator=self.orchestrator)
             chosen_candidate = None
-            acceptance_deadline = time.perf_counter() + 5.0
+            acceptance_deadline = min(getattr(self, "_plan_deadline", time.perf_counter() + 15.0), time.perf_counter() + max(15.0, float(getattr(self, "planner_greedy_budget_ms", 15000.0)) / 1000.0))
             for cand_idx, (it, sc) in enumerate(scored_candidates):
-                if cand_idx >= 15 and time.perf_counter() > acceptance_deadline:
+                if cand_idx >= 30 and time.perf_counter() > acceptance_deadline:
                     logger.debug("[PLANNER] Plan deadline exceeded during candidate acceptance loop.")
                     break
                 cand_p = it[0]
