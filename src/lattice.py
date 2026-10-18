@@ -2220,6 +2220,14 @@ class PortSignature:
                     except (ValueError, TypeError):
                         pass
 
+        if getattr(self, "rank", None) is not None:
+            try:
+                r = int(self.rank)
+                self._cached_ndim = r
+                return r
+            except (ValueError, TypeError):
+                pass
+
         reg = TypeRegistry.get_instance()
         if reg:
             t_name = str(self.type_name).lower()
@@ -2606,7 +2614,13 @@ class Cell(ABC):
             p_tn = str(getattr(getattr(p_sig, "signature", p_sig), "type_name", "")).lower()
             if bind in key_roles or role in key_roles or p_name in key_port_names:
                 key_port = p_sig
-                if "list" in p_tn or "collection" in p_tn or registry.is_subtype(p_tn, "collection") or p_name in ("columns", "keys", "fields"):
+                is_explicit_scalar = (
+                    getattr(p_sig, "structure_kind", None) == "scalar"
+                    or getattr(p_sig, "rank", None) == 0
+                    or p_tn in ("str", "string", "identifier", "key")
+                    or p_name in ("column", "key", "field")
+                )
+                if not is_explicit_scalar and ("list" in p_tn or "collection" in p_tn or registry.is_subtype(p_tn, "collection") or p_name in ("columns", "keys", "fields")):
                     key_input_is_collection = True
                 else:
                     key_input_is_scalar = True
@@ -2619,7 +2633,7 @@ class Cell(ABC):
 
         # Projections
         if self.projection:
-            if self.projection in ("columns", "keys", "fields") or key_input_is_collection:
+            if self.projection in ("columns", "keys", "fields") or (key_input_is_collection and self.projection not in ("column", "key", "field")):
                 if prim_out and prim_out.canonical_rank is None:
                     prim_out.canonical_rank = 2
             elif self.projection in ("column", "key", "field") or key_input_is_scalar:

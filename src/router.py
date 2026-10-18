@@ -246,7 +246,7 @@ class LatticeRouter:
             topology_mode=self._topology_mode
         )
         # (apply_fixes_v7) IR compiler hook
-        self._use_ir_compiler = bool(_cfg("use_ir_compiler", True))
+        self._use_ir_compiler = bool(_cfg("use_ir_compiler", False))
         self._ir_compiler = None
         if self._use_ir_compiler:
             try:
@@ -1361,9 +1361,9 @@ class LatticeRouter:
     def _apply_llm_semantic_adapters(self, path: List[Cell], prompt: str) -> List[Cell]:
         """
         Autonomous semantic adapter injection protocol under --llm-feedback.
-        When adjacent nodes are structurally compatible but semantically suboptimal
-        (e.g., OpenCV BGR connecting to Matplotlib RGB imshow), prompts the LLM
-        to suggest an intermediate adapter cell from the loaded lattice.
+        When adjacent nodes have an explicit typestate/format conflict across domains,
+        prompts the LLM to suggest an intermediate bridging adapter from the loaded lattice.
+        Enforces strict category-theoretic compositionality (step_unifies) and acyclicity.
         """
         if len(path) < 2:
             return path
@@ -1375,6 +1375,32 @@ class LatticeRouter:
         if not (mm.profile and (mm.can_synthesize() or mm.can_feedback_check())):
             return path
 
+        def _can_compose(c1: Cell, c2: Cell, prior_path: List[Cell]) -> bool:
+            if getattr(c2, "stage", None) == 1:
+                return False
+            chain = prior_path if prior_path else [c1]
+            if hasattr(self, "planner") and self.planner:
+                try:
+                    from unification import Substitution, unify_cell_with_scope
+                    sigma = self.planner._verify_transition(chain, c2, Substitution())
+                    if sigma is not None:
+                        return True
+                    if unify_cell_with_scope(c2, chain, Substitution()) is not None:
+                        return True
+                except Exception:
+                    pass
+            try:
+                from unification import unify
+                req_inputs = [p for p in c2.inputs.values() if getattr(p, "required", True)]
+                cand_inputs = req_inputs if req_inputs else list(c2.inputs.values())
+                for out_port in c1.outputs.values():
+                    for in_port in cand_inputs:
+                        if unify(out_port.signature, in_port.signature) is not None:
+                            return True
+            except Exception:
+                pass
+            return False
+
         new_path: List[Cell] = []
         for i in range(len(path)):
             new_path.append(path[i])
@@ -1383,8 +1409,25 @@ class LatticeRouter:
                 next_cell = path[i + 1]
                 curr_domain = getattr(curr_cell, "domain_name", "") or ""
                 next_domain = getattr(next_cell, "domain_name", "") or ""
+
                 # Evaluate cross-domain transitions or format shifts
                 if curr_domain and next_domain and curr_domain != next_domain:
+                    # If direct transition already composes cleanly without typestate conflict, bypass adapter query
+                    direct_valid = _can_compose(curr_cell, next_cell, new_path)
+                    has_state_mismatch = False
+                    if direct_valid:
+                        for out_p in curr_cell.outputs.values():
+                            for in_p in next_cell.inputs.values():
+                                o_st = str(getattr(out_p, "state", "") or "").lower()
+                                i_st = str(getattr(in_p, "state", "") or "").lower()
+                                if o_st and i_st and o_st != i_st and o_st not in ("any", "generic") and i_st not in ("any", "generic"):
+                                    acc = [str(s).lower() for s in getattr(in_p, "accepted_states", []) or []]
+                                    if acc and o_st not in acc:
+                                        has_state_mismatch = True
+                                        break
+                        if not has_state_mismatch:
+                            continue
+
                     query = (
                         f"User Prompt: {prompt}\n"
                         f"Candidate Pipeline Transition:\n"
@@ -1409,10 +1452,19 @@ class LatticeRouter:
                             data = json.loads(cleaned)
                             adapter_id = data.get("adapter_cell")
                             if adapter_id and adapter_id in self.orchestrator.loaded_cells:
+                                # 1. Identity & duplicate guard
+                                if adapter_id == curr_cell.cell_id or adapter_id == next_cell.cell_id:
+                                    continue
+                                # 2. Acyclic graph guard: adapter must not already be in the pipeline
+                                if any(c.cell_id == adapter_id for c in path) or any(c.cell_id == adapter_id for c in new_path):
+                                    continue
                                 adapter_cell = self.orchestrator.loaded_cells[adapter_id].clone()
                                 adapter_cell.matched_clause_idx = getattr(curr_cell, "matched_clause_idx", None)
-                                new_path.append(adapter_cell)
-                                logger.info(f"[ROUTER] LLM feedback injected semantic adapter '{adapter_id}' between '{curr_cell.cell_id}' and '{next_cell.cell_id}'")
+
+                                # 3. Compositionality / Unification guard: adapter must unify with both boundaries
+                                if _can_compose(curr_cell, adapter_cell, new_path) and _can_compose(adapter_cell, next_cell, new_path + [adapter_cell]):
+                                    new_path.append(adapter_cell)
+                                    logger.info(f"[ROUTER] LLM feedback injected verified semantic adapter '{adapter_id}' between '{curr_cell.cell_id}' and '{next_cell.cell_id}'")
                     except Exception as _e:
                         logger.debug(f"[ROUTER] LLM adapter query failed for transition {curr_cell.cell_id}->{next_cell.cell_id}: {_e}")
         return new_path

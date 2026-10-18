@@ -71,7 +71,7 @@ class NSTLSettings(BaseSettings):
     # Macro-goal routing & Topology Planning
     macros_enabled: bool = True
     topology_mode: str = "frontier"
-    use_ir_compiler: bool = True
+    use_ir_compiler: bool = False
     require_coverage_floor: bool = True
     coverage_floor_fraction: float = Field(
         default=0.85,
@@ -82,7 +82,7 @@ class NSTLSettings(BaseSettings):
     dev_mode: bool = False
     planner_config: Optional[Path] = None
     planner_time_budget_ms: float = Field(
-        default=10000.0,
+        default=25000.0,
         ge=250.0,
         description="Wall-clock budget for a single planning search. When expired, "
         "the beam returns the best-so-far valid paths instead of running unbounded.",

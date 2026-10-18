@@ -664,6 +664,10 @@ class LatticeVocabulary:
             return frozenset(out)
         return self._get("terminal_states", build)
 
+    def is_informative_token(self, token: str) -> bool:
+        reg = getattr(self.orchestrator, "registry", None) or TypeRegistry.get_instance()
+        return reg.is_informative_token(token)
+
 
 _VOCAB_CACHE: Dict[int, LatticeVocabulary] = {}
 
@@ -3673,7 +3677,7 @@ class LatticePlanner:
                             clause_cands = [
                                 c for c in candidates
                                 if cl_i in cell_covered.get(c.cell_id, set())
-                                and c.cell_id.lower() not in best_path_ids
+                                and (c.cell_id.lower() not in best_path_ids or (best_path and best_path[-1].cell_id.lower() != c.cell_id.lower() and sum(1 for x in best_path if x.cell_id.lower() == c.cell_id.lower()) < 2))
                             ]
                             clause_cands.sort(key=lambda c: log_probs.get(c.cell_id, -10.0), reverse=True)
                             for cand in clause_cands:
@@ -4581,13 +4585,35 @@ class LatticePlanner:
 
                 prev_path_ids = {c.cell_id.lower() for c in prev_path}
 
+                def _can_reuse_cell(c: Cell) -> bool:
+                    if not prev_path or c.cell_id.lower() == prev_path[-1].cell_id.lower():
+                        return False
+                    if getattr(c, "stage", None) != 2:
+                        return False
+                    if sum(1 for x in prev_path if x.cell_id.lower() == c.cell_id.lower()) >= 2:
+                        return False
+                    if not cell_clause_mass:
+                        return False
+                    prev_indices = [idx for idx, x in enumerate(prev_path) if x.cell_id.lower() == c.cell_id.lower()]
+                    if not prev_indices:
+                        return True
+                    last_idx = prev_indices[-1]
+                    prev_cl = 0
+                    if last_idx > 0:
+                        p_cell = prev_path[last_idx - 1]
+                        p_m = cell_clause_mass.get(p_cell.cell_id, [])
+                        prev_cl = max(range(len(p_m)), key=lambda i: p_m[i]) if p_m and max(p_m) > 0 else 0
+                    curr_m = cell_clause_mass.get(prev_path[-1].cell_id, [])
+                    curr_cl = max(range(len(curr_m)), key=lambda i: curr_m[i]) if curr_m and max(curr_m) > 0 else 0
+                    return curr_cl > prev_cl
+
                 successor_candidates: List[Cell] = []
                 seen_succ_ids: Set[str] = set()
 
                 for path_cell in prev_path:
                     for succ in _cell_successors(path_cell):
                         succ_low = succ.cell_id.lower()
-                        if succ_low not in seen_succ_ids and succ_low not in prev_path_ids:
+                        if succ_low not in seen_succ_ids and (succ_low not in prev_path_ids or _can_reuse_cell(succ)):
                             successor_candidates.append(succ)
                             seen_succ_ids.add(succ_low)
 
@@ -4615,7 +4641,7 @@ class LatticePlanner:
                     is_ingress = (_is_ingress_stage(cand) and cand not in zero_ary_ctors)
 
                     if cand.cell_id.lower() in prev_path_ids:
-                        if not (is_ingress and num_ingress < len(file_asset_literals)):
+                        if not _can_reuse_cell(cand) and not (is_ingress and num_ingress < len(file_asset_literals)):
                             continue
 
                     if is_ingress and num_ingress >= len(file_asset_literals):
@@ -4773,7 +4799,7 @@ class LatticePlanner:
                         clause_cands = [
                             c for c in candidates
                             if cl_i in cell_covered.get(c.cell_id, set())
-                            and c.cell_id.lower() not in best_path_ids
+                            and (c.cell_id.lower() not in best_path_ids or (best_path and best_path[-1].cell_id.lower() != c.cell_id.lower() and sum(1 for x in best_path if x.cell_id.lower() == c.cell_id.lower()) < 2))
                             and bool(cell_covered.get(c.cell_id, set()) - covered_clauses)
                         ]
                         clause_cands.sort(key=lambda c: log_probs.get(c.cell_id, -10.0), reverse=True)

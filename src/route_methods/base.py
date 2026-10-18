@@ -456,8 +456,13 @@ class RouteMethod(ABC):
             if is_terminal_sink(cand, orchestrator):
                 continue
 
-            cand_role = str(getattr(cand, "node_role", "") or "").lower()
-            is_declared_bridge = cand_role in _bridge_roles()
+            cand_role = str(getattr(cand, "node_role", "") or getattr(cand, "role", "") or "").lower()
+            cand_tags = {str(t).lower() for t in (getattr(cand, "semantic_tags", None) or [])}
+            is_declared_bridge = (
+                cand_role in _bridge_roles()
+                or getattr(cand, "node_type", "") in ("tunnel", "bridge")
+                or bool({"bridge", "array_bridge", "adapter", "coercion", "cast"} & cand_tags)
+            )
             resolves_property_mismatch = False
 
             # Check if cand resolves a property precondition of dst_cell violated by src_cell / current_scope
@@ -669,30 +674,74 @@ class RouteMethod(ABC):
             row = [ev.identity_overlap(ct, cell) if ct else {"f": 0.0, "hit": 0.0, "rank": (0.0, 0.0, 0.0), "tokens": []} for ct in clause_toks]
             table.append(row)
 
-        # Pass 1: Monotonic primary evidence winners
-        # Primary winners establish the anchors of each clause in forward execution order.
-        prev_i = 0
+        # Pass 1: Primary evidence winners across all clauses
+        # Greedy highest-rank matching: pair each clause with its strongest lexical-identity cell
+        # subject to causal monotonicity (prod_clause <= cons_clause along linear pipeline order).
+        candidates = []
         for j in range(len(clauses)):
+            for i in range(len(path)):
+                if table[i][j]["hit"] > 0.0:
+                    candidates.append((table[i][j]["rank"], j, i))
+        candidates.sort(key=lambda x: x[0], reverse=True)
+
+        assigned_clauses = set()
+        assigned_cells = set()
+        for rank, j, i in candidates:
+            if j not in assigned_clauses and i not in assigned_cells:
+                violates = False
+                for k in assigned_cells:
+                    k_cl = path[k].matched_clause_idx
+                    if k_cl is not None:
+                        if i < k and j > k_cl:
+                            violates = True
+                            break
+                        if i > k and j < k_cl:
+                            violates = True
+                            break
+                if violates:
+                    continue
+                path[i].matched_clause_idx = j
+                assigned_clauses.add(j)
+                assigned_cells.add(i)
+
+        # Ensure any remaining unassigned clause gets its best available unassigned cell
+        for j in range(len(clauses)):
+            if j in assigned_clauses:
+                continue
             best_i, best_rank = None, (0.0, 0.0, 0.0)
-            for i in range(prev_i, len(path)):
-                if table[i][j]["hit"] > 0.0 and table[i][j]["rank"] > best_rank:
-                    best_i, best_rank = i, table[i][j]["rank"]
-            if best_i is not None and getattr(path[best_i], "matched_clause_idx", None) is None:
+            for i in range(len(path)):
+                if i not in assigned_cells and table[i][j]["hit"] > 0.0 and table[i][j]["rank"] > best_rank:
+                    violates = False
+                    for k in assigned_cells:
+                        k_cl = path[k].matched_clause_idx
+                        if k_cl is not None:
+                            if i < k and j > k_cl:
+                                violates = True
+                                break
+                            if i > k and j < k_cl:
+                                violates = True
+                                break
+                    if not violates:
+                        best_i, best_rank = i, table[i][j]["rank"]
+            if best_i is not None:
                 path[best_i].matched_clause_idx = j
-                prev_i = best_i
+                assigned_clauses.add(j)
+                assigned_cells.add(best_i)
 
         # Pass 2: Remaining cells (bridges, connectors, secondary operations)
-        # Topologically bounded by preceding and succeeding primary anchors.
+        # Bounded by nearest preceding and succeeding anchors, or residual clause explanation.
         for i, cell in enumerate(path):
             if getattr(cell, "matched_clause_idx", None) is not None:
                 continue
-            c_min = max([path[k].matched_clause_idx for k in range(i) if getattr(path[k], "matched_clause_idx", None) is not None] or [0])
-            c_max = min([path[k].matched_clause_idx for k in range(i + 1, len(path)) if getattr(path[k], "matched_clause_idx", None) is not None] or [len(clauses) - 1])
-            if c_min > c_max:
-                c_max = c_min
+
+            prec = [path[k].matched_clause_idx for k in range(i) if getattr(path[k], "matched_clause_idx", None) is not None]
+            succ = [path[k].matched_clause_idx for k in range(i + 1, len(path)) if getattr(path[k], "matched_clause_idx", None) is not None]
+            c_min = prec[-1] if prec else 0
+            c_max = succ[0] if succ else (len(clauses) - 1)
+            lo, hi = min(c_min, c_max), max(c_min, c_max)
 
             best_j, best_res = None, (0.0, 0.0, 0.0)
-            for j in range(c_min, c_max + 1):
+            for j in range(lo, hi + 1):
                 if table[i][j]["hit"] <= 0.0 or not clause_toks[j]:
                     continue
                 w_tokens = set()
@@ -705,10 +754,19 @@ class RouteMethod(ABC):
 
             if best_j is not None:
                 cell.matched_clause_idx = best_j
-            elif i > 0 and getattr(path[i - 1], "matched_clause_idx", None) is not None:
-                cell.matched_clause_idx = min(path[i - 1].matched_clause_idx, c_max)
             else:
-                cell.matched_clause_idx = c_min
+                best_j_raw, best_rank_raw = None, (0.0, 0.0, 0.0)
+                for j in range(lo, hi + 1):
+                    if table[i][j]["hit"] > 0.0 and table[i][j]["rank"] > best_rank_raw:
+                        best_j_raw, best_rank_raw = j, table[i][j]["rank"]
+                if best_j_raw is not None:
+                    cell.matched_clause_idx = best_j_raw
+                elif succ:
+                    cell.matched_clause_idx = succ[0]
+                elif prec:
+                    cell.matched_clause_idx = prec[-1]
+                else:
+                    cell.matched_clause_idx = 0
 
             decisions.append({
                 "cell": cell.cell_id, "tagged_clause": cell.matched_clause_idx,
@@ -883,10 +941,27 @@ class RouteMethod(ABC):
                     nxt_is_commit = i + 1 < len(out) and out[i + 1].cell_id == proto.cell_id
                     carrier_tn = self._get_setter_carrier_type(proto) or "table"
                     if not nxt_is_commit and any(self._consumes_carrier(x, carrier_tn, reg) for x in out[i + 1:]):
+                        downstream_misplaced_idx = None
+                        for dj, dcell in enumerate(out[i + 1:], start=i + 1):
+                            if dcell.cell_id == proto.cell_id:
+                                pw = getattr(dcell, "planned_port_wires", {}) or {}
+                                val_src = pw.get("value", (None, None))[0]
+                                if val_src is not None and getattr(val_src, "cell_id", None) == c.cell_id:
+                                    downstream_misplaced_idx = dj
+                                    break
+                                elif getattr(dcell, "clause_literals", None) == list(lits):
+                                    downstream_misplaced_idx = dj
+                                    break
+
                         commit = proto.clone() if hasattr(proto, "clone") else proto
                         commit.matched_clause_idx = getattr(c, "matched_clause_idx", None)
                         commit.clause_literals = list(lits)
-                        trial = out[: i + 1] + [commit] + out[i + 1:]
+
+                        if downstream_misplaced_idx is not None:
+                            trial = out[:i + 1] + [commit] + out[i + 1:downstream_misplaced_idx] + out[downstream_misplaced_idx + 1:]
+                        else:
+                            trial = out[: i + 1] + [commit] + out[i + 1:]
+
                         if self.chain_is_valid(trial, prompt=getattr(self, "prompt", None)):
                             if trace:
                                 self._trace("lens_commit_inserted", after=c.cell_id, commit=commit.cell_id, key=list(lits),
@@ -1087,11 +1162,26 @@ class RouteMethod(ABC):
             # Any explicit bridge cell is redundant iff removing it still unifies and
             # passes all static preflight contracts (including property preconditions).
             b_roles = _bridge_roles()
+            from planner import _active_vocab
+            vocab = _active_vocab(getattr(self, "orchestrator", None))
+            bridge_tags = {"bridge", "array_bridge", "adapter", "coercion", "cast"}
             idx = 1
             while idx < len(current) - 1:
                 c = current[idx]
-                c_role = str(getattr(c, "node_role", "") or "").lower()
-                if c_role in b_roles or getattr(c, "node_type", "") == "tunnel":
+                c_role = str(getattr(c, "node_role", "") or getattr(c, "role", "") or "").lower()
+                c_tags = {str(t).lower() for t in (getattr(c, "semantic_tags", None) or [])}
+                is_exempt = (
+                    is_ingress_source(c, getattr(self, "orchestrator", None))
+                    or is_terminal_sink(c, getattr(self, "orchestrator", None))
+                    or c_role in ("estimator", "trainer", "classifier", "regressor")
+                )
+                is_candidate_bridge = not is_exempt and (
+                    c_role in b_roles
+                    or getattr(c, "node_type", "") in ("tunnel", "bridge")
+                    or bool(bridge_tags & c_tags)
+                    or (vocab is not None and hasattr(vocab, "is_bridge") and vocab.is_bridge(c))
+                )
+                if is_candidate_bridge:
                     trial = [x.clone() if hasattr(x, "clone") else x for x in (current[:idx] + current[idx + 1:])]
                     for x in trial[idx:]:
                         x.planned_port_wires = {}

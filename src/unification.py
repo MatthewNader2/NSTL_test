@@ -516,19 +516,31 @@ def _wire_rejection(cell: Any, p_name: str, port: Any, v_name: str, ctx: Any, re
         target_col=target_col,
         all_known_origins=set().union(*getattr(ctx, "var_origins", {}).values()) if getattr(ctx, "var_origins", None) else set(),
         registry=registry,
-        target_is_input_column=not _cell_consumes_name_literal(cell),
+        target_is_input_column=not _cell_consumes_name_literal(cell, ctx),
     ):
         return ("provenance", {"var_origins": sorted(origins), "target_col": target_col})
 
     return None
 
 
-def _cell_consumes_name_literal(cell: Any) -> bool:
+def _cell_consumes_name_literal(cell: Any, ctx: Optional[Any] = None) -> bool:
     """True when the cell declares a port that receives a NAME/VALUE-to-store
-    (binds column_key / assigned_value): its clause literals may be output names."""
+    (binds column_key / assigned_value), or any cell in its clause does:
+    its clause literals may be output names."""
     try:
-        return any(getattr(p, "binds", None) in ("column_key", "assigned_value")
-                   for p in getattr(cell, "inputs", {}).values())
+        if any(getattr(p, "binds", None) in ("column_key", "assigned_value")
+               for p in getattr(cell, "inputs", {}).values()):
+            return True
+        if ctx is not None:
+            pipeline = getattr(ctx, "current_pipeline", None) or getattr(ctx, "pipeline", None)
+            c_clause = getattr(cell, "matched_clause_idx", None)
+            if pipeline and c_clause is not None:
+                for other in pipeline:
+                    if getattr(other, "matched_clause_idx", None) == c_clause:
+                        if any(getattr(p, "binds", None) in ("column_key", "assigned_value")
+                               for p in getattr(other, "inputs", {}).values()):
+                            return True
+        return False
     except Exception:
         return True
 
@@ -2051,13 +2063,20 @@ def _format_literal_value(val: Any, sig: Optional[PortSignature] = None) -> str:
 
     declared_enums = getattr(sig, "enum_values", None)
     if declared_enums:
-        enum_set = {str(e).strip().lower() for e in declared_enums}
-        if s.lower() not in enum_set:
+        enum_set = {str(e).strip("'\"").strip().lower() for e in declared_enums}
+        raw_s = s.strip("'\"").strip()
+        if raw_s.lower() in enum_set:
+            return repr(raw_s) if is_str_like else raw_s
+        elif s.lower() not in enum_set:
             if getattr(sig, "default_value", None) is not None:
-                return repr(str(sig.default_value)) if is_str_like else str(sig.default_value)
+                def_s = str(sig.default_value).strip("'\"").strip()
+                return repr(def_s) if is_str_like else def_s
             return "None"
 
     if (s.startswith("'") and s.endswith("'")) or (s.startswith('"') and s.endswith('"')):
+        inner = s[1:-1].strip()
+        if (inner.startswith("'") and inner.endswith("'")) or (inner.startswith('"') and inner.endswith('"')):
+            return repr(inner[1:-1].strip())
         return s
     try:
         float(s)
@@ -2071,7 +2090,8 @@ def _format_literal_value(val: Any, sig: Optional[PortSignature] = None) -> str:
             return s
 
     if is_str_like or not s.isidentifier() or p_role in ("parameter", "literal_parameter", "literal", "config"):
-        return repr(s)
+        raw_s = s.strip("'\"").strip()
+        return repr(raw_s)
     return s
 
 
@@ -3311,7 +3331,23 @@ class ExecutionContext:
             val = self.parameters[port_sig.name]
             return json.dumps(val) if isinstance(val, str) else str(val)
         if hasattr(self, "hyperparameters") and isinstance(self.hyperparameters, dict) and port_sig.name in self.hyperparameters:
-            return _format_literal_value(self.hyperparameters[port_sig.name], port_sig)
+            cand_val = self.hyperparameters[port_sig.name]
+            is_req = getattr(port_sig, "required", True)
+            if is_req:
+                return _format_literal_value(cand_val, port_sig)
+            # Optional port: verify token provenance grounding before overriding declared default
+            val_s = str(cand_val).strip("'\"")
+            prompt_str = str(self.prompt or "")
+            p_n_lower = port_sig.name.lower()
+            c_toks = {t.lower() for t in cell_tokens} if cell_tokens else set()
+            valid_nums = {v for _, k_lit, v in getattr(self, "ordered_literals", []) if k_lit in ("int_literal", "float_literal")}
+            has_name = p_n_lower in c_toks or (len(p_n_lower) > 2 and p_n_lower in prompt_str.lower())
+            if isinstance(cand_val, (int, float)) and not isinstance(cand_val, bool):
+                has_val = (val_s in valid_nums) or (val_s in prompt_str)
+            else:
+                has_val = (val_s.lower() in c_toks) or (len(val_s) > 2 and val_s.lower() in prompt_str.lower())
+            if has_name and has_val:
+                return _format_literal_value(cand_val, port_sig)
         if hasattr(self, "llm_slots") and isinstance(self.llm_slots, dict):
             for cell_s in self.llm_slots.values():
                 if isinstance(cell_s, dict) and port_sig.name in cell_s:
@@ -5879,10 +5915,49 @@ class UnificationGate:
                         llm_slot_val = cell_slots[p_name]
                 if llm_slot_val is None and hasattr(ctx, "hyperparameters") and isinstance(ctx.hyperparameters, dict):
                     if p_name in ctx.hyperparameters:
-                        llm_slot_val = ctx.hyperparameters[p_name]
+                        cand_val = ctx.hyperparameters[p_name]
+                        if p_sig.required:
+                            llm_slot_val = cand_val
+                        else:
+                            # Optional port: check token provenance before overriding declared default
+                            prompt_str = str(getattr(ctx, "prompt", "") or prompt_text or "")
+                            val_str = str(cand_val).strip("'\"")
+                            clause_toks = {t.lower() for t in _cell_clause_tokens(cell)} if callable(locals().get("_cell_clause_tokens")) else set()
+                            c_toks = {t.lower() for t in (getattr(cell, "token_set", None) or set())}
+                            p_lower = p_name.lower()
+                            v_lower = val_str.lower()
+
+                            valid_nums = {v for _, k_lit, v in getattr(ctx, "ordered_literals", []) if k_lit in ("int_literal", "float_literal")}
+
+                            has_name_evidence = (
+                                p_lower in c_toks
+                                or p_lower in clause_toks
+                                or (len(p_name) > 2 and p_lower in prompt_str.lower())
+                            )
+
+                            if isinstance(cand_val, (int, float)) and not isinstance(cand_val, bool):
+                                has_val_evidence = (val_str in valid_nums) or (val_str in prompt_str)
+                            else:
+                                has_val_evidence = (
+                                    v_lower in c_toks
+                                    or v_lower in clause_toks
+                                    or (len(val_str) > 2 and v_lower in prompt_str.lower())
+                                )
+
+                            if has_name_evidence and has_val_evidence:
+                                llm_slot_val = cand_val
 
                 if llm_slot_val is not None and not _is_valid_slot_value(llm_slot_val, concrete_sig):
                     llm_slot_val = None
+
+                if llm_slot_val is not None and not p_sig.required:
+                    # Optional port: if numeric, verify it actually came from user prompt
+                    if isinstance(llm_slot_val, (int, float)) and not isinstance(llm_slot_val, bool):
+                        prompt_str = str(getattr(ctx, "prompt", "") or prompt_text or "")
+                        valid_nums = {v for _, k_lit, v in getattr(ctx, "ordered_literals", []) if k_lit in ("int_literal", "float_literal")}
+                        val_str = str(int(llm_slot_val)) if int(llm_slot_val) == llm_slot_val else str(llm_slot_val)
+                        if val_str not in valid_nums and val_str not in prompt_str:
+                            llm_slot_val = None
 
                 # Optional parameters with declared default: use prompt literal or omit/default
                 if not p_sig.required and p_sig.default_value is not None:
@@ -6018,9 +6093,16 @@ class UnificationGate:
                     is_dest_carrier = (
                         getattr(p_sig, "binds", "") == "data_carrier"
                         or getattr(p_sig, "port_role", "") in ("receiver", "data_carrier")
-                        or (_cell_consumes_name_literal(cell) and registry.is_subtype(str(getattr(concrete_sig, "type_name", "")).lower(), "table"))
+                        or (_cell_consumes_name_literal(cell, ctx) and registry.is_subtype(str(getattr(concrete_sig, "type_name", "")).lower(), "table"))
                     )
-                    if target_col_for_cell is None or has_matching_origin or is_dest_carrier or is_assigned_val:
+                    all_known = set().union(*getattr(ctx, "var_origins", {}).values()) if getattr(ctx, "var_origins", None) else set()
+                    is_clause_output_col = bool(
+                        target_col_for_cell
+                        and target_col_for_cell not in all_known
+                        and str(target_col_for_cell).lower() not in {str(o).lower() for o in all_known}
+                        and _cell_consumes_name_literal(cell, ctx)
+                    )
+                    if target_col_for_cell is None or has_matching_origin or is_dest_carrier or is_assigned_val or is_clause_output_col:
                         if candidate_vars[0][0][2] >= 0:
                             _, scoped_var, accumulated_sigma = candidate_vars[0]
 
@@ -6073,6 +6155,7 @@ class UnificationGate:
                         target_col_for_cell and _fb_orig
                         and target_col_for_cell not in _fb_orig
                         and str(target_col_for_cell).lower() not in {str(o).lower() for o in _fb_orig}
+                        and not is_clause_output_col
                     )
                     if _contradicted:
                         ctx.trace_binding(
