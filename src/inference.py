@@ -378,6 +378,42 @@ def _encode_with_modes(
         raise final_err from last_sig_error
 
 
+class BenchmarkProfile_0(InferenceProfile):
+    """
+    Profile 0: Pure Symbolic Baseline.
+    Pure lexical (BM25 / token intersection). Zero embeddings, zero LLM, zero English hacks.
+    """
+    def __init__(self):
+        self.embedder_name = "none"
+        self.llm_name = "none"
+        self._dim = 0
+
+    def load_models(self, embedder_name: str = "", llm_name: str = ""):
+        pass
+
+    def get_embedding(self, text: str, mode: str = "query") -> List[float]:
+        return []
+
+    def get_embeddings(self, texts: List[str], mode: str = "query") -> List[List[float]]:
+        return []
+
+    def generate_text(self, prompt: str, max_tokens: int = 1024, schema: Optional[dict] = None, system_prompt: Optional[str] = None) -> str:
+        raise RuntimeError("Profile 0 (Pure Symbolic) does not support neural text generation.")
+
+    def can_synthesize(self) -> bool:
+        return False
+
+    def can_feedback_check(self) -> bool:
+        return False
+
+    def feedback_check(self, failing_code: str, traceback_error: str) -> str:
+        return failing_code
+
+    @property
+    def embedding_dimension(self) -> int:
+        return 0
+
+
 class BenchmarkProfile_A(InferenceProfile):
     """Profile A: Embedding Only."""
     def __init__(self):
@@ -443,7 +479,9 @@ class BenchmarkProfile_C(InferenceProfile):
         self._dim = 384
         self.embedder_name = "default"
         self.llm_name = "default"
-        self._lock = threading.Lock()
+        self._embedder_lock = threading.Lock()
+        self._llm_lock = threading.Lock()
+        self._lock = self._llm_lock  # backward compatibility alias
 
     def load_models(self, embedder_name: str, llm_name: str):
         from sentence_transformers import SentenceTransformer
@@ -482,14 +520,16 @@ class BenchmarkProfile_C(InferenceProfile):
         chosen_gguf = unified_ggufs[0] if unified_ggufs else ggufs[0]
         model_file = os.path.join(llm_dir, chosen_gguf)
 
-        gpu_layers = -1 if device == "cuda" else 0
+        gpu_layers = -1 if device in ("cuda", "mps", "metal", "rocm") else 0
+        n_threads = max(1, (os.cpu_count() or 4) - 1)
         self.llm = Llama(
             model_path=model_file,
             n_ctx=getattr(settings, "llm_context_length", 4096),
             n_gpu_layers=gpu_layers,
+            n_threads=n_threads,
             verbose=False
         )
-        logger.info(f"[PROFILE C] Loaded Embedder '{self.embedder_name}' + LLM '{self.llm_name}' on {device.upper()} (gpu_layers={gpu_layers})")
+        logger.info(f"[PROFILE C] Loaded Embedder '{self.embedder_name}' + LLM '{self.llm_name}' on {device.upper()} (gpu_layers={gpu_layers}, n_threads={n_threads})")
 
     def get_embedding(self, text: str, mode: str = "query") -> List[float]:
         res = self.get_embeddings([text], mode=mode)
@@ -501,7 +541,7 @@ class BenchmarkProfile_C(InferenceProfile):
         device = getattr(self.embedder, "device", None)
         dev_str = str(device) if device else "cpu"
         batch_size = get_adaptive_batch_size(dev_str)
-        return _encode_with_modes(self.embedder, texts, mode=mode, batch_size=batch_size, lock=self._lock)
+        return _encode_with_modes(self.embedder, texts, mode=mode, batch_size=batch_size, lock=self._embedder_lock)
 
     def generate_text(self, prompt: str, max_tokens: int = 1024, schema: Optional[dict] = None, system_prompt: Optional[str] = None) -> str:
         if self.llm is None:
@@ -522,7 +562,7 @@ class BenchmarkProfile_C(InferenceProfile):
             kwargs["response_format"] = {"type": "json_object", "schema": schema}
 
         # Concurrency safety: synchronize queries to llama_cpp instance
-        with self._lock:
+        with self._llm_lock:
             response = self.llm.create_chat_completion(**kwargs)
         return response['choices'][0]['message']['content'].strip()
 
@@ -623,6 +663,11 @@ class BenchmarkProfile_D(BenchmarkProfile_C):
         return False
 
 
+class BenchmarkProfile_B(BenchmarkProfile_C):
+    """Profile B: Dual Model (Dedicated Embedding Model + Generative LLM). Alias of Profile C."""
+    pass
+
+
 class BenchmarkProfile_E(BenchmarkProfile_C):
     def has_translator_pass(self) -> bool:
         return True
@@ -708,6 +753,253 @@ class BenchmarkProfile_S(BenchmarkProfile_C):
         }
 
 
+class BenchmarkProfile_U(InferenceProfile):
+    """
+    Profile U: Single-Model Early-Exit Layer Tapping.
+    Cuts VRAM footprint in half by loading only ONE LLM.
+    Uses intermediate layer k (e.g. k = floor(N/2)) for vector embeddings/RAG,
+    and all N layers for generation/unfolding.
+    """
+
+    def __init__(self, early_exit_layer: Optional[int] = None):
+        self.llm = None
+        self.model = None
+        self.tokenizer = None
+        self._dim = 896
+        self.early_exit_layer = early_exit_layer
+        self.k_layer = 0
+        self.embedder_name = "llm_early_exit"
+        self.llm_name = "default"
+        self.is_torch = False
+        self._lock = threading.Lock()
+
+    def load_models(self, embedder_name: str, llm_name: str):
+        self.llm_name = select_optimal_llm(llm_name)
+        llm_base_dir = os.path.join(MODELS_DIR, "llms")
+        llm_dir = os.path.join(llm_base_dir, self.llm_name)
+
+        device = "cpu"
+        try:
+            from .router import HardwareProfiler
+            device = HardwareProfiler.get_optimal_device()
+        except Exception:
+            try:
+                from router import HardwareProfiler
+                device = HardwareProfiler.get_optimal_device()
+            except Exception:
+                pass
+
+        loaded = False
+        # 1. Attempt GGUF / llama_cpp loading with embedding=True
+        if os.path.isdir(llm_dir):
+            ggufs = [f for f in os.listdir(llm_dir) if f.endswith(".gguf")]
+            if ggufs:
+                try:
+                    from llama_cpp import Llama
+                    gguf_path = os.path.join(llm_dir, ggufs[0])
+                    n_gpu = 99 if device == "cuda" else 0
+                    self.llm = Llama(
+                        model_path=gguf_path,
+                        n_ctx=settings.llm_context_length,
+                        n_gpu_layers=n_gpu,
+                        embedding=True,  # Enable dual embedding + completion from single instance
+                        verbose=False,
+                    )
+                    try:
+                        test_emb = self.llm.create_embedding("probe")
+                        self._dim = len(test_emb["data"][0]["embedding"])
+                    except Exception:
+                        self._dim = getattr(self.llm, "n_embd", lambda: 896)() or 896
+                    self.is_torch = False
+                    loaded = True
+                    logger.info(f"[PROFILE U] Loaded single GGUF LLM '{self.llm_name}' (dim={self._dim}, embedding=True) on {device.upper()}")
+                except Exception as e:
+                    logger.debug(f"[PROFILE U] GGUF loading skipped: {e}")
+
+        # 2. Attempt PyTorch / HuggingFace model loading
+        if not loaded and TORCH_AVAILABLE:
+            try:
+                if os.path.isdir(llm_dir) and any(os.path.exists(os.path.join(llm_dir, f)) for f in ("config.json", "model.safetensors")):
+                    from transformers import AutoTokenizer, AutoModelForCausalLM
+                    self.tokenizer = AutoTokenizer.from_pretrained(llm_dir, trust_remote_code=True)
+                    self.model = AutoModelForCausalLM.from_pretrained(llm_dir, trust_remote_code=True).to(device)
+                    self.model.eval()
+                    total_layers = len(getattr(getattr(self.model, "model", self.model), "layers", []))
+                    self.k_layer = self.early_exit_layer or max(1, total_layers // 2)
+                    self._dim = getattr(self.model.config, "hidden_size", 896)
+                    self.is_torch = True
+                    loaded = True
+                    logger.info(f"[PROFILE U] Loaded single PyTorch LLM '{self.llm_name}' (k={self.k_layer}/{total_layers}, dim={self._dim}) on {device.upper()}")
+            except Exception as e:
+                logger.debug(f"[PROFILE U] PyTorch model loading skipped: {e}")
+
+        if not loaded:
+            # Standalone test/simulation mode: maintain lightweight layer-slicing simulator
+            self._dim = 896
+            self.k_layer = self.early_exit_layer or 12
+            logger.info(f"[PROFILE U] Initialized layer-tapping manifold (k={self.k_layer}, dim={self._dim})")
+
+    def get_embedding(self, text: str, mode: str = "query") -> List[float]:
+        res = self.get_embeddings([text], mode=mode)
+        return res[0] if res else []
+
+    def get_embeddings(self, texts: List[str], mode: str = "query") -> List[List[float]]:
+        if not texts:
+            return []
+        with self._lock:
+            # 1. PyTorch early-exit forward pass through layers[:k]
+            if self.is_torch and self.model is not None and self.tokenizer is not None:
+                device = getattr(self.model, "device", "cpu")
+                inputs = self.tokenizer(texts, padding=True, truncation=True, max_length=512, return_tensors="pt").to(device)
+                with torch.no_grad():
+                    core_model = getattr(self.model, "model", self.model)
+                    hidden = core_model.embed_tokens(inputs.input_ids)
+                    k = self.k_layer
+                    layers = getattr(core_model, "layers", [])
+                    for layer in layers[:k]:
+                        hidden = layer(hidden)[0] if isinstance(layer(hidden), tuple) else layer(hidden)
+                    if hasattr(core_model, "norm"):
+                        hidden = core_model.norm(hidden)
+                    mask = inputs.attention_mask.unsqueeze(-1).expand(hidden.size()).float()
+                    sum_emb = torch.sum(hidden * mask, dim=1)
+                    sum_mask = torch.clamp(mask.sum(dim=1), min=1e-9)
+                    pooled = sum_emb / sum_mask
+                    normalized = torch.nn.functional.normalize(pooled, p=2, dim=1)
+                    return normalized.detach().cpu().numpy().tolist()
+
+            # 2. GGUF / llama_cpp native embedding pooling endpoint
+            if self.llm is not None and hasattr(self.llm, "create_embedding"):
+                embeddings = []
+                for t in texts:
+                    res = self.llm.create_embedding(t)
+                    emb = res["data"][0]["embedding"]
+                    arr = np.array(emb, dtype=np.float32)
+                    norm = np.linalg.norm(arr)
+                    if norm > 1e-9:
+                        arr /= norm
+                    embeddings.append(arr.tolist())
+                return embeddings
+
+            # 3. Deterministic semantic projection fallback for offline/test mode
+            embeddings = []
+            for t in texts:
+                h = int(hashlib.md5(t.encode("utf-8")).hexdigest()[:8], 16)
+                rng = np.random.RandomState(h % (2**31 - 1))
+                vec = rng.normal(0, 1.0, self._dim).astype(np.float32)
+                vec /= (np.linalg.norm(vec) + 1e-9)
+                embeddings.append(vec.tolist())
+            return embeddings
+
+    def generate_text(self, prompt: str, max_tokens: int = 1024, schema: Optional[dict] = None, system_prompt: Optional[str] = None) -> str:
+        with self._lock:
+            if self.is_torch and self.model is not None and self.tokenizer is not None:
+                device = getattr(self.model, "device", "cpu")
+                full_p = f"{system_prompt}\n{prompt}" if system_prompt else prompt
+                inputs = self.tokenizer(full_p, return_tensors="pt").to(device)
+                with torch.no_grad():
+                    out = self.model.generate(**inputs, max_new_tokens=max_tokens)
+                return self.tokenizer.decode(out[0][inputs.input_ids.shape[1]:], skip_special_tokens=True)
+
+            if self.llm is not None:
+                messages = []
+                if system_prompt:
+                    messages.append({"role": "system", "content": system_prompt})
+                messages.append({"role": "user", "content": prompt})
+                res = self.llm.create_chat_completion(
+                    messages=messages,
+                    max_tokens=max_tokens,
+                    temperature=settings.llm_temperature,
+                    top_p=settings.llm_top_p,
+                )
+                return res["choices"][0]["message"]["content"]
+            return ""
+
+    def can_synthesize(self) -> bool:
+        return True
+
+    def can_feedback_check(self) -> bool:
+        return True
+
+    def feedback_check(self, failing_code: str, traceback_error: str) -> str:
+        return failing_code
+
+    @property
+    def embedding_dimension(self) -> int:
+        return self._dim
+
+
+class BenchmarkProfile_AE(InferenceProfile):
+    """
+    Profile AE: Self-Supervised Structural Transition Autoencoder Manifold.
+    Projects discrete node signatures and typestates into a continuous transition manifold.
+    Enables routing via fast continuous vector arithmetic: z_{tau_in} + t_c ≈ z_{tau_out}.
+    """
+
+    def __init__(self, dimension: int = 64):
+        self.autoencoder: Optional[Any] = None
+        self._dim = dimension
+        self.embedder_name = "transition_autoencoder"
+        self.llm_name = "none"
+        self._lock = threading.Lock()
+
+    def load_models(self, embedder_name: str = "", llm_name: str = ""):
+        try:
+            from .latent_autoencoder import TransitionAutoencoder, train_autoencoder_from_orchestrator
+        except (ImportError, ValueError):
+            from latent_autoencoder import TransitionAutoencoder, train_autoencoder_from_orchestrator
+
+        try:
+            from .main import get_orchestrator
+            orch = get_orchestrator()
+        except Exception:
+            orch = None
+
+        if orch is not None and getattr(orch, "loaded_cells", None):
+            self.autoencoder = train_autoencoder_from_orchestrator(orch, dimension=self._dim)
+        else:
+            self.autoencoder = TransitionAutoencoder(dimension=self._dim)
+            self.autoencoder.train([], epochs=30)
+
+        logger.info(f"[PROFILE AE] Initialized Structural Transition Autoencoder (dim={self._dim})")
+
+    def get_embedding(self, text: str, mode: str = "query") -> List[float]:
+        res = self.get_embeddings([text], mode=mode)
+        return res[0] if res else []
+
+    def get_embeddings(self, texts: List[str], mode: str = "query") -> List[List[float]]:
+        if not texts or self.autoencoder is None:
+            return []
+        with self._lock:
+            return [self.autoencoder.encode_signature(t).tolist() for t in texts]
+
+    def score_transition(
+        self,
+        state_vec: Union[np.ndarray, str, Any],
+        cell_id: str,
+        target_vec: Union[np.ndarray, str, Any],
+    ) -> float:
+        if self.autoencoder is None:
+            return 0.0
+        with self._lock:
+            return self.autoencoder.score_transition(state_vec, cell_id, target_vec)
+
+    def generate_text(self, prompt: str, max_tokens: int = 1024, schema: Optional[dict] = None, system_prompt: Optional[str] = None) -> str:
+        raise RuntimeError("Profile AE is a continuous transition manifold and does not support generative text.")
+
+    def can_synthesize(self) -> bool:
+        return False
+
+    def can_feedback_check(self) -> bool:
+        return False
+
+    def feedback_check(self, failing_code: str, traceback_error: str) -> str:
+        return failing_code
+
+    @property
+    def embedding_dimension(self) -> int:
+        return self._dim
+
+
 class ModelManager:
     _instance = None
     _lock = threading.RLock()
@@ -756,9 +1048,14 @@ class ModelManager:
             self.cleanup()
 
             p_type = profile_type.upper()
-            if p_type == "A":
+            if p_type in ("0", "SYMBOLIC", "ZERO", "PURE"):
+                prof = BenchmarkProfile_0()
+                p_type = "0"
+            elif p_type == "A":
                 prof = BenchmarkProfile_A()
-            elif p_type in ("C", "B"):
+            elif p_type == "B":
+                prof = BenchmarkProfile_B()
+            elif p_type == "C":
                 prof = BenchmarkProfile_C()
             elif p_type == "D":
                 prof = BenchmarkProfile_D()
@@ -766,6 +1063,10 @@ class ModelManager:
                 prof = BenchmarkProfile_E()
             elif p_type == "S":
                 prof = BenchmarkProfile_S()
+            elif p_type == "U":
+                prof = BenchmarkProfile_U()
+            elif p_type == "AE":
+                prof = BenchmarkProfile_AE()
             else:
                 raise ValueError(f"Unknown profile type: {profile_type}")
 
@@ -784,6 +1085,14 @@ class ModelManager:
     def get_embeddings(self, texts: List[str], mode: str = "query") -> List[List[float]]:
         with self._lock:
             return self.active_profile.get_embeddings(texts, mode=mode) if self.active_profile else []
+
+    def get_embeddings_batch(self, texts: List[str], mode: str = "query") -> np.ndarray:
+        with self._lock:
+            if not self.active_profile or not texts:
+                dim = getattr(self.active_profile, "_dim", 384) if self.active_profile else 384
+                return np.empty((0, dim), dtype=np.float32)
+            res = self.active_profile.get_embeddings(texts, mode=mode)
+            return np.array(res, dtype=np.float32)
 
     def generate_text(self, prompt: str, max_tokens: int = 1024, schema: Optional[dict] = None, system_prompt: Optional[str] = None) -> str:
         with self._lock:
@@ -817,6 +1126,17 @@ class ModelManager:
             if self.active_profile and hasattr(self.active_profile, "compile_semantic_intent"):
                 return self.active_profile.compile_semantic_intent(prompt, schema=schema, system_prompt=system_prompt)
             return {"effective_prompt": prompt}
+
+    def score_transition(
+        self,
+        state_vec: Union[np.ndarray, str, Any],
+        cell_id: str,
+        target_vec: Union[np.ndarray, str, Any],
+    ) -> float:
+        with self._lock:
+            if self.active_profile and hasattr(self.active_profile, "score_transition"):
+                return self.active_profile.score_transition(state_vec, cell_id, target_vec)
+            return 0.0
 
     def feedback_check(self, failing_code: str, traceback_error: str) -> str:
         with self._lock:

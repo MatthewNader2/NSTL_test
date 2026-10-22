@@ -12,6 +12,7 @@ from __future__ import annotations
 import copy
 import functools
 import json
+import contextlib
 import os
 import sqlite3
 import sys
@@ -24,7 +25,7 @@ from abc import ABC
 from collections import deque
 from dataclasses import dataclass, field, replace
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple, Any, Callable, FrozenSet, Union
+from typing import Dict, List, Optional, Set, Tuple, Any, Callable, FrozenSet, Union, Collection
 
 from log_config import get_logger
 try:
@@ -794,6 +795,26 @@ class TypeRegistry:
 
     def is_abstract_carrier(self, name: str) -> bool:
         return str(name).strip().lower() in self._abstract_carriers
+
+    def is_composite_carrier(self, name: str) -> bool:
+        """Determines if a type represents a composite, stateful, or non-scalar carrier."""
+        if not name:
+            return False
+        s = str(name).strip().lower()
+        if self.is_subtype(s, "scalar"):
+            return False
+        if s in ("scalar", "string", "path", "path_spec", "logical", "bool", "int", "float"):
+            return False
+        for cat in ("composite", "collection", "handle"):
+            if self.is_subtype(s, cat):
+                return True
+        for ac in self.get_abstract_carriers():
+            if ac not in ("scalar", "path", "logical", "text", "string") and self.is_subtype(s, ac):
+                return True
+        for tc in getattr(self, "_top_level_carriers", ()):
+            if tc not in ("scalar", "path", "logical", "text", "string") and self.is_subtype(s, tc):
+                return True
+        return not self.is_subtype(s, "scalar")
 
     # --- Abstract carrier mapping (type name -> abstract category) ---
     @_locked
@@ -3525,392 +3546,393 @@ class LatticeOrchestrator:
 
             self.loaded_cells.clear()
             try:
-                conn = sqlite3.connect(self.db_path, check_same_thread=False)
-                cursor = conn.cursor()
-                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='types'")
-                if cursor.fetchone():
-                    cursor.execute("SELECT type_name, parent_type FROM types")
-                    reg = TypeRegistry.get_instance()
-                    for t_name, p_type in cursor.fetchall():
-                        if t_name and p_type:
-                            reg.register_type(t_name, p_type)
+                with contextlib.closing(sqlite3.connect(self.db_path, check_same_thread=False)) as conn:
+                    conn.execute("PRAGMA journal_mode=WAL;")
+                    conn.execute("PRAGMA synchronous=NORMAL;")
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='types'")
+                    if cursor.fetchone():
+                        cursor.execute("SELECT type_name, parent_type FROM types")
+                        reg = TypeRegistry.get_instance()
+                        for t_name, p_type in cursor.fetchall():
+                            if t_name and p_type:
+                                reg.register_type(t_name, p_type)
 
-                # Declared typestate vocabulary (state hierarchy + verifiable
-                # properties) — same data the JSON trees carry in their
-                # `typestates` blocks; persisted here by tools/compile_trees.py.
-                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='typestates'")
-                if cursor.fetchone():
-                    reg = TypeRegistry.get_instance()
-                    cursor.execute(
-                        "SELECT state_name, parent_state, carrier_type, properties FROM typestates"
-                    )
-                    for s_name, s_parent, s_carrier, s_props_json in cursor.fetchall():
-                        if not s_name:
-                            continue
-                        props: Optional[Dict[str, Any]] = None
-                        if s_props_json:
-                            try:
-                                parsed = json.loads(s_props_json)
-                                props = parsed if isinstance(parsed, dict) else None
-                            except Exception as e:
-                                props = None
-                        reg.register_state(s_name, s_parent, carrier_type=s_carrier, properties=props)
-
-                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='aliases'")
-                if cursor.fetchone():
-                    reg = TypeRegistry.get_instance()
-                    cursor.execute("SELECT alias, canonical FROM aliases")
-                    for a_k, a_v in cursor.fetchall():
-                        if a_k and a_v:
-                            reg.register_alias(a_k, a_v)
-
-                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='artifact_readers'")
-                if cursor.fetchone():
-                    reg = TypeRegistry.get_instance()
-                    cursor.execute("SELECT category, module_name, function_name FROM artifact_readers")
-                    for cat, m_name, f_name in cursor.fetchall():
-                        if cat and m_name and f_name:
-                            reg.register_artifact_reader(cat, m_name, f_name)
-
-                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='structural_metadata'")
-                if cursor.fetchone():
-                    reg = TypeRegistry.get_instance()
-                    cursor.execute("SELECT category, item, extra FROM structural_metadata")
-                    for cat, item, extra in cursor.fetchall():
-                        if not item:
-                            continue
-                        if cat == 'advisory_qualifier':
-                            try:
-                                reg.register_advisory_qualifiers([json.loads(item)])
-                            except Exception:
-                                pass
-                        elif cat == 'abstract_carrier':
-                            reg.register_abstract_carriers([item])
-                        elif cat == 'abstract_carrier_mapping':
-                            reg.register_abstract_carrier_mapping({item: extra})
-                        elif cat == 'dest_port_token':
-                            reg.register_dest_port_tokens([item])
-                        elif cat == 'data_bearing_role':
-                            reg.register_data_bearing_roles([item])
-                        elif cat == 'estimator_verb':
-                            reg.register_estimator_verbs([item])
-                        elif cat == 'column_projection_token':
-                            reg.register_column_projection_tokens([item])
-                        elif cat == 'type_var':
-                            reg.register_type_vars([item])
-                        elif cat == 'top_type':
-                            reg.register_top(item)
-                        elif cat == 'product_constructor':
-                            reg.register_product_constructor(item)
-                        elif cat == 'egress_intent_token':
-                            reg.register_egress_tokens([item])
-                        elif cat == 'materialization_state':
-                            reg.register_materialization_states([item])
-                        elif cat == 'terminal_state':
-                            reg.register_terminal_states([item])
-                        elif cat == 'polarity_hint':
-                            reg.register_polarity_hints(item, [extra])
-                        elif cat == 'role_carrier':
-                            reg.register_role_carrier(item)
-                        elif cat == 'stopword':
-                            reg.register_stopwords([item])
-                        elif cat == 'preposition_trigger':
-                            reg.register_preposition_triggers([item])
-                        elif cat == 'sentence_connective':
-                            reg.register_sentence_connectives([item])
-                        elif cat == 'asset_placeholder':
-                            reg.register_asset_placeholders({item: extra})
-                        elif cat == 'output_asset_placeholder':
-                            reg.register_output_asset_placeholders({item: extra})
-                        elif cat == 'coordinating_conjunction':
-                            reg.register_coordinating_conjunctions([item])
-                        elif cat == 'sequencing_connective':
-                            reg.register_sequencing_connectives([item])
-                        elif cat == 'filter_context_token':
-                            reg.register_filter_context_tokens([item])
-                        elif cat == 'prompt_filler_token':
-                            reg.register_prompt_filler_tokens([item])
-                        elif cat == 'verification_semantics':
-                            try:
-                                reg.register_verification_semantics({item: json.loads(extra)})
-                            except Exception:
-                                pass
-                        elif cat in ('action_verb', 'operation_token'):
-                            reg.register_operation_tokens([item])
-
-                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('nodes', 'cells')")
-                tables = [row[0] for row in cursor.fetchall()]
-
-                if "nodes" in tables:
-                    cursor.execute("PRAGMA table_info(nodes)")
-                    col_names = {row[1] for row in cursor.fetchall()}
-
-                    doc_sel = "docstring" if "docstring" in col_names else "'' AS docstring"
-                    prio_sel = "source_priority" if "source_priority" in col_names else "100 AS source_priority"
-                    role_sel = "node_role" if "node_role" in col_names else "'function' AS node_role"
-                    type_sel = "node_type" if "node_type" in col_names else "'function' AS node_type"
-                    ver_sel = "verified" if "verified" in col_names else "1 AS verified"
-                    dom_sel = "domain_name" if "domain_name" in col_names else "'' AS domain_name"
-                    deps_sel = "dependencies" if "dependencies" in col_names else "'' AS dependencies"
-                    cfg_sel = "configuration_schema" if "configuration_schema" in col_names else "'' AS configuration_schema"
-                    slots_sel = "slots" if "slots" in col_names else "'' AS slots"
-                    raw_sel = "raw_cell" if "raw_cell" in col_names else "NULL AS raw_cell"
-                    if "raw_cell" not in col_names:
-                        logger.warning(
-                            "[LATTICE] %s predates the raw_cell column: cells are rebuilt from lossy columns "
-                            "(port `binds`, semantic tags, raises, ... are NOT preserved). "
-                            "Recompile with `compile --clean`.", self.db_path)
-
-                    cursor.execute(f"""
-                        SELECT cell_id, {dom_sel}, {type_sel}, {role_sel}, stage,
-                               keywords, input_type, input_state, output_type, output_state,
-                               code, {deps_sel}, {cfg_sel}, {slots_sel}, {ver_sel}, {doc_sel}, {prio_sel}, {raw_sel}
-                        FROM nodes
-                    """)
-                    for row in cursor.fetchall():
-                        (cell_id, domain_name, node_type, node_role, stage,
-                         keywords_json, in_type, in_state, out_type, out_state,
-                         code, deps_json, config_json, slots_json, verified, doc_str, source_priority, raw_json) = row
-
-                        if raw_json:
-                            # Faithful path: identical construction to the JSON loader.
-                            try:
-                                cell = build_cell_from_raw(json.loads(raw_json), domain_name or "generic", default_verified=True)
-                                cell.source_provenance = f"sqlite:{Path(self.db_path).name}"
-                                self.loaded_cells[cell.cell_id] = cell
+                    # Declared typestate vocabulary (state hierarchy + verifiable
+                    # properties) — same data the JSON trees carry in their
+                    # `typestates` blocks; persisted here by tools/compile_trees.py.
+                    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='typestates'")
+                    if cursor.fetchone():
+                        reg = TypeRegistry.get_instance()
+                        cursor.execute(
+                            "SELECT state_name, parent_state, carrier_type, properties FROM typestates"
+                        )
+                        for s_name, s_parent, s_carrier, s_props_json in cursor.fetchall():
+                            if not s_name:
                                 continue
-                            except Exception as _raw_err:
-                                logger.warning("[LATTICE] raw_cell for %s unusable (%s); falling back to lossy columns",
-                                               cell_id, _raw_err)
+                            props: Optional[Dict[str, Any]] = None
+                            if s_props_json:
+                                try:
+                                    parsed = json.loads(s_props_json)
+                                    props = parsed if isinstance(parsed, dict) else None
+                                except Exception as e:
+                                    props = None
+                            reg.register_state(s_name, s_parent, carrier_type=s_carrier, properties=props)
 
-                        try:
-                            keywords = set(json.loads(keywords_json)) if keywords_json else set()
-                        except Exception as e:
-                            keywords = set()
-                        try:
-                            deps = json.loads(deps_json) if deps_json else []
-                        except Exception as e:
-                            deps = []
-                        try:
-                            cfg = json.loads(config_json) if config_json else {}
-                        except Exception as e:
-                            cfg = {}
+                    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='aliases'")
+                    if cursor.fetchone():
+                        reg = TypeRegistry.get_instance()
+                        cursor.execute("SELECT alias, canonical FROM aliases")
+                        for a_k, a_v in cursor.fetchall():
+                            if a_k and a_v:
+                                reg.register_alias(a_k, a_v)
 
-                        slots_val = cfg.get("slots", {})
-                        if not slots_val and slots_json:
+                    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='artifact_readers'")
+                    if cursor.fetchone():
+                        reg = TypeRegistry.get_instance()
+                        cursor.execute("SELECT category, module_name, function_name FROM artifact_readers")
+                        for cat, m_name, f_name in cursor.fetchall():
+                            if cat and m_name and f_name:
+                                reg.register_artifact_reader(cat, m_name, f_name)
+
+                    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='structural_metadata'")
+                    if cursor.fetchone():
+                        reg = TypeRegistry.get_instance()
+                        cursor.execute("SELECT category, item, extra FROM structural_metadata")
+                        for cat, item, extra in cursor.fetchall():
+                            if not item:
+                                continue
+                            if cat == 'advisory_qualifier':
+                                try:
+                                    reg.register_advisory_qualifiers([json.loads(item)])
+                                except Exception:
+                                    pass
+                            elif cat == 'abstract_carrier':
+                                reg.register_abstract_carriers([item])
+                            elif cat == 'abstract_carrier_mapping':
+                                reg.register_abstract_carrier_mapping({item: extra})
+                            elif cat == 'dest_port_token':
+                                reg.register_dest_port_tokens([item])
+                            elif cat == 'data_bearing_role':
+                                reg.register_data_bearing_roles([item])
+                            elif cat == 'estimator_verb':
+                                reg.register_estimator_verbs([item])
+                            elif cat == 'column_projection_token':
+                                reg.register_column_projection_tokens([item])
+                            elif cat == 'type_var':
+                                reg.register_type_vars([item])
+                            elif cat == 'top_type':
+                                reg.register_top(item)
+                            elif cat == 'product_constructor':
+                                reg.register_product_constructor(item)
+                            elif cat == 'egress_intent_token':
+                                reg.register_egress_tokens([item])
+                            elif cat == 'materialization_state':
+                                reg.register_materialization_states([item])
+                            elif cat == 'terminal_state':
+                                reg.register_terminal_states([item])
+                            elif cat == 'polarity_hint':
+                                reg.register_polarity_hints(item, [extra])
+                            elif cat == 'role_carrier':
+                                reg.register_role_carrier(item)
+                            elif cat == 'stopword':
+                                reg.register_stopwords([item])
+                            elif cat == 'preposition_trigger':
+                                reg.register_preposition_triggers([item])
+                            elif cat == 'sentence_connective':
+                                reg.register_sentence_connectives([item])
+                            elif cat == 'asset_placeholder':
+                                reg.register_asset_placeholders({item: extra})
+                            elif cat == 'output_asset_placeholder':
+                                reg.register_output_asset_placeholders({item: extra})
+                            elif cat == 'coordinating_conjunction':
+                                reg.register_coordinating_conjunctions([item])
+                            elif cat == 'sequencing_connective':
+                                reg.register_sequencing_connectives([item])
+                            elif cat == 'filter_context_token':
+                                reg.register_filter_context_tokens([item])
+                            elif cat == 'prompt_filler_token':
+                                reg.register_prompt_filler_tokens([item])
+                            elif cat == 'verification_semantics':
+                                try:
+                                    reg.register_verification_semantics({item: json.loads(extra)})
+                                except Exception:
+                                    pass
+                            elif cat in ('action_verb', 'operation_token'):
+                                reg.register_operation_tokens([item])
+
+                    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('nodes', 'cells')")
+                    tables = [row[0] for row in cursor.fetchall()]
+
+                    if "nodes" in tables:
+                        cursor.execute("PRAGMA table_info(nodes)")
+                        col_names = {row[1] for row in cursor.fetchall()}
+
+                        doc_sel = "docstring" if "docstring" in col_names else "'' AS docstring"
+                        prio_sel = "source_priority" if "source_priority" in col_names else "100 AS source_priority"
+                        role_sel = "node_role" if "node_role" in col_names else "'function' AS node_role"
+                        type_sel = "node_type" if "node_type" in col_names else "'function' AS node_type"
+                        ver_sel = "verified" if "verified" in col_names else "1 AS verified"
+                        dom_sel = "domain_name" if "domain_name" in col_names else "'' AS domain_name"
+                        deps_sel = "dependencies" if "dependencies" in col_names else "'' AS dependencies"
+                        cfg_sel = "configuration_schema" if "configuration_schema" in col_names else "'' AS configuration_schema"
+                        slots_sel = "slots" if "slots" in col_names else "'' AS slots"
+                        raw_sel = "raw_cell" if "raw_cell" in col_names else "NULL AS raw_cell"
+                        if "raw_cell" not in col_names:
+                            logger.warning(
+                                "[LATTICE] %s predates the raw_cell column: cells are rebuilt from lossy columns "
+                                "(port `binds`, semantic tags, raises, ... are NOT preserved). "
+                                "Recompile with `compile --clean`.", self.db_path)
+
+                        cursor.execute(f"""
+                            SELECT cell_id, {dom_sel}, {type_sel}, {role_sel}, stage,
+                                   keywords, input_type, input_state, output_type, output_state,
+                                   code, {deps_sel}, {cfg_sel}, {slots_sel}, {ver_sel}, {doc_sel}, {prio_sel}, {raw_sel}
+                            FROM nodes
+                        """)
+                        for row in cursor.fetchall():
+                            (cell_id, domain_name, node_type, node_role, stage,
+                             keywords_json, in_type, in_state, out_type, out_state,
+                             code, deps_json, config_json, slots_json, verified, doc_str, source_priority, raw_json) = row
+
+                            if raw_json:
+                                # Faithful path: identical construction to the JSON loader.
+                                try:
+                                    cell = build_cell_from_raw(json.loads(raw_json), domain_name or "generic", default_verified=True)
+                                    cell.source_provenance = f"sqlite:{Path(self.db_path).name}"
+                                    self.loaded_cells[cell.cell_id] = cell
+                                    continue
+                                except Exception as _raw_err:
+                                    logger.warning("[LATTICE] raw_cell for %s unusable (%s); falling back to lossy columns",
+                                                   cell_id, _raw_err)
+
                             try:
-                                slots_val = json.loads(slots_json)
+                                keywords = set(json.loads(keywords_json)) if keywords_json else set()
                             except Exception as e:
-                                slots_val = {}
+                                keywords = set()
+                            try:
+                                deps = json.loads(deps_json) if deps_json else []
+                            except Exception as e:
+                                deps = []
+                            try:
+                                cfg = json.loads(config_json) if config_json else {}
+                            except Exception as e:
+                                cfg = {}
 
-                        in_sig = AlgebraicSignature(type_name=in_type or "any", state=in_state or "any")
-                        out_sig = AlgebraicSignature(type_name=out_type or "None", state=out_state or "any")
+                            slots_val = cfg.get("slots", {})
+                            if not slots_val and slots_json:
+                                try:
+                                    slots_val = json.loads(slots_json)
+                                except Exception as e:
+                                    slots_val = {}
 
-                        inputs: Dict[str, PortSignature] = {}
-                        outputs: Dict[str, PortSignature] = {}
+                            in_sig = AlgebraicSignature(type_name=in_type or "any", state=in_state or "any")
+                            out_sig = AlgebraicSignature(type_name=out_type or "None", state=out_state or "any")
 
-                        if isinstance(cfg, dict) and ("inputs" in cfg or "outputs" in cfg):
-                            for p_name, p_val in cfg.get("inputs", {}).items():
-                                if isinstance(p_val, dict):
-                                    abs_t = _clean_abs_carrier(p_val.get("abstract_type"))
-                                    acc_s = frozenset(str(s).strip().lower() for s in (p_val.get("accepted_states") or []) if str(s).strip())
-                                    p_s = str(p_val.get("parent_state") or "").strip().lower() or None
-                                    if p_s and p_val.get("state"):
-                                        TypeRegistry.get_instance().register_state(p_val.get("state"), p_s)
-                                    inputs[p_name] = PortSignature(
-                                        name=p_name,
-                                        signature=AlgebraicSignature(
-                                            type_name=str(p_val.get("type_name", in_type or "any")),
-                                            state=str(p_val.get("state", in_state or "any")),
-                                            qualifiers=_normalize_qualifiers(p_val.get("qualifiers", [])),
+                            inputs: Dict[str, PortSignature] = {}
+                            outputs: Dict[str, PortSignature] = {}
+
+                            if isinstance(cfg, dict) and ("inputs" in cfg or "outputs" in cfg):
+                                for p_name, p_val in cfg.get("inputs", {}).items():
+                                    if isinstance(p_val, dict):
+                                        abs_t = _clean_abs_carrier(p_val.get("abstract_type"))
+                                        acc_s = frozenset(str(s).strip().lower() for s in (p_val.get("accepted_states") or []) if str(s).strip())
+                                        p_s = str(p_val.get("parent_state") or "").strip().lower() or None
+                                        if p_s and p_val.get("state"):
+                                            TypeRegistry.get_instance().register_state(p_val.get("state"), p_s)
+                                        inputs[p_name] = PortSignature(
+                                            name=p_name,
+                                            signature=AlgebraicSignature(
+                                                type_name=str(p_val.get("type_name", in_type or "any")),
+                                                state=str(p_val.get("state", in_state or "any")),
+                                                qualifiers=_normalize_qualifiers(p_val.get("qualifiers", [])),
+                                                abstract_type=abs_t,
+                                                accepted_states=acc_s,
+                                                parent_state=p_s,
+                                            ),
+                                            required=p_val.get("required", True),
+                                            default_value=p_val.get("default_value"),
+                                            doc=p_val.get("doc", p_val.get("description", "")),
+                                            domain=p_val.get("domain", ""),
                                             abstract_type=abs_t,
+                                            enum_values=p_val.get("enum_values"),
+                                            param_kind=p_val.get("param_kind", "standard"),
+                                            value_constraints=p_val.get("value_constraints"),
+                                            shape_contract=p_val.get("shape_contract"),
+                                            rejected_qualifiers=p_val.get("rejected_qualifiers", []),
                                             accepted_states=acc_s,
                                             parent_state=p_s,
-                                        ),
-                                        required=p_val.get("required", True),
-                                        default_value=p_val.get("default_value"),
-                                        doc=p_val.get("doc", p_val.get("description", "")),
-                                        domain=p_val.get("domain", ""),
-                                        abstract_type=abs_t,
-                                        enum_values=p_val.get("enum_values"),
-                                        param_kind=p_val.get("param_kind", "standard"),
-                                        value_constraints=p_val.get("value_constraints"),
-                                        shape_contract=p_val.get("shape_contract"),
-                                        rejected_qualifiers=p_val.get("rejected_qualifiers", []),
-                                        accepted_states=acc_s,
-                                        parent_state=p_s,
-                                        port_role=p_val.get("port_role"),
-                                        structure_kind=p_val.get("structure_kind"),
-                                        rank=p_val.get("rank"),
-                                        element_type=p_val.get("element_type"),
-                                        supported_formats=p_val.get("supported_formats"),
-                                    )
-                            for p_name, p_val in cfg.get("outputs", {}).items():
-                                if isinstance(p_val, dict):
-                                    abs_t = _clean_abs_carrier(p_val.get("abstract_type"))
-                                    acc_s = frozenset(str(s).strip().lower() for s in (p_val.get("accepted_states") or []) if str(s).strip())
-                                    p_s = str(p_val.get("parent_state") or "").strip().lower() or None
-                                    if p_s and p_val.get("state"):
-                                        TypeRegistry.get_instance().register_state(p_val.get("state"), p_s)
-                                    outputs[p_name] = PortSignature(
-                                        name=p_name,
-                                        signature=AlgebraicSignature(
-                                            type_name=str(p_val.get("type_name", out_type or "any")),
-                                            state=str(p_val.get("state", out_state or "any")),
-                                            qualifiers=_normalize_qualifiers(p_val.get("qualifiers", [])),
-                                            abstract_type=abs_t,
-                                            accepted_states=acc_s,
-                                            parent_state=p_s,
-                                        ),
-                                        required=p_val.get("required", True),
-                                        default_value=p_val.get("default_value"),
-                                        doc=p_val.get("doc", p_val.get("description", "")),
-                                        domain=p_val.get("domain", ""),
-                                        abstract_type=abs_t,
-                                        enum_values=p_val.get("enum_values"),
-                                        param_kind=p_val.get("param_kind", "standard"),
-                                        value_constraints=p_val.get("value_constraints"),
-                                        shape_contract=p_val.get("shape_contract"),
-                                        accepted_states=acc_s,
-                                        parent_state=p_s,
-                                        port_role=p_val.get("port_role"),
-                                        structure_kind=p_val.get("structure_kind"),
-                                        rank=p_val.get("rank"),
-                                        element_type=p_val.get("element_type"),
-                                        supported_formats=p_val.get("supported_formats"),
-                                    )
-
-                        if not inputs and (not isinstance(cfg, dict) or "inputs" not in cfg):
-                            inputs = {"input_data": PortSignature("input_data", in_sig)}
-                        if not outputs and (not isinstance(cfg, dict) or "outputs" not in cfg):
-                            outputs = {"output_data": PortSignature("output_data", out_sig)}
-
-                        top_val = str(cfg.get("topology_type", "") if isinstance(cfg, dict) else "").lower()
-                        is_macro = (
-                            str(node_type).lower() in ("macro", "higher_order", "combinator")
-                            or str(node_role).lower() in ("macro", "higher_order", "combinator")
-                            or str(node_type).lower().startswith("macro_")
-                            or str(node_role).lower().startswith("macro_")
-                            or top_val in ("traced_loop", "coproduct_branch", "state_loop", "context_manager")
-                            or bool(slots_val)
-                        )
-                        cls = MacroCell if is_macro else MicroCell
-                        cell = cls(
-                            cell_id=cell_id,
-                            stage=stage or 2,
-                            keywords=keywords,
-                            inputs=inputs,
-                            outputs=outputs,
-                            domain_name=domain_name or "generic",
-                            node_type=node_type or "function",
-                            node_role=node_role or "function",
-                            dependencies=deps,
-                            code_template=code or "",
-                            metadata_tags=cfg.get("metadata_tags", {}),
-                            configuration_schema=cfg,
-                            slots=slots_val,
-                            verified=bool(verified),
-                            docstring=doc_str or "",
-                            source_priority=int(source_priority) if source_priority is not None else 100,
-                            source_provenance=f"sqlite:{Path(self.db_path).name}",
-                            topology_type=cfg.get("topology_type", "sequential"),
-                            feedback_state_type=cfg.get("feedback_state_type"),
-                            bound_slots=cfg.get("bound_slots", {}),
-                            is_public=bool(cfg.get("is_public", True)),
-                            mutation_type=cfg.get("mutation_type", "pure"),
-                            is_context_manager=cfg.get("is_context_manager", False),
-                            raises=cfg.get("raises", []),
-                            type_vars=cfg.get("type_vars", []),
-                            preconditions=cfg.get("preconditions", []),
-                            postconditions=cfg.get("postconditions", []),
-                            effects=cfg.get("effects", []),
-                            edges=cfg.get("edges", []),
-                            endable=cfg.get("endable"),
-                            primary_in=cfg.get("primary_in"),
-                            primary_out=cfg.get("primary_out"),
-                            sub_cells=cfg.get("sub_cells", []),
-                            algorithmic_steps=cfg.get("algorithmic_steps", []),
-                            internal_topology=cfg.get("internal_topology", {}),
-                            projection=cfg.get("projection"),
-                        )
-                        self.loaded_cells[cell.cell_id] = cell
-
-                elif "cells" in tables:
-                    domain_name = Path(self.db_path).stem.lower()
-                    cursor.execute("""
-                        SELECT cell_id, stage, input_type, input_state, output_type, output_state,
-                               code_template, configuration_schema, dependencies
-                        FROM cells
-                    """)
-                    for row in cursor.fetchall():
-                        (cell_id, stage, in_type, in_state, out_type, out_state,
-                         code, config_json, deps_json) = row
-
-                        try:
-                            deps = json.loads(deps_json) if deps_json else []
-                        except Exception as e:
-                            deps = []
-                        try:
-                            cfg = json.loads(config_json) if config_json else {}
-                        except Exception as e:
-                            cfg = {}
-
-                        in_sig = AlgebraicSignature(type_name=in_type or "any", state=in_state or "any")
-                        out_sig = AlgebraicSignature(type_name=out_type or "None", state=out_state or "any")
-
-                        inputs: Dict[str, PortSignature] = {}
-                        outputs: Dict[str, PortSignature] = {}
-
-                        if isinstance(cfg, dict) and ("inputs" in cfg or "outputs" in cfg):
-                            for p_name, p_val in cfg.get("inputs", {}).items():
-                                if isinstance(p_val, dict):
-                                    inputs[p_name] = PortSignature(
-                                        name=p_name,
-                                        signature=AlgebraicSignature(
-                                            type_name=str(p_val.get("type_name", in_type or "any")),
-                                            state=str(p_val.get("state", in_state or "any")),
-                                            qualifiers=_normalize_qualifiers(p_val.get("qualifiers", []))
-                                        ),
-                                        required=p_val.get("required", True),
-                                        default_value=p_val.get("default_value")
-                                    )
-                            for p_name, p_val in cfg.get("outputs", {}).items():
-                                if isinstance(p_val, dict):
-                                    outputs[p_name] = PortSignature(
-                                        name=p_name,
-                                        signature=AlgebraicSignature(
-                                            type_name=str(p_val.get("type_name", out_type or "any")),
-                                            state=str(p_val.get("state", out_state or "any")),
-                                            qualifiers=_normalize_qualifiers(p_val.get("qualifiers", []))
+                                            port_role=p_val.get("port_role"),
+                                            structure_kind=p_val.get("structure_kind"),
+                                            rank=p_val.get("rank"),
+                                            element_type=p_val.get("element_type"),
+                                            supported_formats=p_val.get("supported_formats"),
                                         )
-                                    )
+                                for p_name, p_val in cfg.get("outputs", {}).items():
+                                    if isinstance(p_val, dict):
+                                        abs_t = _clean_abs_carrier(p_val.get("abstract_type"))
+                                        acc_s = frozenset(str(s).strip().lower() for s in (p_val.get("accepted_states") or []) if str(s).strip())
+                                        p_s = str(p_val.get("parent_state") or "").strip().lower() or None
+                                        if p_s and p_val.get("state"):
+                                            TypeRegistry.get_instance().register_state(p_val.get("state"), p_s)
+                                        outputs[p_name] = PortSignature(
+                                            name=p_name,
+                                            signature=AlgebraicSignature(
+                                                type_name=str(p_val.get("type_name", out_type or "any")),
+                                                state=str(p_val.get("state", out_state or "any")),
+                                                qualifiers=_normalize_qualifiers(p_val.get("qualifiers", [])),
+                                                abstract_type=abs_t,
+                                                accepted_states=acc_s,
+                                                parent_state=p_s,
+                                            ),
+                                            required=p_val.get("required", True),
+                                            default_value=p_val.get("default_value"),
+                                            doc=p_val.get("doc", p_val.get("description", "")),
+                                            domain=p_val.get("domain", ""),
+                                            abstract_type=abs_t,
+                                            enum_values=p_val.get("enum_values"),
+                                            param_kind=p_val.get("param_kind", "standard"),
+                                            value_constraints=p_val.get("value_constraints"),
+                                            shape_contract=p_val.get("shape_contract"),
+                                            accepted_states=acc_s,
+                                            parent_state=p_s,
+                                            port_role=p_val.get("port_role"),
+                                            structure_kind=p_val.get("structure_kind"),
+                                            rank=p_val.get("rank"),
+                                            element_type=p_val.get("element_type"),
+                                            supported_formats=p_val.get("supported_formats"),
+                                        )
 
-                        if not inputs:
-                            inputs = {"input_data": PortSignature("input_data", in_sig)}
-                        if not outputs:
-                            outputs = {"output_data": PortSignature("output_data", out_sig)}
+                            if not inputs and (not isinstance(cfg, dict) or "inputs" not in cfg):
+                                inputs = {"input_data": PortSignature("input_data", in_sig)}
+                            if not outputs and (not isinstance(cfg, dict) or "outputs" not in cfg):
+                                outputs = {"output_data": PortSignature("output_data", out_sig)}
 
-                        keywords = CellTokenizer.tokenize_identifier(cell_id)
-
-                        cell = MicroCell(
-                            cell_id=cell_id,
-                            stage=stage or 2,
-                            keywords=keywords,
-                            inputs=inputs,
-                            outputs=outputs,
-                            domain_name=domain_name or Path(self.db_path).stem.lower(),
-                            dependencies=deps,
-                            code_template=code or "",
-                            verified=True,
-                            endable=cfg.get("endable"),
-                            primary_in=cfg.get("primary_in"),
-                            primary_out=cfg.get("primary_out"),
-                            projection=cfg.get("projection")
-                        )
-                        if cell.is_public_morphism:
+                            top_val = str(cfg.get("topology_type", "") if isinstance(cfg, dict) else "").lower()
+                            is_macro = (
+                                str(node_type).lower() in ("macro", "higher_order", "combinator")
+                                or str(node_role).lower() in ("macro", "higher_order", "combinator")
+                                or str(node_type).lower().startswith("macro_")
+                                or str(node_role).lower().startswith("macro_")
+                                or top_val in ("traced_loop", "coproduct_branch", "state_loop", "context_manager")
+                                or bool(slots_val)
+                            )
+                            cls = MacroCell if is_macro else MicroCell
+                            cell = cls(
+                                cell_id=cell_id,
+                                stage=stage or 2,
+                                keywords=keywords,
+                                inputs=inputs,
+                                outputs=outputs,
+                                domain_name=domain_name or "generic",
+                                node_type=node_type or "function",
+                                node_role=node_role or "function",
+                                dependencies=deps,
+                                code_template=code or "",
+                                metadata_tags=cfg.get("metadata_tags", {}),
+                                configuration_schema=cfg,
+                                slots=slots_val,
+                                verified=bool(verified),
+                                docstring=doc_str or "",
+                                source_priority=int(source_priority) if source_priority is not None else 100,
+                                source_provenance=f"sqlite:{Path(self.db_path).name}",
+                                topology_type=cfg.get("topology_type", "sequential"),
+                                feedback_state_type=cfg.get("feedback_state_type"),
+                                bound_slots=cfg.get("bound_slots", {}),
+                                is_public=bool(cfg.get("is_public", True)),
+                                mutation_type=cfg.get("mutation_type", "pure"),
+                                is_context_manager=cfg.get("is_context_manager", False),
+                                raises=cfg.get("raises", []),
+                                type_vars=cfg.get("type_vars", []),
+                                preconditions=cfg.get("preconditions", []),
+                                postconditions=cfg.get("postconditions", []),
+                                effects=cfg.get("effects", []),
+                                edges=cfg.get("edges", []),
+                                endable=cfg.get("endable"),
+                                primary_in=cfg.get("primary_in"),
+                                primary_out=cfg.get("primary_out"),
+                                sub_cells=cfg.get("sub_cells", []),
+                                algorithmic_steps=cfg.get("algorithmic_steps", []),
+                                internal_topology=cfg.get("internal_topology", {}),
+                                projection=cfg.get("projection"),
+                            )
                             self.loaded_cells[cell.cell_id] = cell
 
-                conn.close()
+                    elif "cells" in tables:
+                        domain_name = Path(self.db_path).stem.lower()
+                        cursor.execute("""
+                            SELECT cell_id, stage, input_type, input_state, output_type, output_state,
+                                   code_template, configuration_schema, dependencies
+                            FROM cells
+                        """)
+                        for row in cursor.fetchall():
+                            (cell_id, stage, in_type, in_state, out_type, out_state,
+                             code, config_json, deps_json) = row
+
+                            try:
+                                deps = json.loads(deps_json) if deps_json else []
+                            except Exception as e:
+                                deps = []
+                            try:
+                                cfg = json.loads(config_json) if config_json else {}
+                            except Exception as e:
+                                cfg = {}
+
+                            in_sig = AlgebraicSignature(type_name=in_type or "any", state=in_state or "any")
+                            out_sig = AlgebraicSignature(type_name=out_type or "None", state=out_state or "any")
+
+                            inputs: Dict[str, PortSignature] = {}
+                            outputs: Dict[str, PortSignature] = {}
+
+                            if isinstance(cfg, dict) and ("inputs" in cfg or "outputs" in cfg):
+                                for p_name, p_val in cfg.get("inputs", {}).items():
+                                    if isinstance(p_val, dict):
+                                        inputs[p_name] = PortSignature(
+                                            name=p_name,
+                                            signature=AlgebraicSignature(
+                                                type_name=str(p_val.get("type_name", in_type or "any")),
+                                                state=str(p_val.get("state", in_state or "any")),
+                                                qualifiers=_normalize_qualifiers(p_val.get("qualifiers", []))
+                                            ),
+                                            required=p_val.get("required", True),
+                                            default_value=p_val.get("default_value")
+                                        )
+                                for p_name, p_val in cfg.get("outputs", {}).items():
+                                    if isinstance(p_val, dict):
+                                        outputs[p_name] = PortSignature(
+                                            name=p_name,
+                                            signature=AlgebraicSignature(
+                                                type_name=str(p_val.get("type_name", out_type or "any")),
+                                                state=str(p_val.get("state", out_state or "any")),
+                                                qualifiers=_normalize_qualifiers(p_val.get("qualifiers", []))
+                                            )
+                                        )
+
+                            if not inputs:
+                                inputs = {"input_data": PortSignature("input_data", in_sig)}
+                            if not outputs:
+                                outputs = {"output_data": PortSignature("output_data", out_sig)}
+
+                            keywords = CellTokenizer.tokenize_identifier(cell_id)
+
+                            cell = MicroCell(
+                                cell_id=cell_id,
+                                stage=stage or 2,
+                                keywords=keywords,
+                                inputs=inputs,
+                                outputs=outputs,
+                                domain_name=domain_name or Path(self.db_path).stem.lower(),
+                                dependencies=deps,
+                                code_template=code or "",
+                                verified=True,
+                                endable=cfg.get("endable"),
+                                primary_in=cfg.get("primary_in"),
+                                primary_out=cfg.get("primary_out"),
+                                projection=cfg.get("projection")
+                            )
+                            if cell.is_public_morphism:
+                                self.loaded_cells[cell.cell_id] = cell
+
                 logger.info(f"[LATTICE] Loaded {len(self.loaded_cells)} nodes from database.")
             except Exception as e:
                 logger.error(f"[LATTICE] Failed loading database: {e}")
@@ -3924,6 +3946,8 @@ class LatticeOrchestrator:
                 )
                 self.loaded_cells.clear()
                 self.load_all_json_trees()
+
+    load_from_db = load_from_database
 
     def build_topology(self):
         """
@@ -4065,15 +4089,7 @@ class LatticeOrchestrator:
                     if p_pol in ("ascending", "descending"):
                         reg.register_polarity_hints(p_pol, [p_name])
                     if "order" in p_st or "order" in p_role or p_name in ("ascending", "descending"):
-                        desc = getattr(p, "description", "") or ""
-                        if desc:
-                            desc_toks = CellTokenizer.tokenize_prompt(desc)
-                            asc_matches = [t for t in desc_toks if t in ("ascending", "smallest", "lowest", "bottom", "min", "increasing")]
-                            if asc_matches:
-                                reg.register_polarity_hints("ascending", asc_matches)
-                            desc_matches = [t for t in desc_toks if t in ("descending", "largest", "highest", "top", "max", "decreasing")]
-                            if desc_matches:
-                                reg.register_polarity_hints("descending", desc_matches)
+                        pass
 
             # Dynamic Advisory Qualifier Harvesting (Zero-Hardcode Compliant):
             # Collect all qualifiers declared on input ports across all loaded cells
@@ -4137,6 +4153,109 @@ class LatticeOrchestrator:
             if c.can_accept(sig):
                 results.append(c)
         return results
+
+    def cells_directly_unify(self, src: Cell, dst: Cell) -> bool:
+        """True iff any output port of src can validly unify with an input port of dst."""
+        if not src or not dst:
+            return False
+        # 1. Fast check via precomputed directed transition adjacency
+        if dst.cell_id in self._adjacency.get(src.cell_id, []):
+            return True
+        # 2. Semantic port unification check (including typestate qualifiers and states)
+        try:
+            for out_sig in src.outputs.values():
+                if dst.can_accept(out_sig):
+                    return True
+        except Exception:
+            pass
+        return False
+
+    @staticmethod
+    def _is_valid_bridge_candidate(cand: Cell) -> bool:
+        """Determines if a cell is suitable to act as a 1-to-1 dataflow precondition bridge."""
+        if not cand or not getattr(cand, "outputs", None):
+            return False
+        c_id = getattr(cand, "cell_id", "") or ""
+        if c_id.startswith("CF_") or getattr(cand, "stage", None) == 3:
+            return False
+        req_inputs = 0
+        for p_name, p_sig in (getattr(cand, "inputs", {}) or {}).items():
+            if getattr(p_sig, "required", False) and getattr(p_sig, "default_value", None) is None:
+                t_str = str(getattr(getattr(p_sig, "signature", p_sig), "type_name", ""))
+                if "Callable" in t_str or "function" in t_str.lower():
+                    return False
+                req_inputs += 1
+        return req_inputs <= 2
+
+    def find_shortest_bridge_path(
+        self,
+        src: Cell,
+        dst: Cell,
+        max_hops: int = 4,
+        candidate_pool: Optional[Collection[Cell]] = None,
+    ) -> List[Cell]:
+        """
+        Unified Shortest-Path Precondition Bridge Closure:
+        Computes the minimal bridge morphism chain:
+            src -> b_1 -> ... -> b_k -> dst
+        over the precomputed directed type-transition adjacency graph.
+        - Distance = 0: if src directly unifies with dst, returns [].
+        - Distance > 0: finds minimal intermediate bridge cells [b_1, ..., b_k].
+        - If no valid chain exists within max_hops: returns [].
+        """
+        if not src or not dst or src.cell_id == dst.cell_id:
+            return []
+
+        # 1. Direct connection check (Distance = 0 intermediate bridges)
+        if self.cells_directly_unify(src, dst):
+            return []
+
+        # 2. Shortest-path BFS over the transition graph
+        pool = {c.cell_id: c for c in candidate_pool} if candidate_pool is not None else self.loaded_cells
+        queue: deque = deque()
+        visited: Set[str] = {src.cell_id}
+
+        # Seed BFS from src
+        next_ids = self._adjacency.get(src.cell_id, [])
+        for n_id in next_ids:
+            if n_id == dst.cell_id:
+                return []
+            if n_id in self.loaded_cells and (pool is self.loaded_cells or n_id in pool):
+                cand = self.loaded_cells[n_id]
+                if not self._is_valid_bridge_candidate(cand):
+                    continue
+                visited.add(n_id)
+                queue.append((cand, [cand]))
+
+        # Also seed any cells in candidate pool that can directly accept an output from src
+        for cand_id, cand in pool.items():
+            if cand_id not in visited and cand_id != dst.cell_id:
+                if not self._is_valid_bridge_candidate(cand):
+                    continue
+                if self.cells_directly_unify(src, cand):
+                    visited.add(cand_id)
+                    queue.append((cand, [cand]))
+
+        while queue:
+            curr_cell, path = queue.popleft()
+            # If curr_cell directly unifies with dst, we found the shortest bridge chain!
+            if self.cells_directly_unify(curr_cell, dst):
+                return path
+
+            if len(path) < max_hops:
+                succ_ids = self._adjacency.get(curr_cell.cell_id, [])
+                for n_id in succ_ids:
+                    if n_id == dst.cell_id:
+                        return path
+                    if n_id not in visited and n_id in self.loaded_cells:
+                        if pool is self.loaded_cells or n_id in pool:
+                            nxt_c = self.loaded_cells[n_id]
+                            if not self._is_valid_bridge_candidate(nxt_c):
+                                continue
+                            visited.add(n_id)
+                            queue.append((nxt_c, path + [nxt_c]))
+
+        return []
 
     def register_dynamic_edge(
         self,

@@ -109,6 +109,31 @@ class LatentVectorExtractor:
         llm_dir = os.path.join(MODELS_DIR, "llms")
         errors: List[str] = []
 
+        # 0. Check if Profile 0 (Pure Symbolic, zero neural models) is active
+        try:
+            try:
+                from .inference import ModelManager
+            except (ImportError, ValueError):
+                from inference import ModelManager
+            mm = ModelManager.get_instance()
+            if mm.profile is not None:
+                prof_id = str(getattr(mm.profile, "profile_id", "") or "")
+                if prof_id == "0":
+                    self._model = None
+                    self._backend = "unavailable"
+                    self._init_error = "Profile 0 is pure symbolic: neural embeddings are disabled."
+                    logger.info("[COGNITIVE PATHFINDER] Profile 0 active: neural latent extractor disabled.")
+                    return
+        except Exception as e:
+            errors.append(f"Profile 0 check: {e}")
+
+        if getattr(settings, "profile", "") == "0" or os.environ.get("NSTL_PROFILE") == "0":
+            self._model = None
+            self._backend = "unavailable"
+            self._init_error = "Profile 0 is pure symbolic: neural embeddings are disabled."
+            logger.info("[COGNITIVE PATHFINDER] Profile 0 configured: neural latent extractor disabled.")
+            return
+
         # 1. First check if ModelManager already has an active profile with an embedder
         try:
             try:

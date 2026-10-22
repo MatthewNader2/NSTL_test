@@ -2,6 +2,7 @@
 import argparse
 import ast
 import cmd
+import contextlib
 import glob
 import hashlib
 import io
@@ -318,68 +319,67 @@ def cmd_harvest(args):
     print(f"[+] Merged and saved into '{out_file}'.")
 
 
-def init_sqlite_db(db_path: Path, clean: bool = False) -> sqlite3.Connection:
+def init_sqlite_db(db_path: Path, clean: bool = False) -> None:
     """Initializes standard NSTL SQLite schema without destroying existing data unless clean=True."""
     if clean and db_path.exists():
         os.remove(db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
-    conn = sqlite3.connect(str(db_path))
-    cur = conn.cursor()
-    cur.execute("PRAGMA journal_mode = WAL;")
-    cur.execute("PRAGMA synchronous = NORMAL;")
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS nodes (
-            cell_id              TEXT PRIMARY KEY,
-            domain_name          TEXT,
-            node_type            TEXT,
-            node_role            TEXT DEFAULT 'function',
-            stage                INTEGER,
-            keywords             TEXT,
-            input_type           TEXT,
-            input_state          TEXT,
-            output_type          TEXT,
-            output_state         TEXT,
-            code                 TEXT,
-            dependencies         TEXT,
-            configuration_schema TEXT,
-            slots                TEXT DEFAULT '{}',
-            verified             INTEGER DEFAULT 0,
-            docstring            TEXT DEFAULT '',
-            enrichment_source    TEXT DEFAULT NULL,
-            enriched_at          TEXT DEFAULT NULL,
-            source_provenance    TEXT DEFAULT 'unknown',
-            source_priority      INTEGER DEFAULT 100,
-            raw_cell             TEXT DEFAULT NULL
-        )
-    """)
-    cur.execute("PRAGMA table_info(nodes)")
-    existing_cols = {row[1] for row in cur.fetchall()}
-    if "slots" not in existing_cols:
-        try:
-            cur.execute("ALTER TABLE nodes ADD COLUMN slots TEXT DEFAULT '{}'")
-        except Exception:
-            pass
-    if "raw_cell" not in existing_cols:
-        try:
-            cur.execute("ALTER TABLE nodes ADD COLUMN raw_cell TEXT DEFAULT NULL")
-        except Exception:
-            pass
+    with contextlib.closing(sqlite3.connect(str(db_path))) as conn:
+        conn.execute("PRAGMA journal_mode = WAL;")
+        conn.execute("PRAGMA synchronous = NORMAL;")
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS nodes (
+                cell_id              TEXT PRIMARY KEY,
+                domain_name          TEXT,
+                node_type            TEXT,
+                node_role            TEXT DEFAULT 'function',
+                stage                INTEGER,
+                keywords             TEXT,
+                input_type           TEXT,
+                input_state          TEXT,
+                output_type          TEXT,
+                output_state         TEXT,
+                code                 TEXT,
+                dependencies         TEXT,
+                configuration_schema TEXT,
+                slots                TEXT DEFAULT '{}',
+                verified             INTEGER DEFAULT 0,
+                docstring            TEXT DEFAULT '',
+                enrichment_source    TEXT DEFAULT NULL,
+                enriched_at          TEXT DEFAULT NULL,
+                source_provenance    TEXT DEFAULT 'unknown',
+                source_priority      INTEGER DEFAULT 100,
+                raw_cell             TEXT DEFAULT NULL
+            )
+        """)
+        cur.execute("PRAGMA table_info(nodes)")
+        existing_cols = {row[1] for row in cur.fetchall()}
+        if "slots" not in existing_cols:
+            try:
+                cur.execute("ALTER TABLE nodes ADD COLUMN slots TEXT DEFAULT '{}'")
+            except Exception:
+                pass
+        if "raw_cell" not in existing_cols:
+            try:
+                cur.execute("ALTER TABLE nodes ADD COLUMN raw_cell TEXT DEFAULT NULL")
+            except Exception:
+                pass
 
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_input ON nodes(input_type, input_state)")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_output ON nodes(output_type, output_state)")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_domain ON nodes(domain_name)")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_role ON nodes(node_role)")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_type ON nodes(node_type)")
-    cur.execute("CREATE INDEX IF NOT EXISTS idx_slots ON nodes(slots)")
-    cur.execute("CREATE TABLE IF NOT EXISTS types (type_name TEXT, parent_type TEXT, domain_name TEXT, PRIMARY KEY (type_name, parent_type))")
-    cur.execute("CREATE TABLE IF NOT EXISTS typestates (state_name TEXT PRIMARY KEY, parent_state TEXT, carrier_type TEXT, properties TEXT, domain_name TEXT)")
-    cur.execute("CREATE TABLE IF NOT EXISTS aliases (alias TEXT PRIMARY KEY, canonical TEXT, domain_name TEXT)")
-    cur.execute("CREATE TABLE IF NOT EXISTS artifact_readers (category TEXT, module_name TEXT, function_name TEXT, domain_name TEXT, PRIMARY KEY (category, module_name, function_name))")
-    cur.execute("CREATE TABLE IF NOT EXISTS structural_metadata (category TEXT, item TEXT, extra TEXT, domain_name TEXT, PRIMARY KEY (category, item, extra, domain_name))")
-    cur.execute("CREATE TABLE IF NOT EXISTS _compilation_meta (key TEXT PRIMARY KEY, value TEXT, timestamp REAL)")
-    conn.commit()
-    return conn
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_input ON nodes(input_type, input_state)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_output ON nodes(output_type, output_state)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_domain ON nodes(domain_name)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_role ON nodes(node_role)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_type ON nodes(node_type)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_slots ON nodes(slots)")
+        cur.execute("CREATE TABLE IF NOT EXISTS types (type_name TEXT, parent_type TEXT, domain_name TEXT, PRIMARY KEY (type_name, parent_type))")
+        cur.execute("CREATE TABLE IF NOT EXISTS typestates (state_name TEXT PRIMARY KEY, parent_state TEXT, carrier_type TEXT, properties TEXT, domain_name TEXT)")
+        cur.execute("CREATE TABLE IF NOT EXISTS aliases (alias TEXT PRIMARY KEY, canonical TEXT, domain_name TEXT)")
+        cur.execute("CREATE TABLE IF NOT EXISTS artifact_readers (category TEXT, module_name TEXT, function_name TEXT, domain_name TEXT, PRIMARY KEY (category, module_name, function_name))")
+        cur.execute("CREATE TABLE IF NOT EXISTS structural_metadata (category TEXT, item TEXT, extra TEXT, domain_name TEXT, PRIMARY KEY (category, item, extra, domain_name))")
+        cur.execute("CREATE TABLE IF NOT EXISTS _compilation_meta (key TEXT PRIMARY KEY, value TEXT, timestamp REAL)")
+        conn.commit()
 
 
 # Bump whenever the compiled node serialization changes: forces stale databases to rebuild.
@@ -417,10 +417,11 @@ def get_stored_meta(db_path: Union[str, Path], key: str) -> Optional[str]:
     if not target.exists():
         return None
     try:
-        conn = sqlite3.connect(str(target))
-        row = conn.execute("SELECT value FROM _compilation_meta WHERE key = ?", (key,)).fetchone()
-        conn.close()
-        return row[0] if row else None
+        with contextlib.closing(sqlite3.connect(str(target))) as conn:
+            conn.execute("PRAGMA journal_mode = WAL;")
+            conn.execute("PRAGMA synchronous = NORMAL;")
+            row = conn.execute("SELECT value FROM _compilation_meta WHERE key = ?", (key,)).fetchone()
+            return row[0] if row else None
     except Exception:
         return None
 
@@ -431,12 +432,13 @@ def get_stored_fingerprint(db_path: Union[str, Path]) -> Optional[str]:
     if not target.exists():
         return None
     try:
-        conn = sqlite3.connect(str(target))
-        cur = conn.cursor()
-        cur.execute("SELECT value FROM _compilation_meta WHERE key = 'trees_fingerprint'")
-        row = cur.fetchone()
-        conn.close()
-        return row[0] if row else None
+        with contextlib.closing(sqlite3.connect(str(target))) as conn:
+            conn.execute("PRAGMA journal_mode = WAL;")
+            conn.execute("PRAGMA synchronous = NORMAL;")
+            cur = conn.cursor()
+            cur.execute("SELECT value FROM _compilation_meta WHERE key = 'trees_fingerprint'")
+            row = cur.fetchone()
+            return row[0] if row else None
     except Exception:
         return None
 
@@ -444,15 +446,16 @@ def get_stored_fingerprint(db_path: Union[str, Path]) -> Optional[str]:
 def record_trees_fingerprint(db_path: Union[str, Path], fingerprint: str) -> None:
     """Records the tree compilation fingerprint into the SQLite database."""
     try:
-        conn = sqlite3.connect(str(db_path))
-        cur = conn.cursor()
-        cur.execute("CREATE TABLE IF NOT EXISTS _compilation_meta (key TEXT PRIMARY KEY, value TEXT, timestamp REAL)")
-        cur.execute("INSERT OR REPLACE INTO _compilation_meta (key, value, timestamp) VALUES ('trees_fingerprint', ?, ?)",
-                    (fingerprint, time.time()))
-        cur.execute("INSERT OR REPLACE INTO _compilation_meta (key, value, timestamp) VALUES ('compiler_schema', ?, ?)",
-                    (COMPILER_SCHEMA_VERSION, time.time()))
-        conn.commit()
-        conn.close()
+        with contextlib.closing(sqlite3.connect(str(db_path))) as conn:
+            conn.execute("PRAGMA journal_mode = WAL;")
+            conn.execute("PRAGMA synchronous = NORMAL;")
+            cur = conn.cursor()
+            cur.execute("CREATE TABLE IF NOT EXISTS _compilation_meta (key TEXT PRIMARY KEY, value TEXT, timestamp REAL)")
+            cur.execute("INSERT OR REPLACE INTO _compilation_meta (key, value, timestamp) VALUES ('trees_fingerprint', ?, ?)",
+                        (fingerprint, time.time()))
+            cur.execute("INSERT OR REPLACE INTO _compilation_meta (key, value, timestamp) VALUES ('compiler_schema', ?, ?)",
+                        (COMPILER_SCHEMA_VERSION, time.time()))
+            conn.commit()
     except Exception:
         pass
 
@@ -505,281 +508,23 @@ def ensure_lattice_compiled(trees_dir: Union[str, Path] = "trees", db_path: Unio
     return True
 
 
-def _load_tree_file(jf: Path) -> Tuple[Optional[TreeSchema], Optional[Dict[str, Any]], Optional[List[CellSchema]], str, str]:
-    """Worker helper to parse and validate domain JSON trees concurrently."""
-    try:
-        with open(jf, "r", encoding="utf-8") as f:
-            data = json.load(f)
-    except Exception as e:
-        print(f"[!] Failed to read {jf.name}: {e}")
-        return None, None, None, jf.stem, jf.name
-
-    if isinstance(data, dict) and "cells" in data:
-        try:
-            tree = TreeSchema(**data)
-            return tree, data, tree.cells, tree.domain, jf.name
-        except Exception as e:
-            print(f"[!] Schema validation error in {jf.name}: {e}")
-            return None, data, [], jf.stem, jf.name
-    elif isinstance(data, list):
-        cells = [CellSchema(**c) for c in data if isinstance(c, dict) and "cell_id" in c]
-        domain = jf.stem.replace("_tree", "").replace("_seeds", "")
-        return None, {"cells": [x for x in data if isinstance(x, dict)]}, cells, domain, jf.name
-    return None, None, None, jf.stem, jf.name
-
-
 def cmd_compile(args):
-    """Compiles all trees/*.json domain files into a target SQLite database with batched I/O."""
-    trees_dir = Path(args.trees_dir)
-    out_db = Path(args.output)
-    domain_filter = args.domains
+    """Compiles all trees/*.json domain files into a target SQLite database by delegating to tools.compile_trees."""
+    trees_dir = getattr(args, 'trees_dir', None) or getattr(args, 'dir', 'trees')
+    out_db = getattr(args, 'output', 'trees/lattice.db')
+    domain_filter = getattr(args, 'domains', None) or None
 
-    json_files = sorted(trees_dir.glob("*.json"))
-    if domain_filter:
-        json_files = [f for f in json_files if f.stem in domain_filter or any(d in f.stem for d in domain_filter)]
+    try:
+        from tools.compile_trees import compile_database
+    except ImportError:
+        if ROOT_DIR not in sys.path:
+            sys.path.insert(0, ROOT_DIR)
+        from tools.compile_trees import compile_database
 
-    print(f"[*] Compiling {len(json_files)} domain JSON files from '{trees_dir}' into '{out_db}'...")
-    conn = init_sqlite_db(out_db, clean=getattr(args, "clean", False))
-    cur = conn.cursor()
-
-    with ThreadPoolExecutor() as executor:
-        loaded_trees = list(executor.map(_load_tree_file, json_files))
-
-    dynamic_edges_map: Dict[str, Any] = {}
-    if synthesize_dynamic_edges:
-        all_cells_list = []
-        for tree, data, cells, domain, fname in loaded_trees:
-            if not cells:
-                continue
-            for cell in cells:
-                all_cells_list.append((domain, cell.model_dump()))
-        dynamic_edges_map = synthesize_dynamic_edges(all_cells_list)
-
-    total_compiled = 0
-    stats: Dict[str, int] = {}
-    node_rows: List[Tuple] = []
-
-    for tree, data, cells, domain, fname in loaded_trees:
-        if cells is None:
-            continue
-
-        if tree and data:
-            types_dict = getattr(tree, "types", {}) or data.get("types", {})
-            if isinstance(types_dict, list):
-                reg = TypeRegistry.get_instance()
-                for item in types_dict:
-                    if isinstance(item, dict):
-                        t_name = item.get("name") or item.get("type_name")
-                        parent = item.get("parent") or item.get("parent_type")
-                        if t_name and parent:
-                            reg.register_type(str(t_name), str(parent))
-                            cur.execute(
-                                "INSERT OR REPLACE INTO types (type_name, parent_type, domain_name) VALUES (?, ?, ?)",
-                                (str(t_name).strip().lower(), str(parent).strip().lower(), domain)
-                            )
-            elif isinstance(types_dict, dict):
-                reg = TypeRegistry.get_instance()
-                for t_name, t_meta in types_dict.items():
-                    if isinstance(t_meta, dict):
-                        parents = t_meta.get("parents") or ([t_meta["parent"]] if t_meta.get("parent") else [])
-                    else:
-                        parents = [str(t_meta)]
-                    for parent in parents:
-                        if parent:
-                            reg.register_type(t_name, parent)
-                            cur.execute(
-                                "INSERT OR REPLACE INTO types (type_name, parent_type, domain_name) VALUES (?, ?, ?)",
-                                (str(t_name).strip().lower(), str(parent).strip().lower(), domain)
-                            )
-
-            ts_data = data.get("typestates") or getattr(tree, "typestates", None)
-            if hasattr(ts_data, "model_dump"):
-                ts_data = ts_data.model_dump()
-            if ts_data:
-                states_list = ts_data.get("states", []) if isinstance(ts_data, dict) else (ts_data if isinstance(ts_data, list) else [])
-                for s_entry in states_list:
-                    if isinstance(s_entry, dict) and "name" in s_entry:
-                        s_name = s_entry["name"]
-                        s_parent = s_entry.get("parent_state")
-                        s_carrier = s_entry.get("carrier_type")
-                        s_props = json.dumps(s_entry.get("properties") or {})
-                        cur.execute(
-                            "INSERT OR REPLACE INTO typestates (state_name, parent_state, carrier_type, properties, domain_name) VALUES (?, ?, ?, ?, ?)",
-                            (s_name, s_parent, s_carrier, s_props, domain)
-                        )
-                if isinstance(ts_data, dict) and "terminal_states" in ts_data:
-                    for t_s in ts_data["terminal_states"]:
-                        cur.execute(
-                            "INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('terminal_state', ?, '', ?)",
-                            (str(t_s).strip().lower(), domain)
-                        )
-
-            aliases_dict = getattr(tree, "aliases", {}) or data.get("aliases", {})
-            if isinstance(aliases_dict, dict):
-                for a_k, a_v in aliases_dict.items():
-                    cur.execute(
-                        "INSERT OR REPLACE INTO aliases (alias, canonical, domain_name) VALUES (?, ?, ?)",
-                        (str(a_k).strip(), str(a_v).strip(), domain)
-                    )
-
-            readers_dict = getattr(tree, "artifact_readers", {}) or data.get("artifact_readers", {})
-            if isinstance(readers_dict, dict):
-                for cat, readers in readers_dict.items():
-                    if isinstance(readers, list):
-                        for r in readers:
-                            parts = str(r).replace(":", ".").rsplit(".", 1)
-                            if len(parts) == 2:
-                                cur.execute(
-                                    "INSERT OR REPLACE INTO artifact_readers (category, module_name, function_name, domain_name) VALUES (?, ?, ?, ?)",
-                                    (cat.strip().lower(), parts[0], parts[1], domain)
-                                )
-
-            # Structural Metadata
-            for q in getattr(tree, "advisory_qualifiers", []) or data.get("advisory_qualifiers", []):
-                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('advisory_qualifier', ?, '', ?)", (json.dumps(q), domain))
-            for c in getattr(tree, "abstract_carriers", []) or data.get("abstract_carriers", []):
-                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('abstract_carrier', ?, '', ?)", (str(c).strip().lower(), domain))
-            for k, v in (getattr(tree, "abstract_carrier_mapping", {}) or data.get("abstract_carrier_mapping", {})).items():
-                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('abstract_carrier_mapping', ?, ?, ?)", (str(k).strip().lower(), str(v).strip().lower(), domain))
-            for t in getattr(tree, "dest_port_tokens", []) or data.get("dest_port_tokens", []):
-                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('dest_port_token', ?, '', ?)", (str(t).strip().lower(), domain))
-            for r in getattr(tree, "data_bearing_roles", []) or data.get("data_bearing_roles", []):
-                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('data_bearing_role', ?, '', ?)", (str(r).strip().lower(), domain))
-            for v in getattr(tree, "estimator_verbs", []) or data.get("estimator_verbs", []):
-                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('estimator_verb', ?, '', ?)", (str(v).strip().lower(), domain))
-            for tok in getattr(tree, "column_projection_tokens", []) or data.get("column_projection_tokens", []):
-                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('column_projection_token', ?, '', ?)", (str(tok).strip().lower(), domain))
-            for tv in getattr(tree, "type_vars", []) or data.get("type_vars", []):
-                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('type_var', ?, '', ?)", (str(tv).strip(), domain))
-            for tt in getattr(tree, "top_types", []) or data.get("top_types", []):
-                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('top_type', ?, '', ?)", (str(tt).strip().lower(), domain))
-            top_decl = getattr(tree, "top", None) or data.get("top")
-            if isinstance(top_decl, list):
-                for tt in top_decl:
-                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('top_type', ?, '', ?)", (str(tt).strip().lower(), domain))
-            for pc in getattr(tree, "product_constructors", []) or data.get("product_constructors", []):
-                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('product_constructor', ?, '', ?)", (str(pc).strip().lower(), domain))
-            for et in getattr(tree, "egress_intent_tokens", []) or data.get("egress_intent_tokens", []):
-                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('egress_intent_token', ?, '', ?)", (str(et).strip().lower(), domain))
-            for ms in getattr(tree, "materialization_states", []) or data.get("materialization_states", []):
-                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('materialization_state', ?, '', ?)", (str(ms).strip().lower(), domain))
-            pol_hints = getattr(tree, "polarity_hints", {}) or data.get("polarity_hints", {})
-            if isinstance(pol_hints, dict):
-                for direction, hints in pol_hints.items():
-                    if isinstance(hints, list):
-                        for h in hints:
-                            cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('polarity_hint', ?, ?, ?)", (str(direction).strip().lower(), str(h).strip().lower(), domain))
-            for pt in getattr(tree, "preposition_triggers", []) or data.get("preposition_triggers", []):
-                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('preposition_trigger', ?, '', ?)", (str(pt).strip().lower(), domain))
-            for sc in getattr(tree, "sentence_connectives", []) or data.get("sentence_connectives", []):
-                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('sentence_connective', ?, '', ?)", (str(sc).strip().lower(), domain))
-            for mk, mv in (getattr(tree, "asset_placeholders", {}) or getattr(tree, "default_asset_placeholders", {}) or data.get("asset_placeholders", {}) or data.get("default_asset_placeholders", {})).items():
-                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('asset_placeholder', ?, ?, ?)", (str(mk).strip().lower(), str(mv).strip(), domain))
-            for mk, mv in (getattr(tree, "output_placeholders", {}) or getattr(tree, "default_output_placeholders", {}) or data.get("output_placeholders", {}) or data.get("default_output_placeholders", {})).items():
-                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('output_asset_placeholder', ?, ?, ?)", (str(mk).strip().lower(), str(mv).strip(), domain))
-            for av in getattr(tree, "action_verbs", []) or data.get("action_verbs", []):
-                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('action_verb', ?, '', ?)", (str(av).strip().lower(), domain))
-            for ot in getattr(tree, "operation_tokens", []) or data.get("operation_tokens", []):
-                cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('operation_token', ?, '', ?)", (str(ot).strip().lower(), domain))
-
-        raw_by_id: Dict[str, Any] = {}
-        if isinstance(data, dict):
-            for _rc in (data.get("cells") or []):
-                if isinstance(_rc, dict) and _rc.get("cell_id"):
-                    raw_by_id[str(_rc["cell_id"]).strip().upper()] = _rc
-
-        count = 0
-        for cell in cells:
-            cid = cell.cell_id.strip().upper()
-            primary_in = cell.primary_input
-            primary_out = cell.primary_output
-
-            in_type = primary_in.type_name if primary_in and getattr(primary_in, "type_name", None) and str(primary_in.type_name).lower() not in ("none", "null", "undefined") else None
-            in_state = primary_in.state if primary_in and getattr(primary_in, "state", None) and str(primary_in.state).lower() not in ("none", "null", "undefined") else None
-            out_type = primary_out.type_name if primary_out and getattr(primary_out, "type_name", None) and str(primary_out.type_name).lower() not in ("none", "null", "undefined") else None
-            out_state = primary_out.state if primary_out and getattr(primary_out, "state", None) and str(primary_out.state).lower() not in ("none", "null", "undefined") else None
-
-            cfg_dict = {
-                "inputs": {k: v.model_dump() for k, v in cell.inputs.items()},
-                "outputs": {k: v.model_dump() for k, v in cell.outputs.items()},
-                "slots": getattr(cell, "slots", {}),
-                "topology_type": getattr(cell, "topology_type", "sequential"),
-                "feedback_state_type": getattr(cell, "feedback_state_type", None),
-                "preconditions": [p.model_dump() if hasattr(p, "model_dump") else p for p in getattr(cell, "preconditions", [])],
-                "postconditions": [p.model_dump() if hasattr(p, "model_dump") else p for p in getattr(cell, "postconditions", [])],
-                "effects": [p.model_dump() if hasattr(p, "model_dump") else p for p in getattr(cell, "effects", [])],
-                "edges": dynamic_edges_map.get(cell.cell_id, []),
-                "sub_cells": getattr(cell, "sub_cells", []),
-                "algorithmic_steps": getattr(cell, "algorithmic_steps", []),
-                "internal_topology": getattr(cell, "internal_topology", {}),
-                "endable": getattr(cell, "endable", None),
-                "primary_in": getattr(cell, "primary_in", None),
-                "primary_out": getattr(cell, "primary_out", None),
-                "projection": getattr(cell, "projection", None),
-            }
-            cfg_json = json.dumps(cfg_dict)
-            deps_json = json.dumps(cell.dependencies)
-            kws_json = json.dumps(cell.keywords or cell.semantic_tags)
-            verified_val = 1 if cell.source_priority <= HIGH_TRUST_PRIORITY_THRESHOLD else 0
-
-            if hasattr(cell, "type_vars") and cell.type_vars:
-                for tv in cell.type_vars:
-                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('type_var', ?, '', ?)", (str(tv).strip(), domain))
-            for p_val in cell.inputs.values():
-                role = getattr(p_val, "port_role", None) or getattr(p_val, "role", None)
-                if role:
-                    cur.execute("INSERT OR REPLACE INTO structural_metadata (category, item, extra, domain_name) VALUES ('role_carrier', ?, '', ?)", (str(role).strip().lower(), domain))
-
-            cur.execute("SELECT source_priority FROM nodes WHERE cell_id = ?", (cid,))
-            row = cur.fetchone()
-            if row and row[0] < cell.source_priority:
-                continue
-
-            slots_dict = getattr(cell, "slots", {}) or {}
-            slots_json = json.dumps(slots_dict)
-
-            node_rows.append((
-                cid,
-                cell.domain_name or domain,
-                cell.node_type or "function",
-                cell.node_role or "function",
-                cell.stage,
-                kws_json,
-                in_type,
-                in_state,
-                out_type,
-                out_state,
-                cell.code_template,
-                deps_json,
-                cfg_json,
-                slots_json,
-                verified_val,
-                cell.docstring or "",
-                getattr(cell, "enrichment_source", None),
-                getattr(cell, "enriched_at", None),
-                fname,
-                cell.source_priority,
-                json.dumps(raw_by_id[cid]) if cid in raw_by_id else None,
-            ))
-            count += 1
-            total_compiled += 1
-
-        stats[domain] = count
-        print(f"  [+] Domain '{domain}': compiled {count} nodes ({fname})")
-
-    cur.executemany("""
-        INSERT OR REPLACE INTO nodes
-        (cell_id, domain_name, node_type, node_role, stage, keywords,
-         input_type, input_state, output_type, output_state, code,
-         dependencies, configuration_schema, slots, verified, docstring,
-         enrichment_source, enriched_at, source_provenance, source_priority, raw_cell)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, node_rows)
-
-    conn.commit()
-    conn.close()
-    record_trees_fingerprint(out_db, compute_trees_fingerprint(trees_dir))
-    print(f"[*] Compilation Complete: {total_compiled} total verified nodes compiled into '{out_db}'.")
+    init_sqlite_db(Path(out_db), clean=getattr(args, 'clean', False))
+    written = compile_database(output_db=str(out_db), domain_filter=domain_filter, trees_dir=trees_dir)
+    record_trees_fingerprint(Path(out_db), compute_trees_fingerprint(Path(trees_dir)))
+    print(f"[*] Compilation Complete: {written} total verified nodes compiled into '{out_db}'.")
 
 
 def cmd_validate(args):
@@ -848,41 +593,41 @@ def cmd_validate(args):
         return
 
     print(f"[*] Validating SQLite Database '{target_path}'...")
-    conn = sqlite3.connect(str(target_path))
-    cur = conn.cursor()
+    with contextlib.closing(sqlite3.connect(str(target_path))) as conn:
+        conn.execute("PRAGMA journal_mode = WAL;")
+        conn.execute("PRAGMA synchronous = NORMAL;")
+        cur = conn.cursor()
 
-    cur.execute("SELECT cell_id, domain_name, stage, code, input_type, output_type, configuration_schema, node_type, node_role FROM nodes")
-    rows = cur.fetchall()
+        cur.execute("SELECT cell_id, domain_name, stage, code, input_type, output_type, configuration_schema, node_type, node_role FROM nodes")
+        rows = cur.fetchall()
 
-    valid_count = 0
-    failed_count = 0
-    errors: List[str] = []
+        valid_count = 0
+        failed_count = 0
+        errors: List[str] = []
 
-    for row in rows:
-        cell_id, domain, stage, code, in_t, out_t, config_str, n_type, n_role = row
-        if not code or not code.strip():
+        for row in rows:
+            cell_id, domain, stage, code, in_t, out_t, config_str, n_type, n_role = row
+            if not code or not code.strip():
+                try:
+                    cfg = json.loads(config_str) if config_str else {}
+                except Exception:
+                    cfg = {}
+                if n_type == "macro" or n_role == "macro" or cfg.get("node_type") == "macro" or cfg.get("sub_cells"):
+                    sub_cells = cfg.get("sub_cells") or []
+                    if len(sub_cells) >= 1:
+                        valid_count += 1
+                        continue
+                failed_count += 1
+                errors.append(f"{cell_id}: Empty code template")
+                continue
+
+            dummy_code = sanitize_placeholders_for_ast(code)
             try:
-                cfg = json.loads(config_str) if config_str else {}
-            except Exception:
-                cfg = {}
-            if n_type == "macro" or n_role == "macro" or cfg.get("node_type") == "macro" or cfg.get("sub_cells"):
-                sub_cells = cfg.get("sub_cells") or []
-                if len(sub_cells) >= 1:
-                    valid_count += 1
-                    continue
-            failed_count += 1
-            errors.append(f"{cell_id}: Empty code template")
-            continue
-
-        dummy_code = sanitize_placeholders_for_ast(code)
-        try:
-            ast.parse(dummy_code)
-            valid_count += 1
-        except SyntaxError as e:
-            failed_count += 1
-            errors.append(f"{cell_id}: AST Syntax Error: {e}")
-
-    conn.close()
+                ast.parse(dummy_code)
+                valid_count += 1
+            except SyntaxError as e:
+                failed_count += 1
+                errors.append(f"{cell_id}: AST Syntax Error: {e}")
 
     print(f"\n==================================================")
     print(f" VALIDATION RESULTS FOR: {target_path.name}")
@@ -1445,6 +1190,7 @@ class PipelineDebugger:
             c.print(path_table)
             c.print("")
         else:
+            logger.error(f"[CLI] Planning failed: No valid path found through lattice (Profile: {self.active_profile}, RouteMethod: {getattr(getattr(self, 'router', None), 'last_requested_route', 'M0')})")
             c.print(Panel(
                 "[bold red]❌ PLANNING FAILURE: No valid compositional path found through the lattice.[/bold red]",
                 title=f"[bold red]⚡ LAYER 2: Topological Planning Failure ({plan_dt:.2f}ms)[/bold red]",
@@ -1700,6 +1446,7 @@ class PipelineDebugger:
                 if refusal_reason:
                     # Declared synthesis refusal (e.g. unresolved ports after
                     # estimator-identity gating): refuse with the specific reason.
+                    logger.warning(f"[CLI] Synthesis refused: {refusal_reason} (Profile: {self.active_profile})")
                     c.print(Panel(
                         f"[bold red]❌ SYNTHESIS REFUSED: {refusal_reason}[/bold red]",
                         title="[bold red]⚡ LAYER 3: Synthesis Refusal[/bold red]",
@@ -1727,7 +1474,7 @@ class PipelineDebugger:
                     }
                 if pipeline_bindings and not internal_error_msg:
                     try:
-                        lint_res = PreflightLinter.lint(pipeline_bindings, prompt=prompt, code_str=final_code)
+                        lint_res = PreflightLinter.lint(pipeline_bindings, prompt=prompt, code_str=final_code, orchestrator=self.orchestrator)
                         lint_valid = lint_res.is_valid
                     except Exception as lint_err:
                         logger.warning(f"[PREFLIGHT] Linting exception: {lint_err}")
@@ -1846,7 +1593,7 @@ class PipelineDebugger:
                                 )
                             bridge_code = self.gate.emit_code(bridge_unify.value, bridge_ctx)
                             rep_lint = PreflightLinter.lint(
-                                self.gate.last_pipeline_bindings, prompt=prompt, code_str=bridge_code
+                                self.gate.last_pipeline_bindings, prompt=prompt, code_str=bridge_code, orchestrator=self.orchestrator
                             )
                             bridge_dt = (time.perf_counter() - t_bridge_0) * 1000.0
                             if rep_lint.is_valid:
@@ -1877,7 +1624,7 @@ class PipelineDebugger:
                         if repaired_code and repaired_code.strip() != failing_code.strip():
                             unknown = _unknown_api_references(repaired_code, failing_code, self.orchestrator.loaded_cells.values())
                             if not unknown:
-                                rep_lint = PreflightLinter.lint(pipeline_bindings, prompt=prompt, code_str=repaired_code)
+                                rep_lint = PreflightLinter.lint(pipeline_bindings, prompt=prompt, code_str=repaired_code, orchestrator=self.orchestrator)
                                 if rep_lint.is_valid:
                                     c.print(f"  [bold green][✓] Pre-flight repair accepted ({rep_dt:.1f}ms).[/bold green]\n")
                                     final_code = repaired_code
@@ -1885,6 +1632,7 @@ class PipelineDebugger:
                                     lint_res = rep_lint
 
                 if not lint_valid and lint_res is not None:
+                    logger.error(f"[CLI] Pre-flight lint validation failed ({len(lint_res.violations)} violations): {'; '.join(lint_res.violations)}")
                     c.print(Panel(
                         "[bold red]❌ PRE-FLIGHT LINT VIOLATIONS DETECTED:[/bold red]\n" +
                         "\n".join(f"  • {v}" for v in lint_res.violations),
@@ -2014,6 +1762,8 @@ class PipelineDebugger:
 
             if sb_stderr or sb_err:
                 err_text = sb_err or sb_stderr
+                is_env = bool(sandbox_res.get("extrinsic", False) or _is_environmental_error(err_text))
+                logger.error(f"[CLI] Sandbox execution failed ({'ENVIRONMENTAL' if is_env else 'CODE DEFECT'}): {err_text}")
                 c.print(Panel(err_text, title="[red]Standard Error / Traceback (stderr)[/red]", border_style="red"))
 
                 if sandbox_res.get("extrinsic", False) or _is_environmental_error(err_text):
@@ -2275,7 +2025,7 @@ class NSTLInteractiveShell(cmd.Cmd):
         _quick_line = "  ".join(f"[{k}] {v}:{_short_label.get(v, v)}" for k, v in QUICK_PROFILE_SHORTCUTS)
         quick_shortcuts = Text(
             f"Quick Layers: {_quick_line}\n"
-            "Commands: /profile <0|A|C|D|E|S> | /method <M<n>> | /reranker [on|off|<model>] | /topology <frontier|linear> | /audit | /macro | /debug [on|off] | /sandbox [on|off] | /status | /new | /clear | /exit",
+            "Commands: /profile <0|A|B|C|D|E|S|U|AE> | /method <M<n>> | /reranker [on|off|<model>] | /topology <frontier|linear> | /audit | /macro | /debug [on|off] | /sandbox [on|off] | /status | /new | /clear | /exit",
             justify="center",
             style="dim cyan"
         )
@@ -2304,6 +2054,10 @@ class NSTLInteractiveShell(cmd.Cmd):
             return "Profile E (Translator Pass + Neuro-Symbolic)"
         elif prof_u == "S":
             return "Profile S (Structured Semantic Compiler)"
+        elif prof_u == "U":
+            return "Profile U (Early-Exit Single LLM Layer-Tapping)"
+        elif prof_u == "AE":
+            return "Profile AE (Structural Transition Autoencoder Manifold)"
         return f"Profile {prof_u}"
 
     def _get_profile_description(self, prof: str) -> str:
@@ -2320,6 +2074,10 @@ class NSTLInteractiveShell(cmd.Cmd):
             return "2-stage pipeline: conversational prompt -> canonical translator."
         elif prof_u == "S":
             return "Typed Intent & Schema Compiler pass + Neuro-Symbolic synthesis."
+        elif prof_u == "U":
+            return "Single unified LLM: intermediate layer k tapped for dense RAG, full depth for generation."
+        elif prof_u == "AE":
+            return "Continuous transition manifold embedding type signatures and cell morphisms."
         return ""
 
     def _update_prompt(self):
@@ -2391,8 +2149,21 @@ class NSTLInteractiveShell(cmd.Cmd):
 
     def _switch_profile(self, profile: str, embedder: str = "", llm: str = "", device: str = "auto", verbose: bool = True) -> bool:
         p = profile.strip().upper()
+        import os
+        os.environ["NSTL_PROFILE"] = p
+        try:
+            from config import settings
+            settings.profile = p
+        except Exception:
+            pass
         if p in ("0", "SYMBOLIC", "ZERO", "PURE"):
             self.active_profile = "0"
+            os.environ["NSTL_PROFILE"] = "0"
+            try:
+                from config import settings
+                settings.profile = "0"
+            except Exception:
+                pass
             self.rag = None
             self.router = LatticeRouter(
                 self.orchestrator,
@@ -2406,13 +2177,20 @@ class NSTLInteractiveShell(cmd.Cmd):
                 console.print(f"[bold green][✓] Switched to {self._format_profile_name(self.active_profile)}[/bold green]\n")
             return True
 
-        if p not in ("A", "C", "D", "E", "S"):
-            console.print(f"[bold red][!] Unknown profile '{profile}'. Valid options: 0 (Symbolic), A, C, D, E, S.[/bold red]")
+        if p not in ("A", "B", "C", "D", "E", "S", "U", "AE"):
+            console.print(f"[bold red][!] Unknown profile '{profile}'. Valid options: 0 (Symbolic), A, B, C, D, E, S, U, AE.[/bold red]")
             return False
 
         available_llm = _get_available_llms()
-        emb_choice = select_optimal_embedder(embedder or self.embedder_name or "auto")
-        llm_choice = select_optimal_llm(llm or self.llm_name)
+        if p == "U":
+            emb_choice = "llm_early_exit"
+            llm_choice = select_optimal_llm(llm or self.llm_name)
+        elif p == "AE":
+            emb_choice = "transition_autoencoder"
+            llm_choice = ""
+        else:
+            emb_choice = select_optimal_embedder(embedder or self.embedder_name or "auto")
+            llm_choice = select_optimal_llm(llm or self.llm_name)
 
         if verbose:
             console.print(f"[bold cyan][*] Loading {self._format_profile_name(p)}...[/bold cyan]")
@@ -2423,10 +2201,10 @@ class NSTLInteractiveShell(cmd.Cmd):
             mm.initialize_profile(
                 profile_type=p,
                 embedder_name=emb_choice,
-                llm_name=llm_choice if p in ("C", "D", "E", "S") else ""
+                llm_name=llm_choice if p in ("B", "C", "D", "E", "S", "U") else ""
             )
             self.embedder_name = emb_choice
-            self.llm_name = llm_choice if p in ("C", "D", "E", "S") else ""
+            self.llm_name = llm_choice if p in ("B", "C", "D", "E", "S", "U") else ""
 
             if verbose:
                 console.print(f"[*] Indexing FAISS vector space for {len(self.orchestrator.cells):,} nodes...")
@@ -2466,7 +2244,7 @@ class NSTLInteractiveShell(cmd.Cmd):
             return False
 
     def do_profile(self, arg: str):
-        """Switch active inference profile. Usage: profile <0|A|C|D|E|S>"""
+        """Switch active inference profile. Usage: profile <0|A|B|C|D|E|S|U|AE>"""
         arg = arg.strip().lstrip("/")
         if arg.lower().startswith("profile"):
             arg = arg[7:].strip()
@@ -3064,7 +2842,7 @@ class NSTLInteractiveShell(cmd.Cmd):
         # Step 3b: Static Pre-Flight Linting
         lint_valid = True
         if not query_no_lint and hasattr(self.gate, "last_pipeline_bindings") and self.gate.last_pipeline_bindings:
-            lint_res = PreflightLinter.lint(self.gate.last_pipeline_bindings, prompt=effective_prompt, code_str=final_code)
+            lint_res = PreflightLinter.lint(self.gate.last_pipeline_bindings, prompt=effective_prompt, code_str=final_code, orchestrator=self.orchestrator)
             lint_valid = lint_res.is_valid
             if not lint_res.is_valid:
                 console.print("\n[bold red][!] Static Pre-Flight Lint Violations:[/bold red]")
@@ -3083,7 +2861,7 @@ class NSTLInteractiveShell(cmd.Cmd):
                     console.print("\n[bold yellow]⚡ LAYER 5: Pre-Flight Lint LLM Self-Repair Cycle[/bold yellow]")
                     repaired_code = extract_code_from_llm_response(mm.feedback_check(final_code, err_msg))
                     if repaired_code and repaired_code.strip() != final_code.strip():
-                        rep_lint = PreflightLinter.lint(self.gate.last_pipeline_bindings, prompt=prompt, code_str=repaired_code)
+                        rep_lint = PreflightLinter.lint(self.gate.last_pipeline_bindings, prompt=prompt, code_str=repaired_code, orchestrator=self.orchestrator)
                         if rep_lint.is_valid:
                             console.print("  [bold green][✓] Pre-flight repair accepted.[/bold green]\n")
                             final_code = repaired_code
@@ -3271,8 +3049,22 @@ def cmd_shell(args):
 
 def cmd_run(args):
     """Executes a single prompt synthesis directly from CLI."""
+    if getattr(args, "allow_fallback", None) is not None:
+        try:
+            from config import settings
+            settings.allow_fallback = bool(args.allow_fallback)
+        except Exception:
+            pass
+        os.environ["NSTL_ALLOW_FALLBACK"] = "1" if args.allow_fallback else "0"
     db_path = getattr(args, "db", "trees/lattice.db")
     profile = getattr(args, "profile", "0")
+    import os
+    os.environ["NSTL_PROFILE"] = str(profile).strip().upper()
+    try:
+        from config import settings
+        settings.profile = str(profile).strip().upper()
+    except Exception:
+        pass
     embedder = getattr(args, "embedder", "")
     llm = getattr(args, "llm", "")
     device = getattr(args, "device", "auto")
@@ -3448,6 +3240,13 @@ def cmd_benchmark(args):
         except Exception:
             pass
         os.environ["NSTL_RERANKER_MODEL"] = str(args.reranker_model)
+    if getattr(args, "allow_fallback", None) is not None:
+        try:
+            from config import settings
+            settings.allow_fallback = bool(args.allow_fallback)
+        except Exception:
+            pass
+        os.environ["NSTL_ALLOW_FALLBACK"] = "1" if args.allow_fallback else "0"
     db_path = getattr(args, "db", "trees/lattice.db")
     ensure_lattice_compiled(trees_dir="trees", db_path=db_path)
     bench_type = getattr(args, "type", "matrix")
@@ -3552,6 +3351,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_bench.add_argument("--dev", action="store_true", default=False, help="Enable Dev Mode")
     p_bench.add_argument("--topology", choices=["frontier", "linear"], default=None, help="Topological planning approach")
     p_bench.add_argument("--allow-capabilities", type=str, default="", help="Comma-separated list of capabilities to allow in sandbox (e.g. net.http,fs.read)")
+    p_bench.add_argument("--allow-fallback", action="store_true", default=False, help="Allow route methods to fall back to M1 on failure (default: False)")
     p_bench.add_argument("--llm-feedback", dest="llm_feedback", action="store_true", default=False, help="Enable LLM feedback / self-repair cycle")
     p_bench.add_argument(
         "--early-exit-layer",
@@ -3586,7 +3386,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("prompt", type=str, help="Natural language pipeline specification")
     p_run.add_argument("--debug", "-d", action="store_true", help="Enable verbose debug output across all pipeline layers")
     p_run.add_argument("--db", type=str, default="trees/lattice.db", help="Path to SQLite database")
-    p_run.add_argument("--profile", type=str, default="0", help="Inference profile (0=Symbolic, A=Embedder, C=Neuro-Symbolic, D, E)")
+    p_run.add_argument("--profile", type=str, default="0", help="Inference profile (0=Symbolic, A=Embedder, B/C=Neuro-Symbolic, D, E, S, U=Early-Exit Layer, AE=Transition Autoencoder)")
     p_run.add_argument("--route-method", "-m", type=str, default=None, choices=route_method_ids(), help="Routing method algorithm")
     p_run.add_argument("--dev", action="store_true", default=False, help="Enable Dev Mode")
     p_run.add_argument("--no-lint", action="store_true", help="Skip static pre-flight linter")
@@ -3600,6 +3400,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("--exec", dest="exec_sandbox", action="store_true", default=False, help="Enable GEVR sandbox execution")
     p_run.add_argument("--llm-feedback", dest="llm_feedback", action="store_true", default=False, help="Enable LLM feedback / self-repair cycle when pre-flight lint fails")
     p_run.add_argument("--allow-capabilities", type=str, default="", help="Comma-separated list of capabilities to allow in sandbox (e.g. net.http,fs.read)")
+    p_run.add_argument("--allow-fallback", action="store_true", default=False, help="Allow route methods to fall back to M1 on failure (default: False)")
     p_run.add_argument("--timeout", type=float, default=DEFAULT_SANDBOX_TIMEOUT, help="Sandbox execution timeout in seconds")
     p_run.add_argument("--macros", dest="macros", action="store_true", default=None, help="Enable macro-goal routing")
     p_run.add_argument("--no-macros", dest="macros", action="store_false", help="Disable macro-goal routing")
@@ -3630,7 +3431,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_shell = subparsers.add_parser("shell", help="Launch real-time interactive synthesis TUI studio")
     p_shell.add_argument("--db", type=str, default="trees/lattice.db", help="Path to SQLite database")
-    p_shell.add_argument("--profile", type=str, default="0", help="Initial inference profile")
+    p_shell.add_argument("--profile", type=str, default="0", help="Initial inference profile (0, A, B, C, D, E, S, U, AE)")
     p_shell.add_argument("--route-method", "-m", type=str, default=None, choices=route_method_ids(), help="Initial routing method")
     p_shell.add_argument("--dev", action="store_true", default=False, help="Launch studio with Dev Mode enabled")
     p_shell.add_argument("--no-lint", action="store_true", help="Skip static pre-flight linter")
@@ -3645,6 +3446,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_shell.add_argument("--exec", dest="exec_sandbox", action="store_true", default=False, help="Enable GEVR sandbox execution")
     p_shell.add_argument("--llm-feedback", dest="llm_feedback", action="store_true", default=False, help="Enable LLM feedback / self-repair cycle when pre-flight lint fails")
     p_shell.add_argument("--allow-capabilities", type=str, default="", help="Comma-separated list of capabilities to allow in sandbox (e.g. net.http,fs.read)")
+    p_shell.add_argument("--allow-fallback", action="store_true", default=False, help="Allow route methods to fall back to M1 on failure (default: False)")
     p_shell.add_argument("--timeout", type=float, default=DEFAULT_SANDBOX_TIMEOUT, help="Sandbox execution timeout in seconds")
     p_shell.add_argument("--macros", dest="macros", action="store_true", default=None, help="Enable macro-goal routing")
     p_shell.add_argument("--no-macros", dest="macros", action="store_false", help="Disable macro-goal routing")

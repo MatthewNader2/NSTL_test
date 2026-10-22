@@ -106,6 +106,79 @@ class _SecurityASTVisitor(ast.NodeVisitor):
             )
         self.generic_visit(node)
 
+    @staticmethod
+    def _evaluate_constant_str(node: ast.AST) -> Optional[str]:
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            return node.value
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+            left = _SecurityASTVisitor._evaluate_constant_str(node.left)
+            right = _SecurityASTVisitor._evaluate_constant_str(node.right)
+            if left is not None and right is not None:
+                return left + right
+        if isinstance(node, ast.JoinedStr):
+            parts = []
+            for val in node.values:
+                s = _SecurityASTVisitor._evaluate_constant_str(val)
+                if s is None:
+                    return None
+                parts.append(s)
+            return "".join(parts)
+        if isinstance(node, ast.FormattedValue):
+            return _SecurityASTVisitor._evaluate_constant_str(node.value)
+        return None
+
+    def visit_BinOp(self, node: ast.BinOp) -> None:
+        if isinstance(node.op, ast.Add):
+            concat_str = self._evaluate_constant_str(node)
+            if concat_str is not None:
+                if concat_str in self.FORBIDDEN_ATTRIBUTES or (concat_str.startswith("__") and concat_str.endswith("__")):
+                    raise SecurityViolationError(
+                        f"Dynamic concatenation producing forbidden dunder attribute '{concat_str}' at line {getattr(node, 'lineno', 0)} is blocked."
+                    )
+            for side in (node.left, node.right):
+                side_str = self._evaluate_constant_str(side)
+                if side_str is not None and "__" in side_str:
+                    raise SecurityViolationError(
+                        f"Dynamic dunder string concatenation involving '{side_str}' at line {getattr(node, 'lineno', 0)} is blocked."
+                    )
+        self.generic_visit(node)
+
+    def visit_JoinedStr(self, node: ast.JoinedStr) -> None:
+        eval_str = self._evaluate_constant_str(node)
+        if eval_str is not None and (eval_str in self.FORBIDDEN_ATTRIBUTES or (eval_str.startswith("__") and eval_str.endswith("__"))):
+            raise SecurityViolationError(
+                f"Dynamic string formatting producing forbidden dunder attribute '{eval_str}' at line {getattr(node, 'lineno', 0)} is blocked."
+            )
+        for val in node.values:
+            s = self._evaluate_constant_str(val)
+            if s is not None and "__" in s:
+                raise SecurityViolationError(
+                    f"Dynamic dunder string formatting involving '{s}' at line {getattr(node, 'lineno', 0)} is blocked."
+                )
+        self.generic_visit(node)
+
+    def visit_Call(self, node: ast.Call) -> None:
+        if isinstance(node.func, ast.Name):
+            if node.func.id in self.FORBIDDEN_CALLS:
+                raise SecurityViolationError(
+                    f"Direct access to forbidden built-in '{node.func.id}' at line {node.lineno} is blocked."
+                )
+            if node.func.id in ("getattr", "hasattr", "setattr", "delattr") and len(node.args) >= 2:
+                arg_str = self._evaluate_constant_str(node.args[1])
+                if arg_str and (arg_str in self.FORBIDDEN_ATTRIBUTES or (arg_str.startswith("__") and arg_str.endswith("__"))):
+                    raise SecurityViolationError(
+                        f"Dynamic access to forbidden dunder attribute '{arg_str}' via {node.func.id} at line {node.lineno} is blocked."
+                    )
+        self.generic_visit(node)
+
+    def visit_Subscript(self, node: ast.Subscript) -> None:
+        slice_str = self._evaluate_constant_str(node.slice)
+        if slice_str and (slice_str in self.FORBIDDEN_ATTRIBUTES or (slice_str.startswith("__") and slice_str.endswith("__"))):
+            raise SecurityViolationError(
+                f"Subscription access to forbidden meta-attribute '{slice_str}' at line {getattr(node, 'lineno', 0)} is blocked."
+            )
+        self.generic_visit(node)
+
 
 # ============================================================================
 # Pluggable Postconditions & State Protocols (Domain-Agnostic)
@@ -341,11 +414,6 @@ def _enforce_posix_resource_limits(max_memory_mb: int = 16384, max_cpu_seconds: 
                 max_memory_mb = max(int(env_mem), max_memory_mb)
             except ValueError:
                 pass
-        # On 64-bit platforms, Python 3.13 + C-extensions (torch/numpy/scipy/sklearn) map
-        # multi-gigabyte shared objects, thread pool stacks, and BLAS memory arenas.
-        # Ensure at least 16384 MB (16 GB) virtual address space bounds on 64-bit systems.
-        if sys.maxsize > 2**32:
-            max_memory_mb = max(max_memory_mb, 16384)
         mem_bytes = int(max_memory_mb) * 1024 * 1024
         if hasattr(_resource, "RLIMIT_AS"):
             _, hard_as = _resource.getrlimit(_resource.RLIMIT_AS)
@@ -901,6 +969,49 @@ class GEVRSandbox:
         for check in checks:
             if not isinstance(check, dict):
                 continue
+
+            if check.get("type") == "observable_deliverable":
+                v_name = check.get("var")
+                cid = check.get("cell_id", "unknown_cell")
+                if not v_name or str(v_name) not in results:
+                    violations.append(f"Deliverable variable '{v_name}' produced by '{cid}' was not found in sandbox execution scope.")
+                else:
+                    v_val = results[str(v_name)]
+                    if v_val is None:
+                        violations.append(f"Deliverable variable '{v_name}' produced by '{cid}' evaluated to None.")
+                    else:
+                        try:
+                            f_val = float(v_val)
+                            if math.isnan(f_val) or math.isinf(f_val):
+                                violations.append(f"Deliverable variable '{v_name}' produced by '{cid}' is NaN or infinite ({v_val}).")
+                        except (TypeError, ValueError):
+                            pass
+
+                        if hasattr(v_val, "__len__"):
+                            try:
+                                if len(v_val) == 0:
+                                    violations.append(f"Deliverable variable '{v_name}' produced by '{cid}' is empty (length 0).")
+                            except Exception:
+                                pass
+                        elif hasattr(v_val, "size"):
+                            try:
+                                if int(getattr(v_val, "size", 1)) == 0:
+                                    violations.append(f"Deliverable variable '{v_name}' produced by '{cid}' is empty (size 0).")
+                            except Exception:
+                                pass
+
+                        for post in check.get("postconditions", []) or []:
+                            prop = getattr(post, "property", None) or (post.get("property") if isinstance(post, dict) else None)
+                            if prop:
+                                exp = getattr(post, "value", None) if not isinstance(post, dict) else post.get("value")
+                                try:
+                                    ok = PostconditionRegistry().evaluate(prop, v_val, exp)
+                                    if not ok:
+                                        violations.append(f"Postcondition '{prop}' on deliverable '{v_name}' ({cid}) was not satisfied.")
+                                except Exception as eval_err:
+                                    logger.debug("[SANDBOX] deliverable postcondition eval failed: %s", eval_err)
+                continue
+
             expected_var = check.get("expected_var")
             actual_var = check.get("actual_var")
             if expected_var and actual_var:

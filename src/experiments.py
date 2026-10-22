@@ -508,13 +508,13 @@ def corpus_idf_split_clauses(prompt: str, orchestrator: Any = None) -> List[str]
     if not prompt or not prompt.strip():
         return []
     try:
-        from .token_evidence import get_evidence, last_orchestrator
+        from .token_evidence import get_evidence
         from .tokenizer import normalize_token
     except (ImportError, ValueError):
-        from token_evidence import get_evidence, last_orchestrator
+        from token_evidence import get_evidence
         from tokenizer import normalize_token
 
-    orch = orchestrator or last_orchestrator()
+    orch = orchestrator
     ev = get_evidence(orch) if orch is not None else None
     if ev is None:
         return [c.strip() for c in prompt.split(";") if c.strip()] or [prompt.strip()]

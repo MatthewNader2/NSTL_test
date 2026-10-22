@@ -230,39 +230,34 @@ class M10MonteCarloRouteMethod(RouteMethod):
         except (ImportError, ValueError):
             from token_evidence import audit as _audit
         verdicts: Dict[Tuple, Dict[str, Any]] = {}
+        reg = TypeRegistry.get_instance()
 
-        def reward(state) -> float:
-            path_t = state[1]
+        def _fast_reward(path_t: tuple) -> float:
             if not path_t:
                 return 0.0
-            cells = self.insert_column_commits(materialize(path_t), trace=False)
-            res = _audit(cells, prompt, orch)
+            mat_cells = materialize(path_t)
+            # Fast structural port-compatibility check between adjacent steps
+            compat_factor = 1.0
+            for i in range(len(mat_cells) - 1):
+                c1, c2 = mat_cells[i], mat_cells[i + 1]
+                p_out = getattr(c1, "primary_output", None)
+                p_in = getattr(c2, "primary_input", None)
+                if p_out is not None and p_in is not None:
+                    t_out = str(getattr(getattr(p_out, "signature", p_out), "type_name", "") or "").lower()
+                    t_in = str(getattr(getattr(p_in, "signature", p_in), "type_name", "") or "").lower()
+                    if t_out and t_in and t_out not in ("any", "*") and t_in not in ("any", "*"):
+                        if not (reg.is_subtype(t_out, t_in) or reg.is_subtype(t_in, t_out)):
+                            compat_factor *= 0.5
+
+            res = _audit(mat_cells, prompt, orch)
             infos = [c for c in res.get("clauses", []) if c["status"] in ("served", "UNSERVED")]
             served = (sum(1 for c in infos if c["status"] == "served") / len(infos)) if infos else 0.0
             quality = (sum(c["quality"] for c in infos) / len(infos)) if infos else 0.0
-            nviol, note = 0, None
-            if res.get("issues"):
-                # cheap verdict first: a plan the coverage audit already rejects is not worth a Layer-3 run
-                nviol = len(res["issues"])
-                note = f"coverage audit: {res['issues'][0]['kind']}"
-            else:
-                try:
-                    gate = UnificationGate(orchestrator=orch)
-                    run_ctx = ExecutionContext(prompt=prompt)
-                    ur = gate.unify_pipeline(cells, run_ctx, extract_llm_slots=False)
-                    if ur.is_bottom():
-                        nviol, note = 10, "unification produced bottom"
-                    else:
-                        code = gate.emit_code(ur.value, run_ctx, extract_llm_slots=False)
-                        lint = PreflightLinter.lint(ur.value, prompt=prompt, code_str=code)
-                        nviol = len(lint.violations)
-                        note = lint.violations[0][:140] if lint.violations else None
-                except UnificationFailure as exc:
-                    nviol, note = 10, f"refused: {str(exc)[:120]}"
-                except Exception as exc:  # a verifier crash must not look like a good plan
-                    nviol, note = 10, f"verifier error {type(exc).__name__}: {str(exc)[:100]}"
-            verdicts[state[1]] = {"served": round(served, 3), "quality": round(quality, 3), "violations": nviol, "first": note}
-            return served * quality / (1.0 + nviol)
+            n_issues = len(res.get("issues", []))
+            return (served * quality * compat_factor) / (1.0 + n_issues)
+
+        def reward(state) -> float:
+            return _fast_reward(state[1])
 
         search = MonteCarloTreeSearch(
             actions=actions, step=step, reward=reward, prior=prior,
@@ -297,12 +292,37 @@ class M10MonteCarloRouteMethod(RouteMethod):
                     kept_path, cur_reward = trial, r_trial
         result.best_state, result.best_reward = (N, kept_path, 0), cur_reward
         best_path = result.best_state[1]
+
+        # Final verification pass: run heavy compilation and preflight ONCE on the winning trajectory
+        nviol, note = 0, None
+        final_cells: List[Cell] = []
+        if best_path and cur_reward > 0.0:
+            final_cells = self.insert_column_commits(materialize(best_path), trace=False)
+            try:
+                gate = UnificationGate(orchestrator=orch)
+                run_ctx = ExecutionContext(prompt=prompt)
+                ur = gate.unify_pipeline(final_cells, run_ctx, extract_llm_slots=False)
+                if ur.is_bottom():
+                    nviol, note = 10, "unification produced bottom"
+                else:
+                    code = gate.emit_code(ur.value, run_ctx, extract_llm_slots=False)
+                    lint = PreflightLinter.lint(ur.value, prompt=prompt, code_str=code, orchestrator=orch)
+                    nviol = len(lint.violations)
+                    note = lint.violations[0][:140] if lint.violations else None
+            except UnificationFailure as exc:
+                nviol, note = 10, f"refused: {str(exc)[:120]}"
+            except Exception as exc:
+                nviol, note = 10, f"verifier error {type(exc).__name__}: {str(exc)[:100]}"
+            verdicts[best_path] = {"served": round(cur_reward, 3), "quality": round(cur_reward, 3), "violations": nviol, "first": note}
+            if nviol > 0:
+                result.best_reward = cur_reward / (1.0 + nviol)
+
         v = verdicts.get(best_path, {})
         self._trace("mcts_summary", iterations=result.iterations, evaluations=result.evaluations, cache_hits=result.cache_hits,
                     seed=result.seed, elapsed_ms=round(result.elapsed_ms, 1), stopped_by=result.stopped_by,
                     best_reward=round(result.best_reward, 4), best_plan=[c for c, _ in best_path], verdict=v,
                     root=result.root_stats[:8], best_line=result.best_path_stats)
-        if not best_path or result.best_reward <= 0.0:
+        if not best_path or result.best_reward <= 0.0 or nviol >= 10:
             return self._delegate_to_m1("Monte Carlo search found no plan with positive reward", prompt, tunnel, relevance_map, orch,
                                         ctx=ctx, start_sig=start_sig, goal_sig=goal_sig, max_transforms=max_transforms)
-        return materialize(best_path)
+        return final_cells if final_cells else materialize(best_path)

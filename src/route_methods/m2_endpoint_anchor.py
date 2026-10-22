@@ -8,6 +8,9 @@ from __future__ import annotations
 from typing import Dict, List, Optional, Set, Tuple, Any
 
 from .base import RouteMethod, STOPWORDS
+from log_config import get_logger
+
+logger = get_logger("m2_endpoint_anchor")
 
 try:
     from ..lattice import Cell, LatticeOrchestrator
@@ -131,10 +134,15 @@ class M2EndpointAnchorRouteMethod(RouteMethod):
                     break
 
                 target_cl = clauses[min(cl_idx, num_clauses - 1)] if cl_idx < num_clauses else ""
+                target_toks = _ev.clause_tokens(target_cl or prompt) if _ev is not None else set()
 
                 def _score_step(c: Cell):
-                    # evidence for the clause this step should realise > retrieval + edge affinity > sink tie-break
-                    fit = self.clause_fit(target_cl or prompt, c)
+                    # Identity evidence (recall, name-precision, F) > retrieval + edge affinity > sink tie-break
+                    if _ev is not None and target_toks:
+                        ov = _ev.identity_overlap(target_toks, c)
+                        fit = ov["rank"]
+                    else:
+                        fit = self.clause_fit(target_cl or prompt, c)
                     rel = relevance_map.get(c.cell_id, 0.0)
                     aff = self.calculate_edge_affinity(curr, c, orch, relevance_map=relevance_map)
                     is_snk = 1.0 if (best_sink and c.cell_id == best_sink.cell_id and cl_idx >= num_clauses - 1) else 0.0
@@ -154,6 +162,33 @@ class M2EndpointAnchorRouteMethod(RouteMethod):
             if best_sink and path[-1].cell_id != best_sink.cell_id:
                 if self.step_unifies(path[-1], best_sink, prev_path=path) or self.step_unifies_dag(best_sink, path, ctx=ctx):
                     path.append(best_sink)
+
+            self.tag_cells_with_clause_indices(path, prompt, orchestrator=orch)
+            try:
+                from ..token_evidence import audit as _audit
+                _cov = _audit(path, prompt, orch)
+                if _cov.get("available") and any(i["kind"] == "clause_unserved" for i in _cov.get("issues", [])):
+                    return self._delegate_to_m1(
+                        "M2 compound path has unserved clauses", prompt, tunnel, relevance_map,
+                        orch=orch, ctx=ctx, **kwargs
+                    )
+            except Exception as _cov_exc:
+                logger.debug("[M2] Coverage audit check skipped: %s", _cov_exc)
+
+            try:
+                from ..unification import unify_pipeline
+                from ..preflight import PreflightLinter
+                _ur = unify_pipeline(path, prompt=prompt, context=ctx)
+                if _ur is not None and getattr(_ur, "value", None):
+                    _lint = PreflightLinter.lint(_ur.value, prompt=prompt, orchestrator=orch)
+                    if not _lint.is_valid:
+                        return self._delegate_to_m1(
+                            f"M2 path failed pre-flight lint: {'; '.join(_lint.violations[:2])}",
+                            prompt, tunnel, relevance_map, orch=orch, ctx=ctx, **kwargs
+                        )
+            except Exception as _chk_exc:
+                logger.debug("[M2] Pre-flight verification check skipped: %s", _chk_exc)
+
             return path
 
         # Bidirectional Meeting-in-the-Middle through Stage 2 transforms (short prompts)

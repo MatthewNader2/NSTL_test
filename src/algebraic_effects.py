@@ -321,6 +321,55 @@ def build_universal_verification_contract(
                     "expected_properties": dict(accumulated_props.get(root, {})),
                 })
 
+    # 5. Universal In-Memory Observable Deliverable Verification
+    all_output_vars: Set[str] = set()
+    for cell, bindings in pipeline_bindings:
+        for out_name in (getattr(cell, "outputs", {}) or {}).keys():
+            ov = bindings.get(out_name) or bindings.get("output_var")
+            if isinstance(ov, str) and ov and not ov.startswith("None"):
+                all_output_vars.add(ov)
+        ov = bindings.get("output_var")
+        if isinstance(ov, str) and ov and not ov.startswith("None"):
+            all_output_vars.add(ov)
+
+    all_downstream_consumed: Set[str] = set()
+    for _, b_map in pipeline_bindings:
+        for in_k, in_v in b_map.items():
+            if isinstance(in_v, str):
+                root_v = in_v.split("[")[0].strip()
+                if root_v in all_output_vars or root_v.startswith("var_"):
+                    all_downstream_consumed.add(root_v)
+
+    n_steps = len(pipeline_bindings)
+    for idx, (cell, bindings) in enumerate(pipeline_bindings):
+        is_final_step = (idx == n_steps - 1)
+        for out_name, out_sig in (getattr(cell, "outputs", {}) or {}).items():
+            out_v = bindings.get(out_name) or bindings.get("output_var")
+            if not out_v or not isinstance(out_v, str) or out_v.startswith("None"):
+                continue
+
+            is_unconsumed = out_v not in all_downstream_consumed
+            has_clause = getattr(cell, "matched_clause_idx", None) is not None
+            if is_final_step or (is_unconsumed and has_clause):
+                if any(c.get("type") == "observable_deliverable" and c.get("var") == out_v for c in contract.terminal_checks):
+                    continue
+
+                cell_posts = getattr(cell, "postconditions", []) or []
+                contract.terminal_checks.append({
+                    "type": "observable_deliverable",
+                    "cell_id": cell.cell_id,
+                    "var": out_v,
+                    "port": out_name,
+                    "type_name": getattr(out_sig, "type_name", None),
+                    "structure_kind": getattr(out_sig, "structure_kind", None),
+                    "is_final": is_final_step,
+                    "clause_idx": getattr(cell, "matched_clause_idx", None),
+                    "postconditions": [
+                        p for p in cell_posts
+                        if (getattr(p, "target", None) if not isinstance(p, dict) else p.get("target")) in (out_name, "output_var", None)
+                    ],
+                })
+
     return contract
 
 

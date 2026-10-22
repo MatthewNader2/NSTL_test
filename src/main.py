@@ -131,6 +131,12 @@ def _ensure_base_engine_loaded():
 # =====================================================================
 # Request / Response Schemas
 # =====================================================================
+def get_orchestrator() -> Optional[LatticeOrchestrator]:
+    """Returns the globally loaded LatticeOrchestrator singleton."""
+    _ensure_base_engine_loaded()
+    return _orchestrator
+
+
 class InitRequest(BaseModel):
     profile: str = Field(default="0", description="Operational profile: 0, A, C, D, or E")
     embedder_model: Optional[str] = Field(default="auto", description="Embedding model identifier or 'auto'")
@@ -242,7 +248,7 @@ def initialize_engine(
                 "nodes": len(_orchestrator.loaded_cells)
             }
 
-        # Neural profiles: A, C, D, E
+        # Neural profiles: A, B, C, D, E, S, U, AE
         try:
             from .router import HardwareProfiler
         except (ImportError, ValueError):
@@ -250,7 +256,12 @@ def initialize_engine(
         HardwareProfiler.set_config(embedder_device=emb_dev, llm_device=llm_dev)
         actual_device = HardwareProfiler.get_optimal_device()
 
-        optimal_emb = select_optimal_embedder(emb_m or "auto")
+        if p_norm == "U":
+            optimal_emb = "llm_early_exit"
+        elif p_norm == "AE":
+            optimal_emb = "transition_autoencoder"
+        else:
+            optimal_emb = select_optimal_embedder(emb_m or "auto")
         _active_embedder = optimal_emb
 
         mm = ModelManager.get_instance()
@@ -345,9 +356,10 @@ def run_prompt(request: Union[RunRequest, Dict[str, Any], str]) -> RunResponse:
 
     # 1. Routing
     t_route_0 = time.perf_counter()
-    cells = _router.plan_path(effective_prompt, return_tuple=False, ctx=req_ctx)
+    plan_res = _router.plan_path(effective_prompt, return_tuple=False, ctx=req_ctx)
     route_dt = (time.perf_counter() - t_route_0) * 1000.0
 
+    cells = plan_res.cells if hasattr(plan_res, "cells") else plan_res
     if not cells:
         return RunResponse(
             status="error",
@@ -365,7 +377,7 @@ def run_prompt(request: Union[RunRequest, Dict[str, Any], str]) -> RunResponse:
     t_synth_0 = time.perf_counter()
     local_gate = UnificationGate(orchestrator=_orchestrator)
     # Profile S: forward structured IR literals / intent into unification context
-    ir_literals = getattr(_router, "last_ir_literals", None) or {}
+    ir_literals = getattr(plan_res, "ir_literals", None) or getattr(_router, "last_ir_literals", None) or {}
     intent_payload = dict(intent_data) if intent_data else ({"parameters": dict(ir_literals)} if isinstance(ir_literals, dict) and ir_literals else None)
     try:
         code = local_gate.unify_and_emit(cells, prompt, intent_data=intent_payload)
@@ -391,7 +403,7 @@ def run_prompt(request: Union[RunRequest, Dict[str, Any], str]) -> RunResponse:
     lint_violations: List[str] = []
     if hasattr(local_gate, "last_pipeline_bindings") and local_gate.last_pipeline_bindings:
         try:
-            lint_res = PreflightLinter.lint(local_gate.last_pipeline_bindings, prompt=prompt, code_str=code)
+            lint_res = PreflightLinter.lint(local_gate.last_pipeline_bindings, prompt=prompt, code_str=code, orchestrator=_orchestrator)
             if not lint_res.is_valid:
                 lint_violations = list(lint_res.violations)
                 logger.warning(f"Static Pre-Flight Lint Violations: {lint_violations}")
@@ -399,54 +411,21 @@ def run_prompt(request: Union[RunRequest, Dict[str, Any], str]) -> RunResponse:
             logger.debug(f"Preflight linting error: {_lint_err}")
 
     # Deterministic Bridge Insertion for Pre-Flight Lint Violations
-    if lint_violations and 'lint_res' in locals() and lint_res and getattr(lint_res, "structured_violations", None) and cells:
-        repaired_cells = list(cells)
-        bridge_inserted = False
-        for viol in lint_res.structured_violations:
-            if viol.check_id in ("shape_carrier_mismatch", "type_unification_failure"):
-                # Carrier / type mismatch violations are preserved as lint violations
-                # and resolved via explicit structural bridges or LLM feedback,
-                # not by blind injection of arbitrary transformers.
-                pass
-
-            elif viol.check_id == "precondition_violated":
-                prod_id = viol.details.get("established_by")
-                candidates = viol.details.get("bridge_candidates", [])
-                prop = viol.details.get("property")
-                if prod_id and candidates:
-                    prod_idx = next((i for i, cl in enumerate(repaired_cells) if cl.cell_id == prod_id), None)
-                    if prod_idx is not None:
-                        while prod_idx + 1 < len(repaired_cells) and any(
-                            str(eff).lower() == f"preserves:{str(prop).lower()}"
-                            for eff in (getattr(repaired_cells[prod_idx + 1], "effects", None) or [])
-                        ):
-                            prod_idx += 1
-                        best_cand = None
-                        for c_id in candidates:
-                            cand_cell = _orchestrator.loaded_cells.get(c_id)
-                            if cand_cell:
-                                if len(cand_cell.inputs) == 1:
-                                    best_cand = cand_cell
-                                    break
-                                if best_cand is None:
-                                    best_cand = cand_cell
-                        if best_cand and (prod_idx + 1 >= len(repaired_cells) or repaired_cells[prod_idx + 1].cell_id != best_cand.cell_id):
-                            b_inst = best_cand.clone() if hasattr(best_cand, "clone") else best_cand
-                            b_inst.matched_clause_idx = getattr(repaired_cells[prod_idx], "matched_clause_idx", None)
-                            repaired_cells.insert(prod_idx + 1, b_inst)
-                            bridge_inserted = True
-
-        if bridge_inserted:
-            try:
+    if lint_violations and cells:
+        try:
+            from route_methods.m1_clause_anchor import M1ClauseAnchorRouteMethod
+            _bridge_router = M1ClauseAnchorRouteMethod(orchestrator=_orchestrator)
+            repaired_cells = _bridge_router.insert_property_bridges(cells, prompt=prompt, ctx=req_ctx, trace=False)
+            if [c.cell_id for c in repaired_cells] != [c.cell_id for c in cells]:
                 rep_code = local_gate.unify_and_emit(repaired_cells, prompt, intent_data=intent_payload)
-                rep_lint = PreflightLinter.lint(local_gate.last_pipeline_bindings, prompt=prompt, code_str=rep_code)
+                rep_lint = PreflightLinter.lint(local_gate.last_pipeline_bindings, prompt=prompt, code_str=rep_code, orchestrator=_orchestrator)
                 if rep_lint.is_valid:
                     cells = repaired_cells
                     code = rep_code
                     lint_violations = []
                     logger.info("Deterministic bridge inserted successfully, preflight passed.")
-            except Exception as _bridge_err:
-                logger.debug(f"Deterministic bridge insertion failed: {_bridge_err}")
+        except Exception as _bridge_err:
+            logger.debug(f"Deterministic bridge insertion failed: {_bridge_err}")
 
     # Layer 5 Self-Repair for Pre-Flight Lint Violations (Profile C/E)
     if lint_violations and _active_profile in ("C", "E"):
@@ -456,7 +435,7 @@ def run_prompt(request: Union[RunRequest, Dict[str, Any], str]) -> RunResponse:
             repaired_code = extract_code_from_llm_response(mm.feedback_check(code, err_msg))
             if repaired_code and repaired_code.strip() != code.strip():
                 try:
-                    rep_lint = PreflightLinter.lint(local_gate.last_pipeline_bindings, prompt=prompt, code_str=repaired_code)
+                    rep_lint = PreflightLinter.lint(local_gate.last_pipeline_bindings, prompt=prompt, code_str=repaired_code, orchestrator=_orchestrator)
                     if rep_lint.is_valid:
                         code = repaired_code
                         lint_violations = []

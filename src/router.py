@@ -21,6 +21,7 @@ import time
 import math
 from typing import Optional, List, Dict, Set, Tuple, Any, Union
 from collections import defaultdict
+from dataclasses import dataclass, field
 
 import numpy as np
 from log_config import get_logger
@@ -49,6 +50,31 @@ except (ImportError, ValueError):
         LocalReranker = None
 
 logger = get_logger('router')
+
+
+@dataclass(frozen=True)
+class PlanResult:
+    """Immutable result of a routing/planning pass, avoiding global mutable state on LatticeRouter."""
+    cells: List[Cell] = field(default_factory=list)
+    candidate_ids: Set[str] = field(default_factory=set)
+    requested_route: str = "M0"
+    effective_route: str = "M0"
+    fallback_reason: Optional[str] = None
+    route_trace: Tuple[Dict[str, Any], ...] = field(default_factory=tuple)
+    ir_literals: Dict[str, Any] = field(default_factory=dict)
+    tagging_decisions: Tuple[Dict[str, Any], ...] = field(default_factory=tuple)
+
+    def __iter__(self):
+        return iter(self.cells)
+
+    def __len__(self):
+        return len(self.cells)
+
+    def __getitem__(self, idx):
+        return self.cells[idx]
+
+    def __bool__(self):
+        return bool(self.cells)
 
 
 # ---------------------------------------------------------------------------
@@ -273,6 +299,13 @@ class LatticeRouter:
         self.raw_rag_tunnel: List[Cell] = []
         self.raw_rag_relevance_map: Dict[str, float] = {}
         self.last_reranker_telemetry: List[Dict[str, Any]] = []
+        self._route_cache: Dict[Any, Any] = {}
+        self.enable_route_cache: bool = True
+
+    def clear_route_cache(self) -> None:
+        """Clears memoized Layer 1 semantic routing results."""
+        if hasattr(self, "_route_cache"):
+            self._route_cache.clear()
 
     @property
     def macros_enabled(self) -> bool:
@@ -303,9 +336,21 @@ class LatticeRouter:
         """Computes length-normalized, IDF-weighted lexical scores for a query clause."""
         q_tokens = CellTokenizer.tokenize_prompt(text)
         reg = TypeRegistry.get_instance()
-        stop = set(reg.get_function_words()) | set(reg.get_sentence_connectives())
-        content_tokens = {t for t in q_tokens if t not in stop and reg.is_informative_token(t)}
-        eval_tokens = content_tokens if content_tokens else q_tokens
+        try:
+            from .config import settings as _settings
+            is_p0 = getattr(_settings, "profile", "0") == "0"
+        except Exception:
+            try:
+                from config import settings as _settings
+                is_p0 = getattr(_settings, "profile", "0") == "0"
+            except Exception:
+                is_p0 = False
+        if is_p0:
+            eval_tokens = q_tokens
+        else:
+            stop = set(reg.get_function_words()) | set(reg.get_sentence_connectives())
+            content_tokens = {t for t in q_tokens if t not in stop and reg.is_informative_token(t)}
+            eval_tokens = content_tokens if content_tokens else q_tokens
         q_len = max(len(text.split()), len(eval_tokens), 1)
         inv_q_len = 1.0 / q_len
         clause_scores: Dict[Cell, float] = {}
@@ -567,6 +612,25 @@ class LatticeRouter:
         """
         if not prompt or not prompt.strip() or len(self.orchestrator.loaded_cells) == 0:
             return [], {}
+
+        cache_key = (
+            prompt.strip(),
+            int(top_k),
+            bool(getattr(self, "use_reranker", False)),
+            str(getattr(self, "reranker_model", "") or ""),
+            id(getattr(self, "internal_rag", None)),
+        )
+        if getattr(self, "enable_route_cache", True) and hasattr(self, "_route_cache") and cache_key in self._route_cache:
+            entry = self._route_cache[cache_key]
+            self.last_compiled_ir = entry.get("last_compiled_ir")
+            self.last_ir_literals = dict(entry.get("last_ir_literals") or {})
+            self._last_ir_steps = entry.get("last_ir_steps", 0)
+            self.raw_rag_tunnel = list(entry.get("raw_rag_tunnel") or [])
+            self.raw_rag_relevance_map = dict(entry.get("raw_rag_relevance_map") or {})
+            self.last_reranker_telemetry = list(entry.get("last_reranker_telemetry") or [])
+            for _cid, _s in entry.get("priority_map", {}).items():
+                self.priority_map[_cid] = _s
+            return list(entry["final_tunnel"]), dict(entry["relevance_map"])
 
         # IR compilation: when the loaded model successfully compiles the
         # prompt into a typed IR, that IR -- not a regex/punctuation split of
@@ -889,6 +953,19 @@ class LatticeRouter:
             )
             for cid, s in relevance_map.items():
                 self.priority_map[cid] = s
+
+        if getattr(self, "enable_route_cache", True) and hasattr(self, "_route_cache"):
+            self._route_cache[cache_key] = {
+                "final_tunnel": list(final_tunnel),
+                "relevance_map": dict(relevance_map),
+                "last_compiled_ir": self.last_compiled_ir,
+                "last_ir_literals": dict(self.last_ir_literals or {}),
+                "last_ir_steps": getattr(self, "_last_ir_steps", 0),
+                "raw_rag_tunnel": list(self.raw_rag_tunnel or []),
+                "raw_rag_relevance_map": dict(self.raw_rag_relevance_map or {}),
+                "last_reranker_telemetry": list(self.last_reranker_telemetry or []),
+                "priority_map": dict(self.priority_map or {}),
+            }
 
         return final_tunnel, relevance_map
 
@@ -1232,9 +1309,21 @@ class LatticeRouter:
         if caller_relevance_map:
             for _cid, _score in caller_relevance_map.items():
                 relevance_map[_cid] = max(relevance_map.get(_cid, 0.0), _score)
+        # Dispatch to selected RouteMethod
+        method_name = str(route_method or self.default_route_method or "m0").strip().lower()
         if not tunnel_cells:
             logger.warning(f"[ROUTER] Empty tunnel for prompt: '{prompt}'")
-            return ([], set()) if return_tuple else []
+            empty_res = PlanResult(
+                cells=[],
+                candidate_ids=set(),
+                requested_route=method_name.upper(),
+                effective_route=method_name.upper(),
+                fallback_reason="Empty tunnel",
+                route_trace=(),
+                ir_literals=dict(getattr(self, "last_ir_literals", None) or {}),
+                tagging_decisions=(),
+            )
+            return (empty_res, set()) if return_tuple else empty_res
 
         # Bound the planning trellis: the highest-likelihood tunnel prefix is
         # searched exhaustively; deeper tail cells remain reachable through
@@ -1242,13 +1331,12 @@ class LatticeRouter:
         if top_k and len(tunnel_cells) > top_k:
             tunnel_cells = tunnel_cells[:top_k]
 
-        # Dispatch to selected RouteMethod
-        method_name = str(route_method or self.default_route_method or "m0").strip().lower()
-        self.last_requested_route = method_name.upper()
-        self.last_effective_route = method_name.upper()
-        self.last_fallback_reason = None
-        self.last_route_trace: List[Dict[str, Any]] = []
-        self.last_tagging_decisions: List[Dict[str, Any]] = []
+        requested_route = method_name.upper()
+        effective_route = method_name.upper()
+        fallback_reason: Optional[str] = None
+        route_trace: List[Dict[str, Any]] = []
+        tagging_decisions: List[Dict[str, Any]] = []
+
         # Registry-driven dispatch decision (no alias duplication here):
         # the M0 trellis planner is the in-router baseline; everything else
         # delegates to its registered RouteMethod class.
@@ -1268,17 +1356,18 @@ class LatticeRouter:
                     rag=kwargs.get("rag", self.internal_rag),
                     **kwargs
                 )
-                self.last_effective_route = (getattr(method, "effective_method", None) or method_name).upper()
+                effective_route = (getattr(method, "effective_method", None) or method_name).upper()
                 if getattr(method, "fallback_reason", None):
-                    self.last_fallback_reason = f"{method_name.upper()} -> {self.last_effective_route}: {method.fallback_reason}"
-                self.last_route_trace = list(getattr(method, "trace_events", []) or [])
+                    fallback_reason = f"{method_name.upper()} -> {effective_route}: {method.fallback_reason}"
+                    logger.warning(f"[ROUTER] Route method fallback detected: {fallback_reason}")
+                route_trace = list(getattr(method, "trace_events", []) or [])
             except Exception as e:
                 logger.error(
                     f"[ROUTER] RouteMethod '{method_name}' failed: {e}",
                     exc_info=True,
                 )
-                self.last_effective_route = "M0"
-                self.last_fallback_reason = f"{type(e).__name__}: {str(e)}"
+                effective_route = "M0"
+                fallback_reason = f"{type(e).__name__}: {str(e)}"
                 path = self.planner.plan(
                     prompt=prompt,
                     tunnel=tunnel_cells,
@@ -1288,7 +1377,7 @@ class LatticeRouter:
                 )
         else:
             # Find verified composition path inside tunnel T using baseline Trellis
-            self.last_effective_route = "M0"
+            effective_route = "M0"
             path = self.planner.plan(
                 prompt=prompt,
                 tunnel=tunnel_cells,
@@ -1296,6 +1385,95 @@ class LatticeRouter:
                 start_sig=start_sig,
                 goal_sig=goal_sig
             )
+
+        # ------------------------------------------------------------------ #
+        # Recursive Coalgebraic Goal Unfolding (Unified Fixpoint Rule)
+        # ------------------------------------------------------------------ #
+        residual = 1.0
+        if path:
+            try:
+                try:
+                    from token_evidence import audit as _audit
+                except (ImportError, ValueError):
+                    from .token_evidence import audit as _audit
+                audit_res = _audit(path, prompt, self.orchestrator)
+                if audit_res.get("available"):
+                    clauses_info = audit_res.get("clauses", [])
+                    if clauses_info:
+                        served_count = sum(1 for c in clauses_info if c.get("status") == "served")
+                        coverage_frac = served_count / len(clauses_info)
+                        residual = max(0.0, 1.0 - coverage_frac)
+                    else:
+                        residual = 0.0
+                else:
+                    residual = 0.0
+            except Exception:
+                residual = 0.0 if path else 1.0
+        else:
+            residual = 1.0
+
+        recursion_depth = kwargs.get("recursion_depth", 0)
+        max_depth = kwargs.get("max_depth", 2)
+        epsilon = kwargs.get("epsilon", 0.25)
+
+        # Unified Fixpoint Rule:
+        # If R(g, pi) <= epsilon: accept atomic path pi
+        # If R(g, pi) > epsilon and recursion_depth < max_depth: unfold via psi(g)
+        if residual > epsilon and recursion_depth < max_depth:
+            try:
+                try:
+                    from inference import ModelManager
+                except (ImportError, ValueError):
+                    from .inference import ModelManager
+                mm = ModelManager.get_instance()
+                has_generative = (
+                    mm.active_profile is not None
+                    and getattr(mm, "current_profile_name", "") not in ("0", "A")
+                    and (mm.can_synthesize() or hasattr(mm.active_profile, "decompose_goal") or getattr(mm.active_profile, "llm", None) is not None)
+                )
+            except Exception:
+                has_generative = False
+                mm = None
+
+            if not has_generative:
+                # Profile 0 & Profile A: psi(g) is a null operator (empty set)
+                # Preserves scientific negative-control integrity
+                route_trace.append({
+                    "event": "coalgebraic_unfolding_null",
+                    "residual": residual,
+                    "reason": "Profile 0/A null decomposition operator (scientific baseline)",
+                })
+            else:
+                subgoals = self._decompose_goal_coalgebraic(prompt, self.orchestrator, mm)
+                if subgoals and len(subgoals) > 1:
+                    logger.info(f"[ROUTER] Coalgebraic goal unfolding: {len(subgoals)} subgoals at depth {recursion_depth + 1}")
+                    composed_path: List[Cell] = []
+                    sub_kwargs = dict(kwargs)
+                    sub_kwargs["recursion_depth"] = recursion_depth + 1
+                    for sub_g in subgoals:
+                        sub_res = self.plan_path(
+                            sub_g,
+                            return_tuple=False,
+                            top_k=top_k,
+                            route_method=route_method,
+                            ctx=ctx,
+                            **sub_kwargs
+                        )
+                        sub_cells = sub_res.cells if hasattr(sub_res, "cells") else sub_res
+                        if sub_cells:
+                            if composed_path:
+                                bridges = self.orchestrator.find_shortest_bridge_path(composed_path[-1], sub_cells[0])
+                                composed_path.extend(bridges)
+                            composed_path.extend(sub_cells)
+                    if composed_path:
+                        path = composed_path
+                        effective_route = f"{effective_route}+COALG"
+                        route_trace.append({
+                            "event": "coalgebraic_unfolding_success",
+                            "residual_before": residual,
+                            "subgoals": subgoals,
+                            "composed_len": len(composed_path),
+                        })
 
         if path:
             # 1. Multiplicity expansion: distribute morphisms over declared prompt identifier groups
@@ -1311,25 +1489,25 @@ class LatticeRouter:
                 _util = _Util(orchestrator=self.orchestrator)
                 _before = [c.cell_id for c in path]
                 path = _util.prune_unrequested(path, prompt)
-                self.last_route_trace = list(self.last_route_trace) + list(_util.trace_events)
+                route_trace = list(route_trace) + list(_util.trace_events)
                 if [c.cell_id for c in path] != _before:
                     logger.info(f"[ROUTER] Pruned unrequested cells: {sorted(set(_before) - {c.cell_id for c in path})}")
             except Exception as _pr_err:
                 logger.warning(f"[ROUTER] Unrequested-cell pruning FAILED ({type(_pr_err).__name__}): {_pr_err}")
             try:
                 from route_methods.base import RouteMethod as _RM
-                self.last_tagging_decisions = _RM.tag_cells_with_clause_indices(
+                tagging_decisions = _RM.tag_cells_with_clause_indices(
                     path, prompt, orchestrator=self.orchestrator)
                 from route_methods.m1_clause_anchor import M1ClauseAnchorRouteMethod as _Util2
                 _util2 = _Util2(orchestrator=self.orchestrator)
                 _util2.prompt = prompt
                 path = _util2.insert_column_commits(path)
                 path = _util2.insert_property_bridges(path, prompt=prompt, ctx=ctx)
-                self.last_route_trace = list(self.last_route_trace) + list(_util2.trace_events)
+                route_trace = list(route_trace) + list(_util2.trace_events)
             except Exception as _tc_err:
                 # Was logger.debug + wrong class name: tagging silently never ran.
                 logger.warning(f"[ROUTER] Clause tagging FAILED ({type(_tc_err).__name__}): {_tc_err}")
-                self.last_tagging_decisions = []
+                tagging_decisions = []
 
             # 2b. Autonomous Semantic Adapter Injection under --llm-feedback
             if os.environ.get("NSTL_LLM_FEEDBACK") == "1" or getattr(ctx, "llm_feedback", False):
@@ -1353,10 +1531,28 @@ class LatticeRouter:
             except Exception as _sl_err:
                 logger.debug(f"[ROUTER] Sublattice slot planning skipped: {_sl_err}")
 
+        cand_ids = set(c.cell_id for c in tunnel_cells) if tunnel_cells else set()
+        plan_result = PlanResult(
+            cells=path,
+            candidate_ids=cand_ids,
+            requested_route=requested_route,
+            effective_route=effective_route,
+            fallback_reason=fallback_reason,
+            route_trace=tuple(route_trace),
+            ir_literals=dict(getattr(self, "last_ir_literals", None) or {}),
+            tagging_decisions=tuple(tagging_decisions),
+        )
+
+        # Retain instance attributes for backward compatibility
+        self.last_requested_route = requested_route
+        self.last_effective_route = effective_route
+        self.last_fallback_reason = fallback_reason
+        self.last_route_trace = list(route_trace)
+        self.last_tagging_decisions = list(tagging_decisions)
+
         if return_tuple:
-            candidate_ids = set(c.cell_id for c in tunnel_cells)
-            return path, candidate_ids
-        return path
+            return plan_result, cand_ids
+        return plan_result
 
     def _apply_llm_semantic_adapters(self, path: List[Cell], prompt: str) -> List[Cell]:
         """
@@ -1468,6 +1664,45 @@ class LatticeRouter:
                     except Exception as _e:
                         logger.debug(f"[ROUTER] LLM adapter query failed for transition {curr_cell.cell_id}->{next_cell.cell_id}: {_e}")
         return new_path
+
+    def _decompose_goal_coalgebraic(self, prompt: str, orchestrator: Any, model_mgr: Any) -> List[str]:
+        """
+        Subgoal Decomposition Operator psi(g, LatticeSchemaSummary) -> [g_1, ..., g_m]:
+        Decomposes an abstract or high-residual goal g into fine-grained subgoals
+        grounded in the available carrier types and operations of the loaded lattice.
+        """
+        if not model_mgr or not orchestrator:
+            return []
+        try:
+            all_cells = list(orchestrator.loaded_cells.values()) if hasattr(orchestrator, "loaded_cells") else []
+            domains = {getattr(c, "domain_name", "") for c in all_cells if getattr(c, "domain_name", "")}
+            sample_ops = [c.cell_id for c in all_cells[:30]]
+
+            system_prompt = (
+                "You are the Neuro-Symbolic Topological Lattice Subgoal Decomposer. "
+                "Given a high-level computational goal, decompose it into 2 to 4 sequential, "
+                "fine-grained sub-goals that can be executed step-by-step. "
+                "Ground your sub-goals in the operations and data carriers available in the system.\n"
+                f"Available domains: {', '.join(sorted(domains))}\n"
+                f"Sample available operations: {', '.join(sample_ops[:20])}\n"
+                "Respond ONLY with a JSON array of string sub-goals, e.g.: [\"subgoal 1\", \"subgoal 2\", \"subgoal 3\"]"
+            )
+            raw_resp = model_mgr.generate_text(
+                prompt=f"Decompose this goal into executable sub-steps: '{prompt}'",
+                system_prompt=system_prompt,
+                max_tokens=256
+            )
+            if not raw_resp:
+                return []
+            import json, re
+            m = re.search(r'\[.*\]', raw_resp, re.DOTALL)
+            if m:
+                parsed = json.loads(m.group(0))
+                if isinstance(parsed, list) and all(isinstance(x, str) for x in parsed):
+                    return [s.strip() for s in parsed if s.strip()]
+        except Exception as e:
+            logger.debug(f"[ROUTER] Coalgebraic decomposition error: {e}")
+        return []
 
 
 class HardwareProfiler:
@@ -1625,7 +1860,7 @@ class SemanticRouteOptimizer:
             relevance_map=relevance_map,
             **kwargs
         )
-        return res if isinstance(res, list) else []
+        return res.cells if isinstance(res, PlanResult) else (res if isinstance(res, list) else [])
 
     @property
     def last_effective_route(self) -> str:

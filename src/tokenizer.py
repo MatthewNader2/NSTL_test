@@ -456,9 +456,6 @@ class CellTokenizer:
             coordinating_words = set()
             filter_context_words = set()
 
-        sequencing_words |= {"then", "next", "finally"}
-        coordinating_words |= {"and"}
-
         # 3. Detect clause boundaries
         split_positions = set()
         for idx, (s, e, w) in enumerate(raw_words):
@@ -479,19 +476,6 @@ class CellTokenizer:
             if w.endswith(".") and idx + 1 < len(raw_words) and not (_is_inside_protected(s) and _is_inside_protected(e - 1)):
                 if not (clean and clean.replace(".", "").isdigit()):
                     split_positions.add(e)
-                    continue
-
-            # Standard clause coordinators: 'and then', 'after that'
-            if clean_lower == "and" and idx + 1 < len(raw_words):
-                next_clean = raw_words[idx + 1][2].lower().strip(".,;:")
-                if next_clean in ("then", "next", "finally") or next_clean in sequencing_words:
-                    split_positions.add(s)
-                    continue
-
-            if clean_lower == "after" and idx + 1 < len(raw_words):
-                next_clean = raw_words[idx + 1][2].lower().strip(".,;:")
-                if next_clean == "that":
-                    split_positions.add(s)
                     continue
 
             if clean_lower and clean_lower in sequencing_words:
@@ -535,11 +519,11 @@ class CellTokenizer:
                     pass
             return [text]
 
-        strip_words = set(coordinating_words) | set(sequencing_words) | {"that", "after"}
+        strip_words = set(coordinating_words) | set(sequencing_words)
         if not strip_words and reg is not None:
             strip_words = set(reg.get_sentence_connectives())
         if not strip_words:
-            strip_words = {"and", "then", "next", "finally"}
+            strip_words = set()
 
         def _strip_leading_connectives(chunk_text: str) -> str:
             chunk_text = chunk_text.strip(" ,;:\n\t->➔")

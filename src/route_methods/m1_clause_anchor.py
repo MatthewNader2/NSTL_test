@@ -157,9 +157,9 @@ class M1ClauseAnchorRouteMethod(RouteMethod):
             elif self.step_unifies_dag(next_anchor, routed_path, ctx=ctx):
                 routed_path.append(next_anchor)
             else:
-                bridge = self.find_bridge(curr_cell, next_anchor, candidates, orch, prev_path=routed_path)
-                if bridge:
-                    routed_path.append(bridge)
+                bridges = self.find_bridge_chain(curr_cell, next_anchor, candidates)
+                if bridges:
+                    routed_path.extend(bridges)
                     routed_path.append(next_anchor)
                 else:
                     # In a DAG, if next_anchor does not unify directly with curr_cell,

@@ -331,12 +331,16 @@ class M8LLMStepwisePathfinderRouteMethod(RouteMethod):
                 t for t in transitions
                 if not (_cand_clause(t[0]) is not None and uncovered_indices and _cand_clause(t[0]) < min(uncovered_indices))
             ]
-            # Prioritize target clause transitions over future clause transitions
-            target_forward = [
-                t for t in valid_forward
-                if _cand_clause(t[0]) in (None, target_cl_idx)
-            ]
-            cand_transitions = target_forward if target_forward else valid_forward
+            # Prioritize target clause transitions over unaligned or future clause transitions
+            exact_target = [t for t in valid_forward if _cand_clause(t[0]) == target_cl_idx]
+            if exact_target:
+                cand_transitions = exact_target
+            else:
+                target_forward = [
+                    t for t in valid_forward
+                    if _cand_clause(t[0]) in (None, target_cl_idx)
+                ]
+                cand_transitions = target_forward if target_forward else valid_forward
             if not cand_transitions:
                 cand_transitions = transitions
             cand_transitions.sort(key=_trans_score, reverse=True)
@@ -394,9 +398,8 @@ class M8LLMStepwisePathfinderRouteMethod(RouteMethod):
                     if is_terminal_sink(cand_cell, orch) and uncovered_indices:
                         chosen_id = None
                     elif (
-                        _cand_clause(cand_cell) is not None
-                        and uncovered_indices
-                        and _cand_clause(cand_cell) > target_cl_idx
+                        uncovered_indices
+                        and _cand_clause(cand_cell) != target_cl_idx
                         and any(_cand_clause(t[0]) == target_cl_idx for t in active_transitions)
                     ):
                         chosen_id = None
@@ -508,6 +511,17 @@ class M8LLMStepwisePathfinderRouteMethod(RouteMethod):
             aud = audit(path, prompt, orch)
             if aud.get("available") and any(iss.get("kind") == "clause_unserved" for iss in aud.get("issues", [])):
                 return _fallback("LLM proposed path has unserved clauses")
+            from unification import UnificationGate, ExecutionContext
+            from preflight import PreflightLinter
+            _gate = UnificationGate(orchestrator=orch)
+            _tctx = ExecutionContext(prompt=prompt)
+            _ur = _gate.unify_pipeline(path, _tctx, extract_llm_slots=False)
+            if _ur.is_bottom():
+                return _fallback("LLM proposed path does not unify (bottom)")
+            _code = _gate.emit_code(_ur.value, _tctx, extract_llm_slots=False)
+            _lint = PreflightLinter.lint(_ur.value, prompt=prompt, code_str=_code)
+            if not _lint.is_valid:
+                return _fallback(f"LLM proposed path has pre-flight violations: {_lint.violations[0][:100]}")
         except Exception:
             pass
 

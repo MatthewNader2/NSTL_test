@@ -185,7 +185,48 @@ class M5LLMOneShotRouteMethod(RouteMethod):
                             prompt, tunnel, relevance_map, orch, ctx=ctx,
                             start_sig=start_sig, goal_sig=goal_sig, max_transforms=max_transforms
                         )
+        if len(chain) < 2:
+            return self._delegate_to_m1(
+                "verified chain shorter than 2 cells",
+                prompt, tunnel, relevance_map, orch, ctx=ctx,
+                start_sig=start_sig, goal_sig=goal_sig, max_transforms=max_transforms,
+            )
+
+        self.tag_cells_with_clause_indices(chain, prompt, orchestrator=orch)
+
+        try:
+            from token_evidence import audit
+            aud = audit(chain, prompt, orch)
+            if aud.get("available") and any(iss.get("kind") == "clause_unserved" for iss in aud.get("issues", [])):
+                return self._delegate_to_m1(
+                    "LLM proposed path has unserved clauses",
+                    prompt, tunnel, relevance_map, orch, ctx=ctx,
+                    start_sig=start_sig, goal_sig=goal_sig, max_transforms=max_transforms,
+                )
+            from unification import UnificationGate, ExecutionContext
+            from preflight import PreflightLinter
+            _gate = UnificationGate(orchestrator=orch)
+            _tctx = ExecutionContext(prompt=prompt)
+            _ur = _gate.unify_pipeline(chain, _tctx, extract_llm_slots=False)
+            if _ur.is_bottom():
+                return self._delegate_to_m1(
+                    "LLM proposed path does not unify (bottom)",
+                    prompt, tunnel, relevance_map, orch, ctx=ctx,
+                    start_sig=start_sig, goal_sig=goal_sig, max_transforms=max_transforms,
+                )
+            _code = _gate.emit_code(_ur.value, _tctx, extract_llm_slots=False)
+            _lint = PreflightLinter.lint(_ur.value, prompt=prompt, code_str=_code)
+            if not _lint.is_valid:
+                return self._delegate_to_m1(
+                    f"LLM proposed path has pre-flight violations: {_lint.violations[0][:100]}",
+                    prompt, tunnel, relevance_map, orch, ctx=ctx,
+                    start_sig=start_sig, goal_sig=goal_sig, max_transforms=max_transforms,
+                )
+        except Exception:
+            pass
+
         clauses = self.segment_prompt_clauses(prompt)
         max_allowed = max(32, len(clauses) * 4 + 4, max_transforms + 8)
         return chain[:max_allowed]
+
 

@@ -29,6 +29,7 @@ class NSTLSettings(BaseSettings):
     rerankers_dir: Optional[Path] = None
     reranker_model: Optional[str] = Field(default=None, description="Optional reranker model identifier.")
     use_reranker: bool = Field(default=False, description="Whether neural reranking is enabled in Layer 1.")
+    allow_fallback: bool = Field(default=False, description="Whether route methods may fall back to M1 on failure.")
 
     # Server & Networking
     api_host: str = Field(default="127.0.0.1", description="Host interface to bind the API server.")
@@ -69,6 +70,7 @@ class NSTLSettings(BaseSettings):
     )
 
     # Macro-goal routing & Topology Planning
+    profile: Optional[str] = Field(default="0", description="Active profile identifier (0, A, B, C, D, E, S, U, AE).")
     macros_enabled: bool = True
     topology_mode: str = "frontier"
     use_ir_compiler: bool = False
@@ -159,3 +161,4 @@ API_HOST = settings.api_host
 API_PORT = settings.api_port
 CORS_ORIGINS = settings.cors_origins
 SIMILARITY_THRESHOLD = settings.similarity_threshold
+ALLOW_FALLBACK = settings.allow_fallback

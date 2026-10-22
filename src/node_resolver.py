@@ -192,23 +192,7 @@ def _create_mock_input_code(var_name: str, type_name: str, domain_name: str = ""
     t_low = (type_name or "").lower()
     abs_low = (abstract_type or "").lower()
 
-    if (reg and reg.is_subtype(t_low, "table")) or abs_low == "table" or t_low == "table":
-        return (
-            f"try:\n"
-            f"    import pandas as pd\n"
-            f"    {var_name} = pd.DataFrame({{'a': [1.0, 2.0, 3.0], 'b': [4.0, 5.0, 6.0]}})\n"
-            f"except Exception:\n"
-            f"    {var_name} = {{'a': [1.0, 2.0, 3.0], 'b': [4.0, 5.0, 6.0]}}"
-        )
-    elif (reg and reg.is_subtype(t_low, "tensor")) or abs_low == "tensor" or t_low == "tensor":
-        return (
-            f"try:\n"
-            f"    import numpy as np\n"
-            f"    {var_name} = np.ones((3, 3))\n"
-            f"except Exception:\n"
-            f"    {var_name} = [[1.0, 1.0], [1.0, 1.0]]"
-        )
-    elif (reg and reg.is_subtype(t_low, "scalar")) or abs_low == "scalar" or t_low in ("scalar", "numeric", "float", "int", "number"):
+    if (reg and reg.is_subtype(t_low, "scalar")) or abs_low == "scalar" or t_low in ("scalar", "numeric", "float", "int", "number"):
         return f"{var_name} = 1.0"
     elif (reg and reg.is_subtype(t_low, "text")) or abs_low == "text" or t_low in ("text", "str", "string"):
         return f'{var_name} = "sample"'

@@ -109,14 +109,12 @@ class TokenEvidence:
 import threading
 
 _CACHE: Dict[int, "TokenEvidence"] = {}
-_LAST: list = []
 _LOCK = threading.RLock()
 
 
 def last_orchestrator() -> Any:
-    """Most recent orchestrator an evidence service was built for (lint has no handle on it)."""
-    with _LOCK:
-        return _LAST[0] if _LAST else None
+    """Deprecated: orchestrators are now explicitly threaded."""
+    return None
 
 
 def get_evidence(orchestrator: Any) -> Optional[TokenEvidence]:
@@ -129,7 +127,6 @@ def get_evidence(orchestrator: Any) -> Optional[TokenEvidence]:
         if ev is None or ev.n != max(len(orchestrator.loaded_cells), 1):
             ev = TokenEvidence(orchestrator)
             _CACHE[key] = ev
-        _LAST[:] = [orchestrator]
         return ev
 
 
@@ -194,7 +191,7 @@ def audit_clause_coverage(cells: List[Any], prompt: str, orchestrator: Any = Non
     Used by PreflightLinter (hard checks) and debug panels.
     """
     out: Dict[str, Any] = {"available": False, "clauses": [], "cells": [], "issues": []}
-    ev = get_evidence(orchestrator or last_orchestrator())
+    ev = get_evidence(orchestrator)
     if ev is None or not prompt or not cells:
         return out
     clauses = _clauses(prompt)

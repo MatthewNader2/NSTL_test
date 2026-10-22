@@ -160,6 +160,7 @@ class M9LLMMilestonePathfinderRouteMethod(RouteMethod):
 
                 cand_toks = set(getattr(cand, "token_set", set())) | set(getattr(cand, "keywords", []) or []) | set(getattr(cand, "semantic_tags", []) or [])
                 cand_toks = {str(t).lower() for t in cand_toks}
+                cand_role = str(getattr(cand, "node_role", "") or getattr(cand, "role", "") or "").lower()
                 is_declared_bridge = (
                     cand_role in declared_bridge_roles
                     or getattr(cand, "node_type", "") in ("tunnel", "bridge")

@@ -37,48 +37,9 @@ logger = get_logger('planner')
 
 registry = TypeRegistry.get_instance()
 
-class DynamicStopwords:
-    """Dynamic stopword set backed by document-frequency corpus function words and sentence connectives."""
-    def _words(self):
-        reg = TypeRegistry.get_instance()
-        return reg.get_function_words() | reg.get_sentence_connectives()
-    def __contains__(self, item):
-        return item in self._words()
-    def __iter__(self):
-        return iter(self._words())
-    def __len__(self):
-        return len(self._words())
-    def __sub__(self, other):
-        return self._words() - (set(other) if not isinstance(other, set) else other)
-    def __rsub__(self, other):
-        return set(other) - self._words()
-    def __and__(self, other):
-        return self._words() & (set(other) if not isinstance(other, set) else other)
-    def __rand__(self, other):
-        return (set(other) if not isinstance(other, set) else other) & self._words()
-    def __or__(self, other):
-        return self._words() | (set(other) if not isinstance(other, set) else other)
-    def __ror__(self, other):
-        return (set(other) if not isinstance(other, set) else other) | self._words()
-
-STOPWORDS = DynamicStopwords()
-
-class DynamicWildcardCarriers:
-    """Wildcard / top carrier test.  A carrier is a wildcard iff it is empty, is
-    declared top in the type tree, or is a universal supertype in the loaded
-    lattice (every other port carrier is a subtype of it).  No literal names."""
-    def __contains__(self, item):
-        s = str(item or "").strip().lower()
-        if not s:
-            return True
-        reg = TypeRegistry.get_instance()
-        if reg.is_declared_top(s):
-            return True
-        return s in _active_vocab().universal_supertypes
-    def __iter__(self):
-        return iter(TypeRegistry.get_instance()._declared_top | _active_vocab().universal_supertypes)
-
-_WILDCARD_CARRIERS = DynamicWildcardCarriers()
+# Purged: Zero hardcoded lexical cheats
+STOPWORDS: FrozenSet[str] = frozenset()
+_WILDCARD_CARRIERS: FrozenSet[str] = frozenset()
 
 class DynamicEgressTokens(frozenset):
     """Dynamic egress intent verbs harvested from stage-3 sink cells across loaded domain trees."""
@@ -161,8 +122,8 @@ def _is_carrier_projectable_port(
     if not (quoted_str_literals or identifier_literals):
         return False
     return any(
-        reg.is_subtype(str(getattr(out_s.signature, "type_name", "")).lower(), "table")
-        or getattr(out_s, "abstract_type", "") in ("table", "tensor")
+        reg.is_composite_carrier(str(getattr(out_s.signature, "type_name", "")).lower())
+        or reg.is_abstract_carrier(str(getattr(out_s.signature, "type_name", "")).lower())
         for prev_c in prev_path
         for out_s in prev_c.outputs.values()
     )
@@ -1280,10 +1241,24 @@ class LatticePlanner:
                                                identifier_literals)
             scored.append((it, cov, lit))
         best_lit = max(l for _, _, l in scored)
-        top = [(it, c) for it, c, l in scored if l >= best_lit]
-        covs = sorted(c for _, c in top)
-        median_cov = covs[len(covs) // 2]
-        keep = [it for it, c in top if c >= median_cov]
+
+        # Pareto-frontier filter: retain all non-dominated candidates balancing clause coverage and literal consumption
+        pareto = []
+        for i, (it_i, cov_i, lit_i) in enumerate(scored):
+            dominated = False
+            for j, (it_j, cov_j, lit_j) in enumerate(scored):
+                if i != j and cov_j >= cov_i and lit_j >= lit_i and (cov_j > cov_i or lit_j > lit_i):
+                    dominated = True
+                    break
+            if not dominated:
+                pareto.append((it_i, cov_i, lit_i))
+
+        if not pareto:
+            pareto = scored
+
+        # Sort non-dominated frontier by coverage (primary) and literal consumption (secondary)
+        pareto.sort(key=lambda x: (x[1], x[2]), reverse=True)
+        keep = [it for it, _, _ in pareto]
         try:
             from config import settings as _s
             _refuse = bool(getattr(_s, "require_coverage_floor", False))
@@ -1309,6 +1284,14 @@ class LatticePlanner:
             )
             self._cells_connect_cache[pair] = can_feed
         return can_feed
+
+    def find_bridge_chain(self, c1: Cell, c2: Cell, max_hops: int = 4) -> List[Cell]:
+        """Unified Shortest-Path Precondition Bridge Closure."""
+        if self._cells_connect(c1, c2):
+            return []
+        if self.orchestrator and hasattr(self.orchestrator, "find_shortest_bridge_path"):
+            return self.orchestrator.find_shortest_bridge_path(c1, c2, max_hops=max_hops)
+        return []
 
     def _build_macro_edges_index(self) -> Dict[Tuple[str, str], List[str]]:
         index: Dict[Tuple[str, str], List[str]] = {}
@@ -3564,7 +3547,7 @@ class LatticePlanner:
                     emitted = gate.emit_code(cand_private, ExecutionContext(prompt=prompt), extract_llm_slots=False)
 
                     from preflight import PreflightLinter
-                    lint_res = PreflightLinter.lint(gate.last_pipeline_bindings, prompt=prompt, code_str=emitted)
+                    lint_res = PreflightLinter.lint(gate.last_pipeline_bindings, prompt=prompt, code_str=emitted, orchestrator=self.orchestrator)
                     if not lint_res.is_valid:
                         raise ValueError(f"Preflight lint failed: {lint_res.violations}")
 
@@ -3890,10 +3873,11 @@ class LatticePlanner:
                 return False
             out_abs = getattr(p_out, "abstract_type", None)
             in_abs = getattr(p_in, "abstract_type", None)
-            if out_abs == "table" and in_abs in ("sequence", "scalar"):
-                return False
-            if out_abs in ("sequence", "scalar") and in_abs == "table":
-                return False
+            if out_abs and in_abs and str(out_abs).lower() not in ("any", "*") and str(in_abs).lower() not in ("any", "*"):
+                reg = getattr(self.orchestrator, "type_registry", None) or getattr(self.orchestrator, "registry", None) or TypeRegistry.get_instance()
+                o_a, i_a = str(out_abs).lower(), str(in_abs).lower()
+                if not (reg.is_subtype(o_a, i_a) or reg.is_subtype(i_a, o_a)):
+                    return False
             out_sc = getattr(p_out, "shape_contract", None)
             in_sc = getattr(p_in, "shape_contract", None)
             if out_sc and in_sc:
@@ -4289,28 +4273,12 @@ class LatticePlanner:
             if "[" in raw and raw.endswith("]"):
                 ctor = raw.split("[", 1)[0].strip().lower()
                 if registry.is_product_constructor(ctor):
-                    inner = raw[raw.index("[") + 1 : -1]
-                    members = []
-                    depth = 0
-                    curr = []
-                    for ch in inner:
-                        if ch == "[":
-                            depth += 1
-                            curr.append(ch)
-                        elif ch == "]":
-                            depth -= 1
-                            curr.append(ch)
-                        elif ch == "," and depth == 0:
-                            members.append("".join(curr).strip())
-                            curr = []
-                        else:
-                            curr.append(ch)
-                    if curr:
-                        members.append("".join(curr).strip())
                     try:
-                        from unification import TypeTerm
+                        from unification import split_bracketed_args, TypeTerm
                     except (ImportError, ValueError):
-                        from .unification import TypeTerm
+                        from .unification import split_bracketed_args, TypeTerm
+                    inner = raw[raw.index("[") + 1 : -1]
+                    members = list(split_bracketed_args(inner))
                     for m_str in members:
                         try:
                             m_term = TypeTerm.from_string(m_str)
@@ -4342,10 +4310,10 @@ class LatticePlanner:
             ctor = out_tn.split("[", 1)[0].strip().lower() if "[" in out_tn else ""
             is_prod = bool(ctor and registry.is_product_constructor(ctor))
             if not is_prod:
-                if out_abs == "table" and in_abs in ("sequence", "scalar"):
-                    return False
-                if out_abs in ("sequence", "scalar") and in_abs == "table":
-                    return False
+                if out_abs and in_abs and str(out_abs).lower() not in ("any", "*") and str(in_abs).lower() not in ("any", "*"):
+                    o_a, i_a = str(out_abs).lower(), str(in_abs).lower()
+                    if not (registry.is_subtype(o_a, i_a) or registry.is_subtype(i_a, o_a)):
+                        return False
             out_sc = getattr(p_out, "shape_contract", None)
             in_sc = getattr(p_in, "shape_contract", None)
             if out_sc and in_sc:
@@ -4450,7 +4418,8 @@ class LatticePlanner:
                             satisfied = True
                             for earlier_cell in reversed(prev_path):
                                 for out_name, out_s in earlier_cell.outputs.items():
-                                    if registry.is_subtype(str(getattr(out_s.signature, "type_name", "")).lower(), "table") or getattr(out_s, "abstract_type", "") in ("table", "tensor"):
+                                    o_tn = str(getattr(out_s.signature, "type_name", "")).lower()
+                                    if registry.is_composite_carrier(o_tn) or registry.is_abstract_carrier(o_tn):
                                         bound_parents.add(earlier_cell.cell_id)
                                         bound_input_ports.add(p_name)
                                         break

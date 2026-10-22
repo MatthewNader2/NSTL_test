@@ -152,13 +152,29 @@ class RouteMethod(ABC):
     def _delegate_to_m1(self, reason: str, prompt: str, tunnel: List[Cell], relevance_map: Dict[str, float],
                         orch: Any = None, **plan_kwargs: Any) -> List[Cell]:
         """
-        Hand the request to M1 (clause anchor) AND SAY SO. M4/M5/M7/M8/M9 used to call M1 silently
-        (no model, bad JSON, unbridgeable step, short chain, ...), so a row labelled M4 in a
-        benchmark could be an M1 result with nothing in the log to show it.
+        Hand the request to M1 (clause anchor) IF allow_fallback is enabled.
+        When allow_fallback=False (default for strict scientific evaluation),
+        record the failure reason in route_trace and return empty result.
         """
+        try:
+            from config import settings
+            allow = getattr(settings, "allow_fallback", False)
+        except Exception:
+            try:
+                from ..config import settings
+                allow = getattr(settings, "allow_fallback", False)
+            except Exception:
+                allow = False
+
+        self.fallback_reason = reason
+        if not allow:
+            logger.warning(f"[ROUTE_FAILURE] {type(self).__name__} failed (fallback disabled): {reason}")
+            self._trace("method_failure", requested=type(self).__name__, reason=reason)
+            return []
+
         from route_methods.m1_clause_anchor import M1ClauseAnchorRouteMethod
         self.effective_method = "M1"
-        self.fallback_reason = reason
+        logger.warning(f"[ROUTE_FALLBACK] {type(self).__name__} -> M1: {reason}")
         self._trace("method_fallback", requested=type(self).__name__, to="M1", reason=reason)
         m1 = M1ClauseAnchorRouteMethod(orchestrator=orch or self.orchestrator)
         out = m1.plan(prompt, tunnel, relevance_map, orchestrator=orch or self.orchestrator, **plan_kwargs)
@@ -426,6 +442,36 @@ class RouteMethod(ABC):
         res = unify_cell_with_scope(consumer, available_cells, sigma=sigma, context=ctx)
         return res is not None
 
+    def find_bridge_chain(
+        self,
+        src_cell: Cell,
+        dst_cell: Cell,
+        candidates: Optional[List[Cell]] = None,
+        max_hops: int = 4,
+    ) -> List[Cell]:
+        """
+        Unified Shortest-Path Precondition Bridge Closure:
+        When linking src_cell to dst_cell:
+          - If src_cell unifies directly with dst_cell: returns []
+          - If direct connection fails: runs shortest-path search over the
+            precomputed transition graph in LatticeOrchestrator to find the
+            minimal bridge morphism chain [b_1, ..., b_k].
+        """
+        if self.step_unifies(src_cell, dst_cell):
+            return []
+        orch = self.orchestrator
+        if orch and hasattr(orch, "find_shortest_bridge_path"):
+            chain = orch.find_shortest_bridge_path(src_cell, dst_cell, max_hops=max_hops, candidate_pool=candidates)
+            if chain:
+                cloned_chain = []
+                for b in chain:
+                    b_cloned = b.clone() if hasattr(b, "clone") else copy.copy(b)
+                    b_cloned.matched_clause_idx = getattr(dst_cell, "matched_clause_idx", None)
+                    cloned_chain.append(b_cloned)
+                return cloned_chain
+        single = self.find_bridge(src_cell, dst_cell, candidates or [], orchestrator=orch)
+        return [single] if single else []
+
     def find_bridge(
         self,
         src_cell: Cell,
@@ -435,10 +481,17 @@ class RouteMethod(ABC):
         prev_path: Optional[List[Cell]] = None
     ) -> Optional[Cell]:
         """
-        Finds a 1-step bridging cell B in candidates such that:
+        Finds a bridging cell B in candidates such that:
         B unifies with the current scope/src_cell AND dst_cell unifies after B.
         Returns a cloned instance parameter-grounded to dst_cell's clause literals.
         """
+        orch = orchestrator or self.orchestrator
+        if orch and hasattr(orch, "find_shortest_bridge_path"):
+            chain = orch.find_shortest_bridge_path(src_cell, dst_cell, max_hops=3, candidate_pool=candidates)
+            if chain:
+                b = chain[0].clone() if hasattr(chain[0], "clone") else chain[0]
+                b.matched_clause_idx = getattr(dst_cell, "matched_clause_idx", None)
+                return b
         best_b: Optional[Cell] = None
         best_score = -1.0
         current_scope = prev_path if prev_path else [src_cell]
@@ -589,6 +642,90 @@ class RouteMethod(ABC):
             except Exception as hole_exc:
                 logger.debug("[ROUTE] TypedHoleCell bridge fallback skipped: %s", hole_exc)
         return None
+
+    @classmethod
+    def is_handle_port(cls, sig: Any) -> bool:
+        """Category-theoretic linear handle: structure_kind == 'handle' or declared object receiver."""
+        if sig is None:
+            return False
+        sk = str(getattr(sig, "structure_kind", "") or "").lower()
+        if sk == "handle":
+            return True
+        pr = str(getattr(sig, "port_role", "") or getattr(sig, "derived_role", "") or "").lower()
+        try:
+            from preflight import PreflightLinter
+            if PreflightLinter._is_object_receiver_role(pr):
+                return True
+        except Exception:
+            pass
+        try:
+            from lattice import TypeRegistry
+            reg = TypeRegistry.get_instance()
+            tn = str(getattr(sig, "type_name", "") or "").lower()
+            if reg and (
+                reg.is_subtype(pr, "handle")
+                or reg.is_subtype(tn, "handle")
+                or reg.is_subtype(pr, "model")
+                or reg.is_subtype(tn, "model")
+            ):
+                return True
+        except Exception:
+            pass
+        return False
+
+    @classmethod
+    def active_unconsumed_handles(cls, prefix: List[Cell]) -> List[Tuple[Cell, str, Any]]:
+        """
+        Category-theoretic affine/linear logic:
+        Finds any output in `prefix` typed as a stateful handle / object receiver
+        that has not yet been consumed by any subsequent step in `prefix`.
+        """
+        if not prefix:
+            return []
+        handles: List[Tuple[Cell, str, Any]] = []
+        for i, cell in enumerate(prefix):
+            for out_name, out_sig in (getattr(cell, "outputs", {}) or {}).items():
+                if cls.is_handle_port(out_sig):
+                    consumed = False
+                    for sub in prefix[i + 1:]:
+                        for inp_sig in (getattr(sub, "inputs", {}) or {}).values():
+                            if cls.is_handle_port(inp_sig):
+                                consumed = True
+                                break
+                        if consumed:
+                            break
+                    if not consumed:
+                        handles.append((cell, out_name, out_sig))
+        return handles
+
+    @classmethod
+    def linear_handle_score(cls, cand: Cell, prefix: List[Cell]) -> int:
+        """
+        Affine linear score:
+        +1 if candidate consumes an active unconsumed handle in scope.
+        -1 if candidate introduces a competing handle while an active handle is dangling.
+        0 otherwise.
+        """
+        active = cls.active_unconsumed_handles(prefix)
+        cand_consumes_handle = False
+        for inp_sig in (getattr(cand, "inputs", {}) or {}).values():
+            if cls.is_handle_port(inp_sig):
+                cand_consumes_handle = True
+                break
+
+        if active and cand_consumes_handle:
+            return 1
+
+        cand_produces_handle = False
+        for out_sig in (getattr(cand, "outputs", {}) or {}).values():
+            if cls.is_handle_port(out_sig):
+                cand_produces_handle = True
+                break
+
+        if active and cand_produces_handle:
+            return -1
+
+        return 0
 
     @classmethod
     def extract_file_literals(cls, prompt: str, ctx: Optional[Any] = None) -> Tuple[List[str], List[str]]:
@@ -879,10 +1016,15 @@ class RouteMethod(ABC):
         return None
 
     def _get_setter_carrier_type(self, setter: Cell) -> Optional[str]:
-        carrier_bind_tags = {"data_carrier", "receiver", "carrier"}
+        carrier_bind_tags = {"data_carrier", "receiver", "carrier", "data_output", "output"}
         for p in (getattr(setter, "inputs", {}) or {}).values():
             if getattr(p, "binds", None) in carrier_bind_tags or getattr(p, "port_role", None) in ("receiver", "carrier"):
                 return str(getattr(getattr(p, "signature", p), "type_name", "") or "").lower()
+        for p in (getattr(setter, "outputs", {}) or {}).values():
+            if getattr(p, "binds", None) in carrier_bind_tags or getattr(p, "port_role", None) in ("data_output", "receiver", "carrier"):
+                return str(getattr(getattr(p, "signature", p), "type_name", "") or "").lower()
+        if getattr(setter, "primary_output", None) is not None:
+            return str(getattr(getattr(setter.primary_output, "signature", setter.primary_output), "type_name", "") or "").lower()
         return None
 
     def _consumes_carrier(self, cell: Cell, carrier_type: Optional[str], reg: Any) -> bool:
@@ -896,14 +1038,6 @@ class RouteMethod(ABC):
             if ab and reg.is_subtype(carrier_type, ab):
                 return True
         return False
-
-    def _consumes_table(self, cell: Cell) -> bool:
-        try:
-            from lattice import TypeRegistry
-            reg = TypeRegistry.get_instance()
-            return self._consumes_carrier(cell, "table", reg)
-        except Exception:
-            return False
 
     def insert_column_commits(self, path: List[Cell], trace: bool = True) -> List[Cell]:
         """
@@ -939,8 +1073,8 @@ class RouteMethod(ABC):
                 proto = self._find_lens_commit_cell(c, reg)
                 if proto is not None:
                     nxt_is_commit = i + 1 < len(out) and out[i + 1].cell_id == proto.cell_id
-                    carrier_tn = self._get_setter_carrier_type(proto) or "table"
-                    if not nxt_is_commit and any(self._consumes_carrier(x, carrier_tn, reg) for x in out[i + 1:]):
+                    carrier_tn = self._get_setter_carrier_type(proto)
+                    if carrier_tn and not nxt_is_commit and any(self._consumes_carrier(x, carrier_tn, reg) for x in out[i + 1:]):
                         downstream_misplaced_idx = None
                         for dj, dcell in enumerate(out[i + 1:], start=i + 1):
                             if dcell.cell_id == proto.cell_id:
@@ -1195,7 +1329,7 @@ class RouteMethod(ABC):
                         u_res = gate.unify_pipeline(probe_trial, probe_ctx, extract_llm_slots=False)
                         if not u_res.is_bottom():
                             emitted = gate.emit_code(probe_trial, probe_ctx, extract_llm_slots=False)
-                            lint_res = PreflightLinter.lint(gate.last_pipeline_bindings, prompt=prompt, code_str=emitted)
+                            lint_res = PreflightLinter.lint(gate.last_pipeline_bindings, prompt=prompt, code_str=emitted, orchestrator=self.orchestrator)
                             if lint_res.is_valid:
                                 self._trace("pruned_redundant_bridge", cell=c.cell_id, reason="pipeline unifies and passes preflight without explicit bridge")
                                 current = probe_trial

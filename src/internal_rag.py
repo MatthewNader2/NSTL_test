@@ -334,7 +334,7 @@ class LocalRAG:
             )
 
         self.dimension = model_mgr.embedding_dimension
-        self.index: Optional[faiss.IndexFlatIP] = None
+        self.index: Optional[Any] = None
         self.id_to_schema: Dict[int, Dict[str, Any]] = {}
         self.cell_cache: Dict[str, Dict[str, Any]] = {}
         self.bm25_index = _BM25Index()
@@ -344,18 +344,22 @@ class LocalRAG:
         self.build_index()
 
     def _get_cache_path(self) -> str:
-        profile = ModelManager.get_instance().active_profile
+        mm = ModelManager.get_instance()
+        prof_name = getattr(mm, "current_profile_name", "unknown") or "unknown"
+        profile = mm.active_profile
         emb_name = getattr(profile, "embedder_name", "default")
         dim = getattr(profile, "_dim", self.dimension)
-        safe_name = "".join(c for c in f"{emb_name}__dim{dim}" if c.isalnum() or c in "._-")
+        safe_name = "".join(c for c in f"{prof_name}__{emb_name}__dim{dim}" if c.isalnum() or c in "._-")
         return os.path.join(self._cache_dir, f"{safe_name}_cache.pkl")
 
     def _get_index_paths(self) -> Tuple[str, str]:
-        """Persisted FAISS index + schema map paths, keyed by embedder identity and corpus fingerprint."""
-        profile = ModelManager.get_instance().active_profile
+        """Persisted FAISS index + schema map paths, keyed by profile identity, embedder, and corpus fingerprint."""
+        mm = ModelManager.get_instance()
+        prof_name = getattr(mm, "current_profile_name", "unknown") or "unknown"
+        profile = mm.active_profile
         emb_name = getattr(profile, "embedder_name", "default")
         dim = getattr(profile, "_dim", self.dimension)
-        safe_name = "".join(c for c in f"{emb_name}__dim{dim}" if c.isalnum() or c in "._-")
+        safe_name = "".join(c for c in f"{prof_name}__{emb_name}__dim{dim}" if c.isalnum() or c in "._-")
         corpus_fp = self._corpus_fingerprint()
         base = os.path.join(self._cache_dir, f"{safe_name}__{corpus_fp}__v{_INDEX_FORMAT_VERSION}")
         return base + ".faiss", base + ".schema.pkl"
@@ -515,7 +519,7 @@ class LocalRAG:
             norms = np.where(norms == 0, 1.0, norms)
             matrix = matrix / norms
 
-            self.index = faiss.IndexFlatIP(self.dimension)
+            self.index = faiss.IndexHNSWFlat(self.dimension, 32, faiss.METRIC_INNER_PRODUCT)
             self.index.add(matrix)
             self.bm25_index.index_schemas(self.id_to_schema)
             logger.info(f"[RAG] FAISS Index ready with {self.index.ntotal} vectors.")

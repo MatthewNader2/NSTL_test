@@ -808,20 +808,22 @@ def _derive_loop_item_type(cell: Any, accumulated_sigma: Optional[Any]) -> Optio
 def _declared_loop_kind(cell: Any) -> Optional[str]:
     """
     Reads the declared loop kind from cell metadata (never from template strings).
-    Returns 'collect', 'extremum', or None.
+    Returns 'collect', 'extremum', 'fold', or None.
     """
     meta = getattr(cell, "tree_meta", None) or {}
     declared = getattr(cell, "loop_kind", None)
     if declared is None and isinstance(meta, dict):
         declared = meta.get("loop_kind")
-    if declared in ("collect", "extremum"):
-        return declared
+    if declared in ("collect", "extremum", "fold", "reduce", "accumulation"):
+        return "fold" if declared in ("fold", "reduce", "accumulation") else declared
 
     topology = getattr(cell, "topology_type", None)
     if topology in ("collect_loop", "collection_loop", "accumulate_loop"):
         return "collect"
-    if topology in ("extremum_loop", "reduce_loop", "argmax_loop", "argmin_loop"):
+    if topology in ("extremum_loop", "argmax_loop", "argmin_loop"):
         return "extremum"
+    if topology in ("fold_loop", "reduce_loop", "accumulation_loop", "fold", "reduce"):
+        return "fold"
     return None
 
 
@@ -1030,9 +1032,11 @@ def render_cell(
     loop_kind = _declared_loop_kind(cell)
     init_container = _template_initializes_container(template)
     if loop_kind == "extremum":
-        is_extremum_loop, is_collect_loop = True, False
+        is_extremum_loop, is_collect_loop, is_fold_loop = True, False, False
     elif loop_kind == "collect":
-        is_extremum_loop, is_collect_loop = False, True
+        is_extremum_loop, is_collect_loop, is_fold_loop = False, True, False
+    elif loop_kind == "fold":
+        is_extremum_loop, is_collect_loop, is_fold_loop = False, False, True
     else:
         has_direction_port = "direction" in getattr(cell, "inputs", {})
         direction_bound = bindings.get("direction") is not None
@@ -1040,6 +1044,7 @@ def render_cell(
         is_collect_loop = (
             not is_extremum_loop and init_container is not None
         )
+        is_fold_loop = False
 
     is_max = _resolve_direction_is_max(cell, bindings) if is_extremum_loop else False
 
@@ -1048,7 +1053,7 @@ def render_cell(
 
     item_type = (
         _derive_loop_item_type(cell, accumulated_sigma)
-        if (is_collect_loop or is_extremum_loop)
+        if (is_collect_loop or is_extremum_loop or is_fold_loop)
         else None
     )
 
@@ -1186,12 +1191,30 @@ def render_cell(
                 child_lines.append(f"{out_var}[{item_var}] = {last_metric}")
             else:
                 child_lines.append(f"{out_var}.append({last_metric})")
+        elif is_fold_loop and last_metric is not None:
+            meta = getattr(cell, "tree_meta", None) or {}
+            reducer = getattr(cell, "reducer", None)
+            if reducer is None and isinstance(meta, dict):
+                reducer = meta.get("reducer") or meta.get("fold_op") or meta.get("accumulation_op")
+
+            if reducer in ("+", "-", "*", "/", "%", "&", "|", "^"):
+                child_lines.append(f"{out_var} = {out_var} {reducer} {last_metric}")
+            elif reducer and str(reducer).isidentifier():
+                child_lines.append(f"{out_var} = {reducer}({out_var}, {last_metric})")
+            else:
+                child_lines.append(f"{out_var} = {last_metric} if {out_var} is None else ({out_var} + {last_metric})")
 
         slot_rendered[slot_name] = "\n".join(child_lines) if child_lines else "pass"
 
     rendered = template
     if is_extremum_loop and f"{metric_var} = None" not in rendered:
         rendered = f"{metric_var} = None\n" + rendered
+    elif is_fold_loop and f"{out_var} = " not in rendered and f"{out_var}=" not in rendered:
+        init_val = getattr(cell, "init_val", None)
+        if init_val is None and isinstance(getattr(cell, "tree_meta", None), dict):
+            init_val = cell.tree_meta.get("init_val") or cell.tree_meta.get("initial_value")
+        init_expr = str(init_val) if init_val is not None else "None"
+        rendered = f"{out_var} = {init_expr}\n" + rendered
 
     for slot_name, slot_code in slot_rendered.items():
         placeholder = f"{{{slot_name}}}"
