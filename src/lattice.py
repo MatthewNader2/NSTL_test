@@ -1655,12 +1655,9 @@ class TypeRegistry:
 
         # 4. Accepted states match
         if p_state and p_state in c_acc:
-            tgt = c_state if (c_state and not self.is_declared_top_state(c_state)) else None
-            if tgt and self.has_property_conflict(p_state, tgt):
-                return False
             return True
         if c_state and c_state in p_acc:
-            return not self.has_property_conflict(p_state, c_state)
+            return True
 
         # 5. Covariant substate compatibility: walks declared state ancestry
         target_ancestors = set()

@@ -1374,7 +1374,6 @@ class LatticeRouter:
         # Universal Precondition & Typestate Bridge Closure
         if path:
             try:
-                from route_methods.base import get_route_method
                 _base_rm = get_route_method("m0", orchestrator=self.orchestrator)
                 path = _base_rm.insert_property_bridges(path, prompt=prompt, ctx=ctx)
             except Exception as _b_err:
@@ -1422,7 +1421,7 @@ class LatticeRouter:
                 mm = ModelManager.get_instance()
                 has_generative = (
                     mm is not None
-                    and mm.active_profile is not None
+                    and mm.profile is not None
                     and mm.can_synthesize()
                 )
             except Exception:

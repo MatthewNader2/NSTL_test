@@ -1529,7 +1529,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -1642,7 +1642,7 @@
           "shape_contract": "(n_train_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -1664,7 +1664,7 @@
           "shape_contract": "(n_test_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -1786,7 +1786,7 @@
           "value_constraints": null,
           "shape_contract": "(150,)",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -1956,7 +1956,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -2126,7 +2126,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -3324,7 +3324,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -3510,7 +3510,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -3753,7 +3753,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -4030,7 +4030,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -4238,7 +4238,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -4456,7 +4456,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -4631,7 +4631,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -4767,7 +4767,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -4952,7 +4952,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -5138,7 +5138,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -5554,7 +5554,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -5726,7 +5726,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -5875,7 +5875,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -6103,7 +6103,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -6287,7 +6287,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -6333,7 +6333,7 @@
           "value_constraints": null,
           "shape_contract": "(cv,)",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -6442,7 +6442,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -6468,7 +6468,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "prediction_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -6596,7 +6596,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -6622,7 +6622,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "prediction_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -6776,7 +6776,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -6802,7 +6802,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -6935,7 +6935,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -7097,7 +7097,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -7123,7 +7123,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "prediction_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -7249,7 +7249,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -7275,7 +7275,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "prediction_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -7425,7 +7425,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -7779,7 +7779,7 @@
           "value_constraints": null,
           "shape_contract": "(178,)",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -7876,7 +7876,7 @@
           "value_constraints": null,
           "shape_contract": "(569,)",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -7973,7 +7973,7 @@
           "value_constraints": null,
           "shape_contract": "(1797,)",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -8143,7 +8143,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -8413,7 +8413,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -9435,7 +9435,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -9458,7 +9458,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -10663,7 +10663,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -11209,7 +11209,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -11394,7 +11394,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -11602,7 +11602,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -11832,7 +11832,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -12017,7 +12017,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -12180,7 +12180,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -12417,7 +12417,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -12645,7 +12645,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -12852,7 +12852,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -13082,7 +13082,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -13314,7 +13314,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -13524,7 +13524,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -13727,7 +13727,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -13898,7 +13898,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -14068,7 +14068,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -14455,7 +14455,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -14638,7 +14638,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -14785,7 +14785,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -14811,7 +14811,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -14973,7 +14973,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -14999,7 +14999,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -15160,7 +15160,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -15186,7 +15186,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -15310,7 +15310,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "data_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -15336,7 +15336,7 @@
           "shape_contract": "(n_samples,)",
           "port_role": "prediction_input",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -15487,7 +15487,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -15638,7 +15638,7 @@
           "value_constraints": null,
           "shape_contract": "(n_samples,)",
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         }
