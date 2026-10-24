@@ -16,6 +16,11 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Sequence, Set, Tuple
 import numpy as np
 
+try:
+    from .unification import is_edge_valid
+except (ImportError, ValueError):
+    from unification import is_edge_valid
+
 from log_config import get_logger
 
 logger = get_logger("experiments")
@@ -350,15 +355,16 @@ def build_indexed_topology(
             consumers_by_type.setdefault(canon_in, []).append(v)
 
     for u in all_cells:
-        # 1. Explicit declared edges
+        # 1. Explicit declared edges (validated)
         for edge in getattr(u, "edges", []):
             tgt_id = edge.get("target_cell_id") if isinstance(edge, dict) else getattr(edge, "target_cell_id", None)
             if tgt_id:
                 tgt_cell = loaded_cells_map.get(tgt_id)
                 if tgt_cell and tgt_cell.cell_id not in adj_sets[u.cell_id]:
-                    adj_sets[u.cell_id].add(tgt_cell.cell_id)
-                    adjacency[u.cell_id].append(tgt_cell.cell_id)
-                    reverse_adjacency[tgt_cell.cell_id].append(u.cell_id)
+                    if is_edge_valid(u.primary_output, tgt_cell.primary_input, producer_cell=u, consumer_cell=tgt_cell):
+                        adj_sets[u.cell_id].add(tgt_cell.cell_id)
+                        adjacency[u.cell_id].append(tgt_cell.cell_id)
+                        reverse_adjacency[tgt_cell.cell_id].append(u.cell_id)
 
         # 2. Bucketed monadic type compatibility
         out_p = u.primary_output
@@ -390,37 +396,12 @@ def build_indexed_topology(
         for v in pool:
             if u.cell_id == v.cell_id or v.cell_id in adj_sets[u.cell_id]:
                 continue
-            r_out = getattr(out_p, "canonical_rank", None)
-            r_in = getattr(v.primary_input, "canonical_rank", None)
-            if r_out is not None and r_in is not None and r_out != r_in:
+            if not is_edge_valid(out_p, v.primary_input, producer_cell=u, consumer_cell=v):
                 continue
 
-            unifies = out_sig.unifies_with(v.primary_input.signature)
-            if not unifies:
-                u_abs = getattr(out_p, "abstract_type", None) or getattr(out_sig, "abstract_type", None)
-                v_abs = getattr(v.primary_input, "abstract_type", None) or getattr(v.primary_input.signature, "abstract_type", None)
-                if not u_abs:
-                    try:
-                        from runtime_poset import infer_abstract_carrier
-                        u_abs = infer_abstract_carrier(out_p.type_name, registry)
-                    except Exception:
-                        pass
-                if not v_abs:
-                    try:
-                        from runtime_poset import infer_abstract_carrier
-                        v_abs = infer_abstract_carrier(v.primary_input.type_name, registry)
-                    except Exception:
-                        pass
-                if u_abs and v_abs and u_abs == v_abs:
-                    u_state = getattr(out_sig, "state", "any")
-                    v_state = getattr(v.primary_input.signature, "state", "any")
-                    if registry.is_state_compatible(u_state, v_state):
-                        unifies = True
-
-            if unifies:
-                adj_sets[u.cell_id].add(v.cell_id)
-                adjacency[u.cell_id].append(v.cell_id)
-                reverse_adjacency[v.cell_id].append(u.cell_id)
+            adj_sets[u.cell_id].add(v.cell_id)
+            adjacency[u.cell_id].append(v.cell_id)
+            reverse_adjacency[v.cell_id].append(u.cell_id)
 
     return adjacency, reverse_adjacency
 

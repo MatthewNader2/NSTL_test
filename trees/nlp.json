@@ -32,5 +32,12 @@
       "template": "{var_name} = 'Sample textual data for natural language pipeline verification.'"
     }
   ],
-  "supported_formats": []
+  "supported_formats": [],
+  "typestates": {
+    "domain": "nlp",
+    "states": [],
+    "transitions": [],
+    "initial_state": null,
+    "terminal_states": []
+  }
 }

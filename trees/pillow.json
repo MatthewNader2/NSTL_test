@@ -10,18 +10,143 @@
     "domain": "pillow",
     "states": [
       {
-        "name": "ndarray_generic",
+        "name": "active_frame_index",
         "parent_state": null,
-        "carrier_type": "ndarray",
-        "description": "A plain numpy array with dimensionality and dtype unspecified.",
+        "carrier_type": "int",
+        "description": "Zero-based index of current frame.",
         "properties": {}
       },
       {
-        "name": "dataframe_2d_generic",
+        "name": "affine_coefficients",
         "parent_state": null,
-        "carrier_type": "DataFrame",
-        "description": "A fully numeric, non-null 2D tabular object ready for array-like consumption.",
+        "carrier_type": "tuple",
+        "description": "Affine coefficients (a, b, c, d, e, f) for transformation mapping.",
         "properties": {}
+      },
+      {
+        "name": "alignment",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Text alignment relative to bounding column.",
+        "properties": {}
+      },
+      {
+        "name": "anchor_point",
+        "parent_state": null,
+        "carrier_type": "tuple",
+        "description": "Anchor point coordinates (x, y).",
+        "properties": {}
+      },
+      {
+        "name": "arithmetic_offset",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Constant intensity offset.",
+        "properties": {}
+      },
+      {
+        "name": "arithmetic_scale",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Divisor scale factor.",
+        "properties": {}
+      },
+      {
+        "name": "axes_initialized",
+        "parent_state": null,
+        "carrier_type": "Axes",
+        "description": "A blank plotting Axes with nothing drawn yet.",
+        "properties": {}
+      },
+      {
+        "name": "axes_with_content",
+        "parent_state": null,
+        "carrier_type": "Axes",
+        "description": "A plotting Axes with at least one graphic element rendered.",
+        "properties": {}
+      },
+      {
+        "name": "bias_offset",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Constant intensity added to output pixels.",
+        "properties": {}
+      },
+      {
+        "name": "blend_weight",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Interpolation weight between 0.0 (image1) and 1.0 (image2).",
+        "properties": {
+          "min": 0.0,
+          "max": 1.0
+        }
+      },
+      {
+        "name": "blur_radius",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Standard deviation / kernel radius of the Gaussian filter.",
+        "properties": {
+          "min": 0.1
+        }
+      },
+      {
+        "name": "border_color",
+        "parent_state": null,
+        "carrier_type": "tuple",
+        "description": "Border stroke color.",
+        "properties": {}
+      },
+      {
+        "name": "border_width",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Outline border thickness in pixels.",
+        "properties": {
+          "min": 1
+        }
+      },
+      {
+        "name": "bounding_box",
+        "parent_state": null,
+        "carrier_type": "tuple",
+        "description": "Maximum boundary (max_w, max_h).",
+        "properties": {}
+      },
+      {
+        "name": "box_radius",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Radius of the box filter window.",
+        "properties": {
+          "min": 1
+        }
+      },
+      {
+        "name": "brightness_factor",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Brightness multiplier. 0.0 gives black, 1.0 is unchanged.",
+        "properties": {
+          "min": 0.0
+        }
+      },
+      {
+        "name": "channel_identifier",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Channel index int or channel name string (e.g. 'R', 'G', 'B', 'A').",
+        "properties": {}
+      },
+      {
+        "name": "closed",
+        "parent_state": null,
+        "carrier_type": "Image",
+        "description": "Image object closed with deallocated resources.",
+        "properties": {
+          "closed": true
+        }
       },
       {
         "name": "color_bgr",
@@ -46,127 +171,76 @@
         }
       },
       {
-        "name": "gray",
-        "parent_state": "nd_tensor",
-        "carrier_type": "ndarray",
-        "description": "A single-channel 8-bit intensity numpy array.",
-        "properties": {
-          "channels": 1,
-          "dtype": "uint8"
-        }
-      },
-      {
-        "name": "axes_initialized",
+        "name": "color_rgb_tuple",
         "parent_state": null,
-        "carrier_type": "Axes",
-        "description": "A blank plotting Axes with nothing drawn yet.",
+        "carrier_type": "tuple",
+        "description": "Color fill tuple (R, G, B) or color name string.",
         "properties": {}
       },
       {
-        "name": "axes_with_content",
+        "name": "color_rgba_tuple",
         "parent_state": null,
-        "carrier_type": "Axes",
-        "description": "A plotting Axes with at least one graphic element rendered.",
+        "carrier_type": "tuple",
+        "description": "RGBA color tuple (R, G, B, A). Defaults to fully transparent.",
         "properties": {}
       },
       {
-        "name": "fitted_estimator",
+        "name": "color_spec",
         "parent_state": null,
-        "carrier_type": "Estimator",
-        "description": "An object implementing a fitted-estimator interface.",
+        "carrier_type": "tuple",
+        "description": "Text glyph color.",
+        "properties": {}
+      },
+      {
+        "name": "composited",
+        "parent_state": null,
+        "carrier_type": "Image",
+        "description": "Image resulting from blending, alpha compositing, or channel merging.",
         "properties": {
-          "is_fitted": true
+          "composited": true
         }
       },
       {
-        "name": "unopened",
+        "name": "compression_quality",
         "parent_state": null,
-        "carrier_type": "Image",
-        "description": "Unopened image reference or raw filesystem path.",
+        "carrier_type": "int",
+        "description": "JPEG compression quality from 1 to 100.",
         "properties": {
-          "is_loaded": false
+          "min": 1,
+          "max": 100
         }
       },
       {
-        "name": "mode_rgb",
+        "name": "contrast_factor",
         "parent_state": null,
-        "carrier_type": "Image",
-        "description": "Standard 3-channel truecolor RGB image.",
+        "carrier_type": "float",
+        "description": "Contrast multiplier. 1.0 gives original, 0.0 gives flat solid gray.",
         "properties": {
-          "mode": "RGB",
-          "channels": 3,
-          "has_alpha": false,
-          "bits_per_channel": 8
+          "min": 0.0
         }
       },
       {
-        "name": "mode_rgba",
+        "name": "coordinates_seq",
         "parent_state": null,
-        "carrier_type": "Image",
-        "description": "4-channel truecolor RGB image with an alpha transparency channel.",
+        "carrier_type": "list",
+        "description": "Sequence of 2-tuples [(x1, y1), (x2, y2)] or flat coordinates [x1, y1, x2, y2].",
+        "properties": {}
+      },
+      {
+        "name": "corner_radius_px",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Corner corner radius in pixels.",
         "properties": {
-          "mode": "RGBA",
-          "channels": 4,
-          "has_alpha": true,
-          "bits_per_channel": 8
+          "min": 0
         }
       },
       {
-        "name": "mode_grayscale",
+        "name": "crop_box",
         "parent_state": null,
-        "carrier_type": "Image",
-        "description": "8-bit grayscale intensity image ('L' mode).",
-        "properties": {
-          "mode": "L",
-          "channels": 1,
-          "has_alpha": false,
-          "bits_per_channel": 8
-        }
-      },
-      {
-        "name": "mode_binary_1bit",
-        "parent_state": null,
-        "carrier_type": "Image",
-        "description": "1-bit bilevel black and white image ('1' mode).",
-        "properties": {
-          "mode": "1",
-          "channels": 1,
-          "has_alpha": false,
-          "bits_per_channel": 1
-        }
-      },
-      {
-        "name": "mode_cmyk",
-        "parent_state": null,
-        "carrier_type": "Image",
-        "description": "4-channel CMYK color separation image for print output.",
-        "properties": {
-          "mode": "CMYK",
-          "channels": 4,
-          "has_alpha": false,
-          "bits_per_channel": 8
-        }
-      },
-      {
-        "name": "mode_palette",
-        "parent_state": null,
-        "carrier_type": "Image",
-        "description": "8-bit indexed color palette image ('P' mode).",
-        "properties": {
-          "mode": "P",
-          "channels": 1,
-          "has_alpha": false,
-          "bits_per_channel": 8
-        }
-      },
-      {
-        "name": "resized",
-        "parent_state": null,
-        "carrier_type": "Image",
-        "description": "Image geometrically resized to new spatial dimensions.",
-        "properties": {
-          "resampled": true
-        }
+        "carrier_type": "tuple",
+        "description": "Cropping coordinates (left, upper, right, lower).",
+        "properties": {}
       },
       {
         "name": "cropped",
@@ -178,13 +252,126 @@
         }
       },
       {
-        "name": "rotated",
+        "name": "dataframe_2d_generic",
+        "parent_state": null,
+        "carrier_type": "DataFrame",
+        "description": "A fully numeric, non-null 2D tabular object ready for array-like consumption.",
+        "properties": {}
+      },
+      {
+        "name": "degrees",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Counter-clockwise angle in degrees.",
+        "properties": {}
+      },
+      {
+        "name": "destination_path",
+        "parent_state": "source_identifier",
+        "carrier_type": "str",
+        "description": "Declared by data migration (formerly engine bootstrap state 'destination_path')."
+      },
+      {
+        "name": "dimensions",
+        "parent_state": null,
+        "carrier_type": "tuple",
+        "description": "Image size specified as a (width, height) tuple.",
+        "properties": {}
+      },
+      {
+        "name": "displayed",
         "parent_state": null,
         "carrier_type": "Image",
-        "description": "Image rotated about its center or transformed geometrically.",
+        "description": "Image dispatched to a desktop viewer or GUI window.",
         "properties": {
-          "rotated": true
+          "displayed": true
         }
+      },
+      {
+        "name": "divisor_scale",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Divisor applied to post-convolution result.",
+        "properties": {}
+      },
+      {
+        "name": "draw_context_active",
+        "parent_state": null,
+        "carrier_type": "ImageDraw",
+        "description": "Active ImageDraw 2D context bound to an underlying target Image.",
+        "properties": {
+          "drawable": true
+        }
+      },
+      {
+        "name": "drawn_overlay",
+        "parent_state": null,
+        "carrier_type": "Image",
+        "description": "Image modified by 2D vector primitives or text annotations.",
+        "properties": {
+          "has_vector_overlay": true
+        }
+      },
+      {
+        "name": "ellipse_bounds",
+        "parent_state": null,
+        "carrier_type": "tuple",
+        "description": "Bounding box coordinates (x0, y0, x1, y1).",
+        "properties": {}
+      },
+      {
+        "name": "enhanced_brightness",
+        "parent_state": null,
+        "carrier_type": "Image",
+        "description": "Image with adjusted brightness levels.",
+        "properties": {
+          "enhanced": true,
+          "enhancement": "brightness"
+        }
+      },
+      {
+        "name": "enhanced_color",
+        "parent_state": null,
+        "carrier_type": "Image",
+        "description": "Image with adjusted color saturation.",
+        "properties": {
+          "enhanced": true,
+          "enhancement": "color"
+        }
+      },
+      {
+        "name": "enhanced_contrast",
+        "parent_state": null,
+        "carrier_type": "Image",
+        "description": "Image with adjusted contrast balance.",
+        "properties": {
+          "enhanced": true,
+          "enhancement": "contrast"
+        }
+      },
+      {
+        "name": "enhanced_sharpness",
+        "parent_state": null,
+        "carrier_type": "Image",
+        "description": "Image with adjusted sharpness levels.",
+        "properties": {
+          "enhanced": true,
+          "enhancement": "sharpness"
+        }
+      },
+      {
+        "name": "expand_canvas_flag",
+        "parent_state": null,
+        "carrier_type": "bool",
+        "description": "If true, expands the output image size to hold entire rotated content.",
+        "properties": {}
+      },
+      {
+        "name": "fill_color",
+        "parent_state": null,
+        "carrier_type": "tuple",
+        "description": "Internal fill color or None for transparent interior.",
+        "properties": {}
       },
       {
         "name": "filtered_blur",
@@ -217,88 +404,163 @@
         }
       },
       {
-        "name": "enhanced_contrast",
+        "name": "fitted_estimator",
         "parent_state": null,
-        "carrier_type": "Image",
-        "description": "Image with adjusted contrast balance.",
+        "carrier_type": "Estimator",
+        "description": "An object implementing a fitted-estimator interface.",
         "properties": {
-          "enhanced": true,
-          "enhancement": "contrast"
+          "is_fitted": true
         }
       },
       {
-        "name": "enhanced_brightness",
+        "name": "frame_duration_ms",
         "parent_state": null,
-        "carrier_type": "Image",
-        "description": "Image with adjusted brightness levels.",
+        "carrier_type": "int",
+        "description": "Display time per frame in milliseconds.",
         "properties": {
-          "enhanced": true,
-          "enhancement": "brightness"
+          "min": 10
         }
       },
       {
-        "name": "enhanced_color",
+        "name": "frame_index",
         "parent_state": null,
-        "carrier_type": "Image",
-        "description": "Image with adjusted color saturation.",
+        "carrier_type": "int",
+        "description": "Target zero-based frame index.",
         "properties": {
-          "enhanced": true,
-          "enhancement": "color"
+          "min": 0
         }
       },
       {
-        "name": "enhanced_sharpness",
+        "name": "gradient_mode",
         "parent_state": null,
-        "carrier_type": "Image",
-        "description": "Image with adjusted sharpness levels.",
+        "carrier_type": "str",
+        "description": "Color mode (typically 'L').",
+        "properties": {}
+      },
+      {
+        "name": "gray",
+        "parent_state": "nd_tensor",
+        "carrier_type": "ndarray",
+        "description": "A single-channel 8-bit intensity numpy array.",
         "properties": {
-          "enhanced": true,
-          "enhancement": "sharpness"
+          "channels": 1,
+          "dtype": "uint8"
         }
       },
       {
-        "name": "draw_context_active",
+        "name": "gray_intensity",
         "parent_state": null,
-        "carrier_type": "ImageDraw",
-        "description": "Active ImageDraw 2D context bound to an underlying target Image.",
+        "carrier_type": "int",
+        "description": "Grayscale pixel intensity (0-255).",
         "properties": {
-          "drawable": true
+          "min": 0,
+          "max": 255
         }
       },
       {
-        "name": "drawn_overlay",
+        "name": "highlight_color",
         "parent_state": null,
-        "carrier_type": "Image",
-        "description": "Image modified by 2D vector primitives or text annotations.",
+        "carrier_type": "tuple",
+        "description": "RGB color assigned to white pixels.",
+        "properties": {}
+      },
+      {
+        "name": "image_mode_str",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Pixel format mode.",
+        "properties": {}
+      },
+      {
+        "name": "kernel_dimensions",
+        "parent_state": null,
+        "carrier_type": "tuple",
+        "description": "Kernel grid shape (3, 3) or (5, 5).",
+        "properties": {}
+      },
+      {
+        "name": "kernel_weights",
+        "parent_state": null,
+        "carrier_type": "tuple",
+        "description": "Flattened weights sequence matching size product.",
+        "properties": {}
+      },
+      {
+        "name": "line_spacing",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Extra pixel spacing between text lines.",
+        "properties": {}
+      },
+      {
+        "name": "loop_count",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Number of loops (0 means loop forever).",
+        "properties": {}
+      },
+      {
+        "name": "lossless_flag",
+        "parent_state": null,
+        "carrier_type": "bool",
+        "description": "Whether to use lossless compression.",
+        "properties": {}
+      },
+      {
+        "name": "luminance_threshold",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Intensity threshold (0-255) above which pixels are inverted.",
         "properties": {
-          "has_vector_overlay": true
+          "min": 0,
+          "max": 255
         }
       },
       {
-        "name": "composited",
+        "name": "mode_binary_1bit",
         "parent_state": null,
         "carrier_type": "Image",
-        "description": "Image resulting from blending, alpha compositing, or channel merging.",
+        "description": "1-bit bilevel black and white image ('1' mode).",
         "properties": {
-          "composited": true
+          "mode": "1",
+          "channels": 1,
+          "has_alpha": false,
+          "bits_per_channel": 1
         }
       },
       {
-        "name": "saved",
+        "name": "mode_cmyk",
         "parent_state": null,
         "carrier_type": "Image",
-        "description": "Image persisted to non-volatile storage.",
+        "description": "4-channel CMYK color separation image for print output.",
         "properties": {
-          "persisted": true
+          "mode": "CMYK",
+          "channels": 4,
+          "has_alpha": false,
+          "bits_per_channel": 8
         }
       },
       {
-        "name": "displayed",
+        "name": "mode_float32",
         "parent_state": null,
         "carrier_type": "Image",
-        "description": "Image dispatched to a desktop viewer or GUI window.",
+        "description": "32-bit floating-point single-channel image ('F' mode).",
         "properties": {
-          "displayed": true
+          "mode": "F",
+          "channels": 1,
+          "bits_per_pixel": 32
+        }
+      },
+      {
+        "name": "mode_grayscale",
+        "parent_state": null,
+        "carrier_type": "Image",
+        "description": "8-bit grayscale intensity image ('L' mode).",
+        "properties": {
+          "mode": "L",
+          "channels": 1,
+          "has_alpha": false,
+          "bits_per_channel": 8
         }
       },
       {
@@ -308,26 +570,6 @@
         "description": "Hue, Saturation, Value color model image.",
         "properties": {
           "mode": "HSV",
-          "channels": 3
-        }
-      },
-      {
-        "name": "mode_lab",
-        "parent_state": null,
-        "carrier_type": "Image",
-        "description": "CIE L*a*b* perceptual color space image.",
-        "properties": {
-          "mode": "LAB",
-          "channels": 3
-        }
-      },
-      {
-        "name": "mode_ycbcr",
-        "parent_state": null,
-        "carrier_type": "Image",
-        "description": "YCbCr video color format image.",
-        "properties": {
-          "mode": "YCbCr",
           "channels": 3
         }
       },
@@ -343,23 +585,59 @@
         }
       },
       {
-        "name": "mode_float32",
+        "name": "mode_lab",
         "parent_state": null,
         "carrier_type": "Image",
-        "description": "32-bit floating-point single-channel image ('F' mode).",
+        "description": "CIE L*a*b* perceptual color space image.",
         "properties": {
-          "mode": "F",
-          "channels": 1,
-          "bits_per_pixel": 32
+          "mode": "LAB",
+          "channels": 3
         }
       },
       {
-        "name": "transformed",
-        "parent_state": "cleaned",
+        "name": "mode_palette",
+        "parent_state": null,
         "carrier_type": "Image",
-        "description": "Image geometrically transformed (affine, perspective, or mesh).",
+        "description": "8-bit indexed color palette image ('P' mode).",
         "properties": {
-          "transformed": true
+          "mode": "P",
+          "channels": 1,
+          "has_alpha": false,
+          "bits_per_channel": 8
+        }
+      },
+      {
+        "name": "mode_rgb",
+        "parent_state": null,
+        "carrier_type": "Image",
+        "description": "Standard 3-channel truecolor RGB image.",
+        "properties": {
+          "mode": "RGB",
+          "channels": 3,
+          "has_alpha": false,
+          "bits_per_channel": 8
+        }
+      },
+      {
+        "name": "mode_rgba",
+        "parent_state": null,
+        "carrier_type": "Image",
+        "description": "4-channel truecolor RGB image with an alpha transparency channel.",
+        "properties": {
+          "mode": "RGBA",
+          "channels": 4,
+          "has_alpha": true,
+          "bits_per_channel": 8
+        }
+      },
+      {
+        "name": "mode_ycbcr",
+        "parent_state": null,
+        "carrier_type": "Image",
+        "description": "YCbCr video color format image.",
+        "properties": {
+          "mode": "YCbCr",
+          "channels": 3
         }
       },
       {
@@ -372,19 +650,264 @@
         }
       },
       {
-        "name": "closed",
+        "name": "multiline_content",
         "parent_state": null,
-        "carrier_type": "Image",
-        "description": "Image object closed with deallocated resources.",
+        "carrier_type": "str",
+        "description": "String containing newline characters.",
+        "properties": {}
+      },
+      {
+        "name": "ndarray_generic",
+        "parent_state": null,
+        "carrier_type": "ndarray",
+        "description": "A plain numpy array with dimensionality and dtype unspecified.",
+        "properties": {}
+      },
+      {
+        "name": "odd_kernel_size",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Kernel size (must be an odd integer).",
         "properties": {
-          "closed": true
+          "min": 3
         }
       },
       {
-        "name": "destination_path",
-        "parent_state": "source_identifier",
+        "name": "optimize_flag",
+        "parent_state": null,
+        "carrier_type": "bool",
+        "description": "Whether to run optimization pass on PNG compressor.",
+        "properties": {}
+      },
+      {
+        "name": "outline_color",
+        "parent_state": null,
+        "carrier_type": "tuple",
+        "description": "Outline border color.",
+        "properties": {}
+      },
+      {
+        "name": "outline_width",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Outline width in pixels.",
+        "properties": {
+          "min": 1
+        }
+      },
+      {
+        "name": "padding_color",
+        "parent_state": null,
+        "carrier_type": "tuple",
+        "description": "Color used for letterbox padding border.",
+        "properties": {}
+      },
+      {
+        "name": "palette_size",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Target number of palette colors (max 256).",
+        "properties": {
+          "min": 2,
+          "max": 256
+        }
+      },
+      {
+        "name": "paste_coordinates",
+        "parent_state": null,
+        "carrier_type": "tuple",
+        "description": "Destination coordinate (x, y) or boundary tuple (x0, y0, x1, y1).",
+        "properties": {}
+      },
+      {
+        "name": "percent_cutoff",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Percentage of high/low histogram outliers to clip.",
+        "properties": {
+          "min": 0.0,
+          "max": 50.0
+        }
+      },
+      {
+        "name": "percentage",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Sharpening strength in percent.",
+        "properties": {}
+      },
+      {
+        "name": "perspective_coefficients",
+        "parent_state": null,
+        "carrier_type": "tuple",
+        "description": "Perspective coefficients (8 values: a, b, c, d, e, f, g, h).",
+        "properties": {}
+      },
+      {
+        "name": "raw_byte_stream",
+        "parent_state": null,
+        "carrier_type": "bytes",
+        "description": "Raw byte string containing pixel data.",
+        "properties": {}
+      },
+      {
+        "name": "raw_text",
+        "parent_state": null,
         "carrier_type": "str",
-        "description": "Declared by data migration (formerly engine bootstrap state 'destination_path')."
+        "description": "Text content string to render.",
+        "properties": {}
+      },
+      {
+        "name": "rect_coordinates",
+        "parent_state": null,
+        "carrier_type": "tuple",
+        "description": "Bounding box coordinates as (x0, y0, x1, y1).",
+        "properties": {}
+      },
+      {
+        "name": "resized",
+        "parent_state": null,
+        "carrier_type": "Image",
+        "description": "Image geometrically resized to new spatial dimensions.",
+        "properties": {
+          "resampled": true
+        }
+      },
+      {
+        "name": "rotated",
+        "parent_state": null,
+        "carrier_type": "Image",
+        "description": "Image rotated about its center or transformed geometrically.",
+        "properties": {
+          "rotated": true
+        }
+      },
+      {
+        "name": "saturation_factor",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Saturation multiplier. 0.0 gives black and white, 1.0 is original.",
+        "properties": {
+          "min": 0.0
+        }
+      },
+      {
+        "name": "saved",
+        "parent_state": null,
+        "carrier_type": "Image",
+        "description": "Image persisted to non-volatile storage.",
+        "properties": {
+          "persisted": true
+        }
+      },
+      {
+        "name": "shadow_color",
+        "parent_state": null,
+        "carrier_type": "tuple",
+        "description": "RGB color assigned to black pixels.",
+        "properties": {}
+      },
+      {
+        "name": "sharpness_factor",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Sharpness factor. 0.0 gives blurred, 1.0 is original, 2.0+ is sharpened.",
+        "properties": {
+          "min": 0.0
+        }
+      },
+      {
+        "name": "stroke_color",
+        "parent_state": null,
+        "carrier_type": "tuple",
+        "description": "Stroke color specification.",
+        "properties": {}
+      },
+      {
+        "name": "stroke_width",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Line thickness in pixels.",
+        "properties": {
+          "min": 1
+        }
+      },
+      {
+        "name": "subsequent_frames",
+        "parent_state": null,
+        "carrier_type": "List[PILImage]",
+        "description": "List of remaining frame Image instances.",
+        "properties": {}
+      },
+      {
+        "name": "target_boundary",
+        "parent_state": null,
+        "carrier_type": "tuple",
+        "description": "Minimum boundary dimensions (min_w, min_h).",
+        "properties": {}
+      },
+      {
+        "name": "target_dimensions",
+        "parent_state": null,
+        "carrier_type": "tuple",
+        "description": "Requested (width, height) tuple.",
+        "properties": {}
+      },
+      {
+        "name": "text_color",
+        "parent_state": null,
+        "carrier_type": "tuple",
+        "description": "Text fill color tuple or hex string.",
+        "properties": {}
+      },
+      {
+        "name": "text_origin",
+        "parent_state": null,
+        "carrier_type": "tuple",
+        "description": "Origin anchor coordinate (x, y).",
+        "properties": {}
+      },
+      {
+        "name": "threshold_delta",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Minimum brightness difference threshold to trigger sharpening.",
+        "properties": {}
+      },
+      {
+        "name": "transformed",
+        "parent_state": "cleaned",
+        "carrier_type": "Image",
+        "description": "Image geometrically transformed (affine, perspective, or mesh).",
+        "properties": {
+          "transformed": true
+        }
+      },
+      {
+        "name": "unopened",
+        "parent_state": null,
+        "carrier_type": "Image",
+        "description": "Unopened image reference or raw filesystem path.",
+        "properties": {
+          "is_loaded": false
+        }
+      },
+      {
+        "name": "webp_quality",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "WebP compression quality (0-100).",
+        "properties": {
+          "min": 0,
+          "max": 100
+        }
+      },
+      {
+        "name": "window_title",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Title string for the viewer window.",
+        "properties": {}
       }
     ],
     "transitions": [
@@ -1170,7 +1693,18 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, C)",
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 3,
           "element_type": "float64",
@@ -1256,7 +1790,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(2,)",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              2
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": 2
+          },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
@@ -1275,7 +1818,16 @@
           "enum_values": null,
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": "(3,)",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": 3
+          },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
@@ -1296,7 +1848,18 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)",
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 3,
           "element_type": "float64",
@@ -1384,7 +1947,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(2,)",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              2
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": 2
+          },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
@@ -1403,7 +1975,16 @@
           "enum_values": null,
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": "(4,)",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              4
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": 4
+          },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
@@ -1424,9 +2005,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 4)",
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              4
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 4,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 3,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -1510,7 +2102,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(2,)",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              2
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": 2
+          },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
@@ -1553,7 +2154,17 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)",
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "H",
+              "W"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 1,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -1645,9 +2256,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              4
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 4,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": null,
+          "rank": 3,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -1666,7 +2288,18 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)",
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 3,
           "element_type": "float64",
@@ -1756,9 +2389,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": null,
+          "rank": 3,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -1777,9 +2421,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 4)",
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              4
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 4,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 3,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -1868,9 +2523,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": null,
+          "rank": 3,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -1889,7 +2555,17 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)",
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "H",
+              "W"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 1,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -1980,9 +2656,19 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "H",
+              "W"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 1,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": null,
+          "rank": 2,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -2001,7 +2687,17 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)",
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "H",
+              "W"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 1,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -2077,7 +2773,18 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)",
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 3,
           "element_type": "float64",
@@ -2098,9 +2805,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 4)",
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              4
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 4,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 3,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -2183,7 +2901,18 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)",
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 3,
           "element_type": "float64",
@@ -2204,7 +2933,18 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)",
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 3,
           "element_type": "uint8",
@@ -2290,7 +3030,18 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)",
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 3,
           "element_type": "float64",
@@ -2316,7 +3067,18 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)",
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 3,
           "element_type": "uint8",
@@ -2401,7 +3163,17 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)",
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "H",
+              "W"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 1,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -2427,7 +3199,17 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)",
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "H",
+              "W"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "uint8",
@@ -2516,7 +3298,18 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)",
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 3,
           "element_type": "uint8",
@@ -2537,7 +3330,18 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)",
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 3,
           "element_type": "float64",
@@ -2625,7 +3429,17 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)",
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "H",
+              "W"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "uint8",
@@ -2646,7 +3460,17 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)",
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "H",
+              "W"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 1,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -2727,7 +3551,17 @@
           "accepted_states": [
             "mode_rgb",
             "mode_rgba",
-            "mode_grayscale"
+            "mode_grayscale",
+            "mode_binary_1bit",
+            "mode_cmyk",
+            "mode_palette",
+            "mode_hsv",
+            "mode_lab",
+            "mode_int32",
+            "mode_float32",
+            "resized",
+            "cropped",
+            "rotated"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -2738,9 +3572,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -2757,7 +3598,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(2,)",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              2
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": 2
+          },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
@@ -2778,9 +3628,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -2857,7 +3714,17 @@
           "accepted_states": [
             "mode_rgb",
             "mode_rgba",
-            "mode_grayscale"
+            "mode_grayscale",
+            "mode_binary_1bit",
+            "mode_cmyk",
+            "mode_palette",
+            "mode_hsv",
+            "mode_lab",
+            "mode_int32",
+            "mode_float32",
+            "resized",
+            "cropped",
+            "rotated"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -2868,9 +3735,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -2887,7 +3761,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(2,)",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              2
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": 2
+          },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
@@ -2908,9 +3791,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -2969,10 +3859,19 @@
           "type_name": "Image",
           "state": "mode_grayscale",
           "accepted_states": [
+            "mode_rgb",
+            "mode_rgba",
             "mode_grayscale",
             "mode_binary_1bit",
+            "mode_cmyk",
             "mode_palette",
-            "mode_rgb"
+            "mode_hsv",
+            "mode_lab",
+            "mode_int32",
+            "mode_float32",
+            "resized",
+            "cropped",
+            "rotated"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -2983,9 +3882,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -3002,7 +3908,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(2,)",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              2
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": 2
+          },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
@@ -3023,9 +3938,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -3086,7 +4008,17 @@
           "accepted_states": [
             "mode_rgb",
             "mode_rgba",
-            "mode_grayscale"
+            "mode_grayscale",
+            "mode_binary_1bit",
+            "mode_cmyk",
+            "mode_palette",
+            "mode_hsv",
+            "mode_lab",
+            "mode_int32",
+            "mode_float32",
+            "resized",
+            "cropped",
+            "rotated"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -3097,9 +4029,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -3116,7 +4055,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(4,)",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              4
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": 4
+          },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
@@ -3137,9 +4085,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -3209,7 +4164,17 @@
           "accepted_states": [
             "mode_rgb",
             "mode_rgba",
-            "mode_grayscale"
+            "mode_grayscale",
+            "mode_binary_1bit",
+            "mode_cmyk",
+            "mode_palette",
+            "mode_hsv",
+            "mode_lab",
+            "mode_int32",
+            "mode_float32",
+            "resized",
+            "cropped",
+            "rotated"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -3220,9 +4185,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -3243,7 +4215,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "expand": {
           "name": "expand",
@@ -3279,9 +4253,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -3339,7 +4320,17 @@
           "accepted_states": [
             "mode_rgb",
             "mode_rgba",
-            "mode_grayscale"
+            "mode_grayscale",
+            "mode_binary_1bit",
+            "mode_cmyk",
+            "mode_palette",
+            "mode_hsv",
+            "mode_lab",
+            "mode_int32",
+            "mode_float32",
+            "resized",
+            "cropped",
+            "rotated"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -3350,9 +4341,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -3371,9 +4369,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -3431,7 +4436,17 @@
           "accepted_states": [
             "mode_rgb",
             "mode_rgba",
-            "mode_grayscale"
+            "mode_grayscale",
+            "mode_binary_1bit",
+            "mode_cmyk",
+            "mode_palette",
+            "mode_hsv",
+            "mode_lab",
+            "mode_int32",
+            "mode_float32",
+            "resized",
+            "cropped",
+            "rotated"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -3442,9 +4457,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -3463,9 +4485,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -3521,7 +4550,17 @@
           "accepted_states": [
             "mode_rgb",
             "mode_rgba",
-            "mode_grayscale"
+            "mode_grayscale",
+            "mode_binary_1bit",
+            "mode_cmyk",
+            "mode_palette",
+            "mode_hsv",
+            "mode_lab",
+            "mode_int32",
+            "mode_float32",
+            "resized",
+            "cropped",
+            "rotated"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -3532,9 +4571,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -3553,9 +4599,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -3618,7 +4671,17 @@
           "accepted_states": [
             "mode_rgb",
             "mode_rgba",
-            "mode_grayscale"
+            "mode_grayscale",
+            "mode_binary_1bit",
+            "mode_cmyk",
+            "mode_palette",
+            "mode_hsv",
+            "mode_lab",
+            "mode_int32",
+            "mode_float32",
+            "resized",
+            "cropped",
+            "rotated"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -3629,9 +4692,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -3671,9 +4741,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -3747,7 +4824,17 @@
           "accepted_states": [
             "mode_rgb",
             "mode_rgba",
-            "mode_grayscale"
+            "mode_grayscale",
+            "mode_binary_1bit",
+            "mode_cmyk",
+            "mode_palette",
+            "mode_hsv",
+            "mode_lab",
+            "mode_int32",
+            "mode_float32",
+            "resized",
+            "cropped",
+            "rotated"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -3758,9 +4845,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -3800,9 +4894,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -3863,7 +4964,18 @@
           "state": "mode_rgb",
           "accepted_states": [
             "mode_rgb",
-            "mode_grayscale"
+            "mode_rgba",
+            "mode_grayscale",
+            "mode_binary_1bit",
+            "mode_cmyk",
+            "mode_palette",
+            "mode_hsv",
+            "mode_lab",
+            "mode_int32",
+            "mode_float32",
+            "resized",
+            "cropped",
+            "rotated"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -3874,9 +4986,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -3895,9 +5014,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -3957,7 +5083,18 @@
           "state": "mode_rgb",
           "accepted_states": [
             "mode_rgb",
-            "mode_grayscale"
+            "mode_rgba",
+            "mode_grayscale",
+            "mode_binary_1bit",
+            "mode_cmyk",
+            "mode_palette",
+            "mode_hsv",
+            "mode_lab",
+            "mode_int32",
+            "mode_float32",
+            "resized",
+            "cropped",
+            "rotated"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -3968,9 +5105,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -3989,9 +5133,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -4052,7 +5203,18 @@
           "state": "mode_rgb",
           "accepted_states": [
             "mode_rgb",
-            "mode_grayscale"
+            "mode_rgba",
+            "mode_grayscale",
+            "mode_binary_1bit",
+            "mode_cmyk",
+            "mode_palette",
+            "mode_hsv",
+            "mode_lab",
+            "mode_int32",
+            "mode_float32",
+            "resized",
+            "cropped",
+            "rotated"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -4063,9 +5225,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -4084,9 +5253,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -4152,7 +5328,18 @@
           "state": "mode_rgb",
           "accepted_states": [
             "mode_rgb",
-            "mode_grayscale"
+            "mode_rgba",
+            "mode_grayscale",
+            "mode_binary_1bit",
+            "mode_cmyk",
+            "mode_palette",
+            "mode_hsv",
+            "mode_lab",
+            "mode_int32",
+            "mode_float32",
+            "resized",
+            "cropped",
+            "rotated"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -4163,9 +5350,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -4241,9 +5435,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -4307,7 +5508,18 @@
           "state": "mode_rgb",
           "accepted_states": [
             "mode_rgb",
-            "mode_grayscale"
+            "mode_rgba",
+            "mode_grayscale",
+            "mode_binary_1bit",
+            "mode_cmyk",
+            "mode_palette",
+            "mode_hsv",
+            "mode_lab",
+            "mode_int32",
+            "mode_float32",
+            "resized",
+            "cropped",
+            "rotated"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -4318,9 +5530,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -4360,9 +5579,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -4444,9 +5670,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 3,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -4469,7 +5706,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         }
       },
       "outputs": {
@@ -4567,9 +5806,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 3,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -4592,7 +5842,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         }
       },
       "outputs": {
@@ -4687,7 +5939,18 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)",
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 3,
           "element_type": "float64",
@@ -4712,7 +5975,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         }
       },
       "outputs": {
@@ -4729,7 +5994,18 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)",
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 3,
           "element_type": "float64",
@@ -4810,9 +6086,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 3,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -4835,7 +6122,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         }
       },
       "outputs": {
@@ -4924,9 +6213,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 3,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -5042,8 +6342,17 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
-          "structure_kind": "composite",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
           "rank": 1,
           "element_type": "composite_record",
           "supported_formats": []
@@ -5174,7 +6483,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(4,)",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              4
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": 4
+          },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
@@ -5332,7 +6650,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(4,)",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              4
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": 4
+          },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
@@ -5482,7 +6809,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(2,)",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              2
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": 2
+          },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
@@ -5505,7 +6841,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "fill": {
           "name": "fill",
@@ -5591,9 +6929,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 4)",
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              4
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 4,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 3,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -5610,9 +6959,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 4)",
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              4
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 4,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 3,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -5631,7 +6991,18 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 4)",
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              4
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 4,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -5727,7 +7098,18 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)",
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 3,
           "element_type": "float64",
@@ -5746,7 +7128,18 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)",
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 3,
           "element_type": "float64",
@@ -5772,7 +7165,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         }
       },
       "outputs": {
@@ -5789,7 +7184,18 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)",
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 3,
           "element_type": "float64",
@@ -5867,7 +7273,18 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)",
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 3,
           "element_type": "float64",
@@ -5886,7 +7303,18 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)",
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 3,
           "element_type": "float64",
@@ -5909,7 +7337,17 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)",
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "H",
+              "W"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 1,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -5930,7 +7368,18 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)",
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 3,
           "element_type": "float64",
@@ -6008,7 +7457,18 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)",
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 3,
           "element_type": "float64",
@@ -6029,7 +7489,17 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)",
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "H",
+              "W"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 1,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -6048,7 +7518,17 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)",
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "H",
+              "W"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 1,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -6067,7 +7547,17 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)",
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "H",
+              "W"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 1,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -6146,7 +7636,17 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)",
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "H",
+              "W"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 1,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -6165,7 +7665,17 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)",
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "H",
+              "W"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 1,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -6184,7 +7694,17 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)",
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "H",
+              "W"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 1,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -6205,7 +7725,18 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)",
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 3,
           "element_type": "float64",
@@ -6284,7 +7815,18 @@
           "state": "mode_rgb",
           "accepted_states": [
             "mode_rgb",
-            "mode_grayscale"
+            "mode_rgba",
+            "mode_grayscale",
+            "mode_binary_1bit",
+            "mode_cmyk",
+            "mode_palette",
+            "mode_hsv",
+            "mode_lab",
+            "mode_int32",
+            "mode_float32",
+            "resized",
+            "cropped",
+            "rotated"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -6295,9 +7837,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -6316,9 +7865,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -6376,7 +7932,18 @@
           "state": "mode_rgb",
           "accepted_states": [
             "mode_rgb",
-            "mode_grayscale"
+            "mode_rgba",
+            "mode_grayscale",
+            "mode_binary_1bit",
+            "mode_cmyk",
+            "mode_palette",
+            "mode_hsv",
+            "mode_lab",
+            "mode_int32",
+            "mode_float32",
+            "resized",
+            "cropped",
+            "rotated"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -6387,9 +7954,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -6430,9 +8004,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -6495,7 +8076,17 @@
           "accepted_states": [
             "mode_rgb",
             "mode_rgba",
-            "mode_grayscale"
+            "mode_grayscale",
+            "mode_binary_1bit",
+            "mode_cmyk",
+            "mode_palette",
+            "mode_hsv",
+            "mode_lab",
+            "mode_int32",
+            "mode_float32",
+            "resized",
+            "cropped",
+            "rotated"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -6506,9 +8097,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -6525,7 +8123,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(2,)",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              2
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": 2
+          },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
@@ -6565,9 +8172,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -6637,7 +8251,17 @@
           "accepted_states": [
             "mode_rgb",
             "mode_rgba",
-            "mode_grayscale"
+            "mode_grayscale",
+            "mode_binary_1bit",
+            "mode_cmyk",
+            "mode_palette",
+            "mode_hsv",
+            "mode_lab",
+            "mode_int32",
+            "mode_float32",
+            "resized",
+            "cropped",
+            "rotated"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -6648,9 +8272,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -6667,7 +8298,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(2,)",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              2
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": 2
+          },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
@@ -6688,9 +8328,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -6755,18 +8402,13 @@
             "mode_binary_1bit",
             "mode_cmyk",
             "mode_palette",
+            "mode_hsv",
+            "mode_lab",
+            "mode_int32",
+            "mode_float32",
             "resized",
             "cropped",
-            "rotated",
-            "filtered_blur",
-            "filtered_edges",
-            "filtered_general",
-            "enhanced_contrast",
-            "enhanced_brightness",
-            "enhanced_color",
-            "enhanced_sharpness",
-            "drawn_overlay",
-            "composited"
+            "rotated"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -6777,9 +8419,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -6879,10 +8528,18 @@
           "state": "mode_rgb",
           "accepted_states": [
             "mode_rgb",
+            "mode_rgba",
             "mode_grayscale",
+            "mode_binary_1bit",
             "mode_cmyk",
+            "mode_palette",
+            "mode_hsv",
+            "mode_lab",
+            "mode_int32",
+            "mode_float32",
             "resized",
-            "enhanced_contrast"
+            "cropped",
+            "rotated"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -6893,9 +8550,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -7016,11 +8680,19 @@
           "type_name": "Image",
           "state": "mode_rgba",
           "accepted_states": [
-            "mode_rgba",
             "mode_rgb",
+            "mode_rgba",
             "mode_grayscale",
+            "mode_binary_1bit",
+            "mode_cmyk",
             "mode_palette",
-            "composited"
+            "mode_hsv",
+            "mode_lab",
+            "mode_int32",
+            "mode_float32",
+            "resized",
+            "cropped",
+            "rotated"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -7031,9 +8703,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -7140,7 +8819,17 @@
           "accepted_states": [
             "mode_rgb",
             "mode_rgba",
-            "mode_grayscale"
+            "mode_grayscale",
+            "mode_binary_1bit",
+            "mode_cmyk",
+            "mode_palette",
+            "mode_hsv",
+            "mode_lab",
+            "mode_int32",
+            "mode_float32",
+            "resized",
+            "cropped",
+            "rotated"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -7151,9 +8840,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -7252,7 +8948,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "size": {
           "name": "size",
@@ -7267,7 +8965,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(2,)",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              2
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": 2
+          },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
@@ -7307,7 +9014,18 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)",
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 3,
           "element_type": "float64",
@@ -7406,7 +9124,17 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(256, 256)",
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "H",
+              "W"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 1,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -7505,7 +9233,17 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(256, 256)",
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "H",
+              "W"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 1,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -7566,7 +9304,17 @@
           "accepted_states": [
             "mode_rgb",
             "mode_rgba",
-            "mode_grayscale"
+            "mode_grayscale",
+            "mode_binary_1bit",
+            "mode_cmyk",
+            "mode_palette",
+            "mode_hsv",
+            "mode_lab",
+            "mode_int32",
+            "mode_float32",
+            "resized",
+            "cropped",
+            "rotated"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -7577,9 +9325,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -7598,9 +9353,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -7671,9 +9433,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": null,
+          "rank": 3,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -7714,7 +9487,17 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)",
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "H",
+              "W"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 1,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -7791,7 +9574,18 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)",
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 3,
           "element_type": "float64",
@@ -7812,7 +9606,18 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)",
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 3,
           "element_type": "float64",
@@ -7897,7 +9702,18 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)",
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 3,
           "element_type": "float64",
@@ -7918,7 +9734,18 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)",
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 3,
           "element_type": "float64",
@@ -7998,9 +9825,19 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "H",
+              "W"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 1,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": null,
+          "rank": 2,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -8019,7 +9856,17 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)",
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "H",
+              "W"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 1,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -8100,9 +9947,19 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "H",
+              "W"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 1,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": null,
+          "rank": 2,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -8121,7 +9978,17 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)",
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "H",
+              "W"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 1,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -8202,7 +10069,17 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "H",
+              "W"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 1,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -8313,9 +10190,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 3,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -8389,9 +10277,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 3,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -8408,7 +10307,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(2,)",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              2
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": 2
+          },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
@@ -8427,7 +10335,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(6,)",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              6
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": 6
+          },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
@@ -8532,9 +10449,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 3,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -8551,7 +10479,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(2,)",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              2
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": 2
+          },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
@@ -8570,7 +10507,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(8,)",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              8
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": 8
+          },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
@@ -8664,7 +10610,17 @@
           "accepted_states": [
             "mode_rgb",
             "mode_rgba",
-            "mode_grayscale"
+            "mode_grayscale",
+            "mode_binary_1bit",
+            "mode_cmyk",
+            "mode_palette",
+            "mode_hsv",
+            "mode_lab",
+            "mode_int32",
+            "mode_float32",
+            "resized",
+            "cropped",
+            "rotated"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -8675,9 +10631,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -8694,7 +10657,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(2,)",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              2
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": 2
+          },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
@@ -8715,9 +10687,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -8777,7 +10756,17 @@
           "accepted_states": [
             "mode_rgb",
             "mode_rgba",
-            "mode_grayscale"
+            "mode_grayscale",
+            "mode_binary_1bit",
+            "mode_cmyk",
+            "mode_palette",
+            "mode_hsv",
+            "mode_lab",
+            "mode_int32",
+            "mode_float32",
+            "resized",
+            "cropped",
+            "rotated"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -8788,9 +10777,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -8807,7 +10803,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(2,)",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              2
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": 2
+          },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
@@ -8828,9 +10833,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -8906,9 +10918,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 3,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -8925,7 +10948,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(2,)",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              2
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": 2
+          },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
@@ -9065,7 +11097,17 @@
           "accepted_states": [
             "mode_rgb",
             "mode_rgba",
-            "mode_grayscale"
+            "mode_grayscale",
+            "mode_binary_1bit",
+            "mode_cmyk",
+            "mode_palette",
+            "mode_hsv",
+            "mode_lab",
+            "mode_int32",
+            "mode_float32",
+            "resized",
+            "cropped",
+            "rotated"
           ],
           "qualifiers": [],
           "default_value": null,
@@ -9076,9 +11118,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -9097,9 +11146,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -9171,7 +11227,17 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)",
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "H",
+              "W"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 1,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -9190,7 +11256,16 @@
           "enum_values": null,
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": "(3,)",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": 3
+          },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
@@ -9209,7 +11284,16 @@
           "enum_values": null,
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": "(3,)",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": 3
+          },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
@@ -9230,7 +11314,18 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W, 3)",
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 3,
           "element_type": "float64",
@@ -9319,9 +11414,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 3,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -9452,7 +11558,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(4,)",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              4
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": 4
+          },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
@@ -9624,7 +11739,16 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(2,)",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              2
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": 2
+          },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
@@ -9647,7 +11771,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "fill": {
           "name": "fill",
@@ -9777,9 +11903,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 3,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -9800,9 +11937,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 3,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -9895,9 +12043,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 3,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -9930,7 +12089,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         }
       },
       "outputs": {
@@ -9947,7 +12108,17 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": "(H, W)",
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "H",
+              "W"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 1,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -10027,9 +12198,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 3,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -10046,9 +12228,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 3,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -10175,9 +12368,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 3,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -10194,9 +12398,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 3,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -10284,9 +12499,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 3,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -10303,9 +12529,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 3,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -10404,9 +12641,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 3,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -10552,7 +12800,17 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "H",
+              "W"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 1,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -10599,9 +12857,18 @@
           "enum_values": null,
           "param_kind": "keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "structure_kind": "composite",
-          "rank": 0,
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
           "supported_formats": []
         },
@@ -10734,7 +13001,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         }
       },
       "outputs": {},
@@ -10886,9 +13155,20 @@
           "enum_values": null,
           "param_kind": "positional",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 3,
+            "shape": [
+              "H",
+              "W",
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": -1,
+            "len": null
+          },
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 3,
           "element_type": "float64",
           "supported_formats": []
         }

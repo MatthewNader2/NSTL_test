@@ -397,10 +397,19 @@
           "type_name": "List[Tuple[Callable[[T], bool], Callable[[T], R]]]",
           "required": true,
           "port_role": "functional_operator",
-          "structure_kind": "handle",
-          "rank": null,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "opaque",
-          "supported_formats": []
+          "supported_formats": [],
+          "abstract_type": "collection",
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         },
         "default_action": {
           "type_name": "Callable[[T], R]",
@@ -461,10 +470,19 @@
           "required": true,
           "port_role": "data_input",
           "default_value": "[]",
-          "structure_kind": "handle",
-          "rank": null,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "opaque",
-          "supported_formats": []
+          "supported_formats": [],
+          "abstract_type": "collection",
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         },
         "inner_generator": {
           "type_name": "Callable[[T], List[U]]",
@@ -534,10 +552,19 @@
           "required": true,
           "port_role": "data_input",
           "default_value": "[]",
-          "structure_kind": "handle",
-          "rank": null,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "opaque",
-          "supported_formats": []
+          "supported_formats": [],
+          "abstract_type": "collection",
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         },
         "key_fn": {
           "type_name": "Callable[[T], Comparable]",
@@ -563,10 +590,19 @@
       "outputs": {
         "output_collection": {
           "type_name": "List[T]",
-          "structure_kind": "handle",
-          "rank": null,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "opaque",
-          "supported_formats": []
+          "supported_formats": [],
+          "abstract_type": "collection",
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "code_templates": {
@@ -603,10 +639,19 @@
           "required": true,
           "port_role": "data_input",
           "default_value": "[]",
-          "structure_kind": "handle",
-          "rank": null,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "opaque",
-          "supported_formats": []
+          "supported_formats": [],
+          "abstract_type": "collection",
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         },
         "key_fn": {
           "type_name": "Callable[[T], Comparable]",
@@ -632,10 +677,19 @@
       "outputs": {
         "output_collection": {
           "type_name": "List[T]",
-          "structure_kind": "handle",
-          "rank": null,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "opaque",
-          "supported_formats": []
+          "supported_formats": [],
+          "abstract_type": "collection",
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "code_templates": {
@@ -669,10 +723,19 @@
           "required": true,
           "port_role": "data_input",
           "default_value": "[]",
-          "structure_kind": "handle",
-          "rank": null,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "opaque",
-          "supported_formats": []
+          "supported_formats": [],
+          "abstract_type": "collection",
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         },
         "transform": {
           "type_name": "Callable[[T], U]",
@@ -688,10 +751,19 @@
       "outputs": {
         "output_collection": {
           "type_name": "List[U]",
-          "structure_kind": "handle",
-          "rank": null,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "opaque",
-          "supported_formats": []
+          "supported_formats": [],
+          "abstract_type": "collection",
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "code_templates": {
@@ -724,10 +796,19 @@
           "required": true,
           "port_role": "data_input",
           "default_value": "[]",
-          "structure_kind": "handle",
-          "rank": null,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "opaque",
-          "supported_formats": []
+          "supported_formats": [],
+          "abstract_type": "collection",
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         },
         "predicate": {
           "type_name": "Callable[[T], bool]",
@@ -743,10 +824,19 @@
       "outputs": {
         "output_collection": {
           "type_name": "List[T]",
-          "structure_kind": "handle",
-          "rank": null,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "opaque",
-          "supported_formats": []
+          "supported_formats": [],
+          "abstract_type": "collection",
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "code_templates": {
@@ -779,10 +869,19 @@
           "required": true,
           "port_role": "data_input",
           "default_value": "[]",
-          "structure_kind": "handle",
-          "rank": null,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "opaque",
-          "supported_formats": []
+          "supported_formats": [],
+          "abstract_type": "collection",
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         },
         "transform": {
           "type_name": "Callable[[T], List[U]]",
@@ -798,10 +897,19 @@
       "outputs": {
         "output_collection": {
           "type_name": "List[U]",
-          "structure_kind": "handle",
-          "rank": null,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "opaque",
-          "supported_formats": []
+          "supported_formats": [],
+          "abstract_type": "collection",
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "code_templates": {
@@ -832,10 +940,19 @@
           "required": true,
           "port_role": "data_input",
           "default_value": "[]",
-          "structure_kind": "handle",
-          "rank": null,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "opaque",
-          "supported_formats": []
+          "supported_formats": [],
+          "abstract_type": "collection",
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         },
         "accumulator": {
           "type_name": "Callable[[State, T], State]",
@@ -899,20 +1016,38 @@
           "required": true,
           "port_role": "data_input",
           "default_value": "[]",
-          "structure_kind": "handle",
-          "rank": null,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "opaque",
-          "supported_formats": []
+          "supported_formats": [],
+          "abstract_type": "collection",
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         },
         "collection_b": {
           "type_name": "List[U]",
           "required": true,
           "port_role": "data_input",
           "default_value": "[]",
-          "structure_kind": "handle",
-          "rank": null,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "opaque",
-          "supported_formats": []
+          "supported_formats": [],
+          "abstract_type": "collection",
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         },
         "zipper": {
           "type_name": "Callable[[T, U], V]",
@@ -928,10 +1063,19 @@
       "outputs": {
         "output_collection": {
           "type_name": "List[V]",
-          "structure_kind": "handle",
-          "rank": null,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "opaque",
-          "supported_formats": []
+          "supported_formats": [],
+          "abstract_type": "collection",
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "code_templates": {
@@ -971,10 +1115,19 @@
           "required": true,
           "port_role": "data_input",
           "default_value": "[]",
-          "structure_kind": "handle",
-          "rank": null,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "opaque",
-          "supported_formats": []
+          "supported_formats": [],
+          "abstract_type": "collection",
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         },
         "body_fn": {
           "type_name": "Callable[[T, State], State]",
@@ -1119,10 +1272,19 @@
           "required": true,
           "port_role": "data_input",
           "default_value": "[]",
-          "structure_kind": "handle",
-          "rank": null,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "opaque",
-          "supported_formats": []
+          "supported_formats": [],
+          "abstract_type": "collection",
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         },
         "transform": {
           "type_name": "Callable[[int, T], U]",
@@ -1148,10 +1310,19 @@
       "outputs": {
         "output_collection": {
           "type_name": "List[U]",
-          "structure_kind": "handle",
-          "rank": null,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "opaque",
-          "supported_formats": []
+          "supported_formats": [],
+          "abstract_type": "collection",
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "code_templates": {
@@ -2021,10 +2192,19 @@
           "required": true,
           "port_role": "data_input",
           "default_value": "[]",
-          "structure_kind": "handle",
-          "rank": null,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "opaque",
-          "supported_formats": []
+          "supported_formats": [],
+          "abstract_type": "collection",
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         },
         "predicate": {
           "type_name": "Callable[[T], bool]",
@@ -2084,10 +2264,19 @@
           "required": true,
           "port_role": "data_input",
           "default_value": "[]",
-          "structure_kind": "handle",
-          "rank": null,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "opaque",
-          "supported_formats": []
+          "supported_formats": [],
+          "abstract_type": "collection",
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         },
         "predicate": {
           "type_name": "Callable[[T], bool]",
@@ -2136,10 +2325,19 @@
           "required": true,
           "port_role": "data_input",
           "default_value": "[]",
-          "structure_kind": "handle",
-          "rank": null,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "opaque",
-          "supported_formats": []
+          "supported_formats": [],
+          "abstract_type": "collection",
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         },
         "predicate": {
           "type_name": "Callable[[T], bool]",
@@ -2188,10 +2386,19 @@
           "required": true,
           "port_role": "data_input",
           "default_value": "[]",
-          "structure_kind": "handle",
-          "rank": null,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "opaque",
-          "supported_formats": []
+          "supported_formats": [],
+          "abstract_type": "collection",
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         },
         "predicate": {
           "type_name": "Callable[[T], bool]",
@@ -2207,17 +2414,35 @@
       "outputs": {
         "true_collection": {
           "type_name": "List[T]",
-          "structure_kind": "handle",
-          "rank": null,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "opaque",
-          "supported_formats": []
+          "supported_formats": [],
+          "abstract_type": "collection",
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         },
         "false_collection": {
           "type_name": "List[T]",
-          "structure_kind": "handle",
-          "rank": null,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "opaque",
-          "supported_formats": []
+          "supported_formats": [],
+          "abstract_type": "collection",
+          "shape_contract": {
+            "ndim": null,
+            "shape": null,
+            "rank_polymorphic": true,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "code_templates": {
@@ -2372,7 +2597,10 @@
   ],
   "typestates": {
     "domain": "control_flow",
-    "states": []
+    "states": [],
+    "transitions": [],
+    "initial_state": null,
+    "terminal_states": []
   },
   "materialization_states": [
     "destination_written",

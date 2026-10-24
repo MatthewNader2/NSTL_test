@@ -55,16 +55,6 @@
     "domain": "numpy",
     "states": [
       {
-        "name": "ndarray_generic",
-        "parent_state": null,
-        "carrier_type": "ndarray",
-        "description": "A plain numpy array, dimensionality and dtype unspecified (interchange typestate)",
-        "properties": {
-          "ndim": null,
-          "dtype": null
-        }
-      },
-      {
         "name": "1d_vector",
         "parent_state": "ndarray_generic",
         "carrier_type": "ndarray",
@@ -83,13 +73,39 @@
         }
       },
       {
-        "name": "nd_tensor",
-        "parent_state": "ndarray_generic",
-        "carrier_type": "ndarray",
-        "description": "N-dimensional tensor array with rank greater than or equal to 1",
-        "properties": {
-          "ndim_min": 1
-        }
+        "name": "axes_permutation",
+        "parent_state": null,
+        "carrier_type": "Tuple[int, ...]",
+        "description": "Permutation of dimensions; reverses axes if None",
+        "properties": {}
+      },
+      {
+        "name": "axes_tuple",
+        "parent_state": null,
+        "carrier_type": "tuple",
+        "description": "Axes over which 2D FFT is computed",
+        "properties": {}
+      },
+      {
+        "name": "axis_position",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Position in expanded axes where new axis is placed",
+        "properties": {}
+      },
+      {
+        "name": "axis_spec",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Specific axis to drop; drops all length 1 axes if None",
+        "properties": {}
+      },
+      {
+        "name": "binary_buffer",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Object exposing buffer interface (e.g. bytes, bytearray)",
+        "properties": {}
       },
       {
         "name": "boolean_mask",
@@ -101,30 +117,19 @@
         }
       },
       {
-        "name": "normalized",
-        "parent_state": "nd_tensor",
-        "carrier_type": "ndarray",
-        "description": "Tensor scaled according to vector norm, min-max, or z-score standardization",
-        "properties": {
-          "is_normalized": true
-        }
+        "name": "bound_scalar",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Minimum value floor",
+        "properties": {}
       },
       {
-        "name": "transposed",
-        "parent_state": "nd_tensor",
-        "carrier_type": "ndarray",
-        "description": "Array view or copy with inverted or permuted axes",
+        "name": "cholesky_decomposed",
+        "parent_state": "2d_matrix",
+        "carrier_type": "matrix",
+        "description": "Lower or upper triangular Cholesky factor matrix of a positive-definite matrix",
         "properties": {
-          "is_transposed": true
-        }
-      },
-      {
-        "name": "sorted",
-        "parent_state": "nd_tensor",
-        "carrier_type": "ndarray",
-        "description": "Array arranged monotonically along an indicated axis",
-        "properties": {
-          "is_sorted": true
+          "is_triangular": true
         }
       },
       {
@@ -137,13 +142,57 @@
         }
       },
       {
-        "name": "fft_frequency_domain",
-        "parent_state": "complex_tensor",
-        "carrier_type": "ndarray",
-        "description": "Frequency-domain spectral representation generated via discrete Fourier transform",
+        "name": "count_spec",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Number of elements to read; -1 indicates entire buffer",
+        "properties": {}
+      },
+      {
+        "name": "diag_index",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Index of diagonal: 0 main, >0 upper, <0 lower",
+        "properties": {}
+      },
+      {
+        "name": "diag_offset",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Offset of diagonal from the main diagonal",
+        "properties": {}
+      },
+      {
+        "name": "dim_size",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Length of the 1D vector",
         "properties": {
-          "is_frequency_domain": true
+          "min": 0
         }
+      },
+      {
+        "name": "distribution_mean",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Mean of the distribution",
+        "properties": {}
+      },
+      {
+        "name": "distribution_std",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Standard deviation (non-negative)",
+        "properties": {
+          "min": 0.0
+        }
+      },
+      {
+        "name": "dtype_spec",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Target data type specification",
+        "properties": {}
       },
       {
         "name": "eigen_decomposed",
@@ -155,13 +204,128 @@
         }
       },
       {
-        "name": "svd_decomposed",
+        "name": "exported_buffer",
         "parent_state": null,
-        "carrier_type": "matrix",
-        "description": "Compound singular value decomposition tuple holding U, S, and Vh matrices",
+        "carrier_type": "scalar",
+        "description": "Serialized contiguous raw byte buffer or native Python list collection",
         "properties": {
-          "decomposed": true
+          "format": "buffer"
         }
+      },
+      {
+        "name": "fft_frequency_domain",
+        "parent_state": "complex_tensor",
+        "carrier_type": "ndarray",
+        "description": "Frequency-domain spectral representation generated via discrete Fourier transform",
+        "properties": {
+          "is_frequency_domain": true
+        }
+      },
+      {
+        "name": "fft_half_spectrum",
+        "parent_state": null,
+        "carrier_type": "ndarray",
+        "description": "Hermitian-symmetric positive frequency spectrum",
+        "properties": {}
+      },
+      {
+        "name": "file_path_str",
+        "parent_state": "source_identifier",
+        "carrier_type": "str",
+        "description": "Declared by data migration (formerly engine bootstrap state 'file_path_str')."
+      },
+      {
+        "name": "flag",
+        "parent_state": null,
+        "carrier_type": "bool",
+        "description": "Whether to include stop value",
+        "properties": {}
+      },
+      {
+        "name": "format_str",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Format string for text output",
+        "properties": {}
+      },
+      {
+        "name": "interval_endpoint",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Start of interval",
+        "properties": {}
+      },
+      {
+        "name": "interval_step",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Spacing between values",
+        "properties": {
+          "nonzero": true
+        }
+      },
+      {
+        "name": "nd_tensor",
+        "parent_state": "ndarray_generic",
+        "carrier_type": "ndarray",
+        "description": "N-dimensional tensor array with rank greater than or equal to 1",
+        "properties": {
+          "ndim_min": 1
+        }
+      },
+      {
+        "name": "ndarray_generic",
+        "parent_state": null,
+        "carrier_type": "ndarray",
+        "description": "A plain numpy array, dimensionality and dtype unspecified (interchange typestate)",
+        "properties": {
+          "ndim": null,
+          "dtype": null
+        }
+      },
+      {
+        "name": "norm_order",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Order of the norm (e.g. 1, 2, np.inf, 'fro')",
+        "properties": {}
+      },
+      {
+        "name": "normalized",
+        "parent_state": "nd_tensor",
+        "carrier_type": "ndarray",
+        "description": "Tensor scaled according to vector norm, min-max, or z-score standardization",
+        "properties": {
+          "is_normalized": true
+        }
+      },
+      {
+        "name": "order_spec",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Memory order: 'C' (row-major) or 'F' (column-major)",
+        "properties": {}
+      },
+      {
+        "name": "pad_mode_str",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Padding mode e.g. 'constant', 'edge', 'reflect'",
+        "properties": {}
+      },
+      {
+        "name": "pad_spec",
+        "parent_state": null,
+        "carrier_type": "tuple",
+        "description": "Number of values padded to edges of each axis",
+        "properties": {}
+      },
+      {
+        "name": "probability_vector",
+        "parent_state": null,
+        "carrier_type": "ndarray",
+        "description": "Probabilities associated with each entry in a",
+        "properties": {}
       },
       {
         "name": "qr_decomposed",
@@ -173,21 +337,19 @@
         }
       },
       {
-        "name": "cholesky_decomposed",
-        "parent_state": "2d_matrix",
-        "carrier_type": "matrix",
-        "description": "Lower or upper triangular Cholesky factor matrix of a positive-definite matrix",
-        "properties": {
-          "is_triangular": true
-        }
+        "name": "qr_mode",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "QR mode: 'reduced', 'complete', 'r', 'raw'",
+        "properties": {}
       },
       {
-        "name": "scalar_value",
+        "name": "sample_count",
         "parent_state": null,
-        "carrier_type": "scalar",
-        "description": "Zero-dimensional scalar result derived from algebraic or statistical reduction",
+        "carrier_type": "int",
+        "description": "Number of samples to generate",
         "properties": {
-          "ndim": 0
+          "min": 1
         }
       },
       {
@@ -209,19 +371,89 @@
         }
       },
       {
-        "name": "exported_buffer",
+        "name": "scalar_const",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Scalar value to populate array with",
+        "properties": {}
+      },
+      {
+        "name": "scalar_value",
         "parent_state": null,
         "carrier_type": "scalar",
-        "description": "Serialized contiguous raw byte buffer or native Python list collection",
+        "description": "Zero-dimensional scalar result derived from algebraic or statistical reduction",
         "properties": {
-          "format": "buffer"
+          "ndim": 0
         }
       },
       {
-        "name": "file_path_str",
-        "parent_state": "source_identifier",
+        "name": "separator_str",
+        "parent_state": null,
         "carrier_type": "str",
-        "description": "Declared by data migration (formerly engine bootstrap state 'file_path_str')."
+        "description": "Separator between items. If empty, binary file is written.",
+        "properties": {}
+      },
+      {
+        "name": "shape_tuple",
+        "parent_state": null,
+        "carrier_type": "Tuple[int, ...]",
+        "description": "Shape tuple defining dimensions",
+        "properties": {}
+      },
+      {
+        "name": "side_spec",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "'left' gives first suitable index, 'right' gives last",
+        "properties": {}
+      },
+      {
+        "name": "sort_algorithm",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Sorting algorithm: 'quicksort', 'mergesort', 'heapsort', 'stable'",
+        "properties": {}
+      },
+      {
+        "name": "sorted",
+        "parent_state": "nd_tensor",
+        "carrier_type": "ndarray",
+        "description": "Array arranged monotonically along an indicated axis",
+        "properties": {
+          "is_sorted": true
+        }
+      },
+      {
+        "name": "svd_decomposed",
+        "parent_state": null,
+        "carrier_type": "matrix",
+        "description": "Compound singular value decomposition tuple holding U, S, and Vh matrices",
+        "properties": {
+          "decomposed": true
+        }
+      },
+      {
+        "name": "threshold_tolerance",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Threshold below which SVD values are considered zero",
+        "properties": {}
+      },
+      {
+        "name": "transform_length",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Length of the transformed axis",
+        "properties": {}
+      },
+      {
+        "name": "transposed",
+        "parent_state": "nd_tensor",
+        "carrier_type": "ndarray",
+        "description": "Array view or copy with inverted or permuted axes",
+        "properties": {
+          "is_transposed": true
+        }
       }
     ],
     "transitions": [
@@ -1324,13 +1556,13 @@
           "description": "Object exposing buffer interface (e.g. bytes, bytearray)",
           "domain": "numpy",
           "required": true,
-          "abstract_type": "array-like",
+          "abstract_type": "tensor",
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": null,
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": 1,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -1436,7 +1668,7 @@
           "type_name": "int",
           "state": "dim_size",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": 10,
           "description": "Length of the 1D vector",
           "domain": "numpy",
           "required": true,
@@ -1450,7 +1682,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "dtype": {
           "type_name": "str",
@@ -1536,7 +1770,7 @@
           "type_name": "int",
           "state": "dim_size",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": 10,
           "description": "Row dimension count",
           "domain": "numpy",
           "required": true,
@@ -1550,13 +1784,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "cols": {
           "type_name": "int",
           "state": "dim_size",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": 10,
           "description": "Column dimension count",
           "domain": "numpy",
           "required": true,
@@ -1570,7 +1806,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "dtype": {
           "type_name": "str",
@@ -1753,7 +1991,7 @@
           "type_name": "int",
           "state": "dim_size",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": 10,
           "description": "Length of vector",
           "domain": "numpy",
           "required": true,
@@ -1767,7 +2005,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "dtype": {
           "type_name": "str",
@@ -1852,7 +2092,7 @@
           "type_name": "int",
           "state": "dim_size",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": 10,
           "description": "Row dimension",
           "domain": "numpy",
           "required": true,
@@ -1866,13 +2106,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "cols": {
           "type_name": "int",
           "state": "dim_size",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": 10,
           "description": "Column dimension",
           "domain": "numpy",
           "required": true,
@@ -1886,7 +2128,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "dtype": {
           "type_name": "str",
@@ -2087,7 +2331,7 @@
           "type_name": "float",
           "state": "scalar_const",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": 0.0,
           "description": "Scalar value to populate array with",
           "domain": "numpy",
           "required": true,
@@ -2099,7 +2343,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "dtype": {
           "type_name": "str",
@@ -2189,7 +2435,7 @@
           "type_name": "float",
           "state": "interval_endpoint",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": 0.0,
           "description": "Start of interval",
           "domain": "numpy",
           "required": true,
@@ -2201,13 +2447,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "stop": {
           "type_name": "float",
           "state": "interval_endpoint",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": 10,
           "description": "End of interval",
           "domain": "numpy",
           "required": true,
@@ -2219,7 +2467,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "step": {
           "type_name": "float",
@@ -2326,7 +2576,7 @@
           "type_name": "float",
           "state": "interval_endpoint",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": 0.0,
           "description": "Starting value of sequence",
           "domain": "numpy",
           "required": true,
@@ -2338,13 +2588,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "stop": {
           "type_name": "float",
           "state": "interval_endpoint",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": 1.0,
           "description": "Final value of sequence",
           "domain": "numpy",
           "required": true,
@@ -2356,7 +2608,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "num": {
           "type_name": "int",
@@ -2464,7 +2718,7 @@
           "type_name": "int",
           "state": "dim_size",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": 16384,
           "description": "Number of rows in output",
           "domain": "numpy",
           "required": true,
@@ -2478,7 +2732,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "m": {
           "type_name": "int",
@@ -2600,7 +2856,7 @@
           "type_name": "int",
           "state": "dim_size",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": 16384,
           "description": "Dimension of square matrix",
           "domain": "numpy",
           "required": true,
@@ -2614,7 +2870,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "dtype": {
           "type_name": "str",
@@ -2908,7 +3166,7 @@
           "type_name": "int",
           "state": "dim_size",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": -1,
           "description": "Target row count (-1 for automatic deduction)",
           "domain": "numpy",
           "required": true,
@@ -2920,13 +3178,14 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration"
         },
         "cols": {
           "type_name": "int",
           "state": "dim_size",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": 1,
           "description": "Target column count (-1 for automatic deduction)",
           "domain": "numpy",
           "required": true,
@@ -2938,7 +3197,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration"
         }
       },
       "outputs": {
@@ -3041,7 +3301,9 @@
           "type_name": "Tuple[int, ...]",
           "state": "shape_tuple",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": [
+            -1
+          ],
           "description": "New dimensions tuple",
           "domain": "numpy",
           "required": true,
@@ -3053,7 +3315,8 @@
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration"
         }
       },
       "outputs": {
@@ -3660,7 +3923,7 @@
           "type_name": "int",
           "state": "axis_position",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": 0,
           "description": "Position in expanded axes where new axis is placed",
           "domain": "numpy",
           "required": true,
@@ -3672,7 +3935,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration"
         }
       },
       "outputs": {
@@ -3771,7 +4035,8 @@
           "structure_kind": "tensor",
           "rank": null,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "data_input"
         }
       },
       "outputs": {
@@ -3871,7 +4136,8 @@
           "structure_kind": "tensor",
           "rank": null,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "data_input"
         },
         "axis": {
           "type_name": "int",
@@ -3997,7 +4263,8 @@
           "structure_kind": "tensor",
           "rank": null,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "data_input"
         }
       },
       "outputs": {
@@ -4105,7 +4372,8 @@
           "structure_kind": "tensor",
           "rank": null,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "data_input"
         }
       },
       "outputs": {
@@ -4186,7 +4454,8 @@
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "data_input"
         },
         "x": {
           "type_name": "ndarray",
@@ -4323,7 +4592,8 @@
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "data_input"
         }
       },
       "outputs": {
@@ -4420,7 +4690,10 @@
           "type_name": "Tuple[int, ...]",
           "state": "shape_tuple",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": [
+            1,
+            1
+          ],
           "description": "Target shape for broadcast",
           "domain": "numpy",
           "required": true,
@@ -4432,7 +4705,8 @@
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration"
         }
       },
       "outputs": {
@@ -4521,7 +4795,10 @@
           "type_name": "tuple",
           "state": "pad_spec",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": [
+            1,
+            1
+          ],
           "description": "Number of values padded to edges of each axis",
           "domain": "numpy",
           "required": true,
@@ -4533,7 +4810,8 @@
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration"
         },
         "mode": {
           "type_name": "str",
@@ -4795,7 +5073,8 @@
           "structure_kind": "tensor",
           "rank": null,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "data_input"
         }
       },
       "outputs": {
@@ -4893,7 +5172,8 @@
           "structure_kind": "tensor",
           "rank": null,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "data_input"
         }
       },
       "outputs": {
@@ -4991,7 +5271,8 @@
           "structure_kind": "tensor",
           "rank": null,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "data_input"
         }
       },
       "outputs": {
@@ -5090,7 +5371,8 @@
           "structure_kind": "tensor",
           "rank": null,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "data_input"
         }
       },
       "outputs": {
@@ -6843,7 +7125,8 @@
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "data_input"
         }
       },
       "outputs": {
@@ -6949,7 +7232,8 @@
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "data_input"
         }
       },
       "outputs": {
@@ -7064,7 +7348,8 @@
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "data_input"
         }
       },
       "outputs": {
@@ -7160,7 +7445,8 @@
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "data_input"
         }
       },
       "outputs": {
@@ -7939,7 +8225,8 @@
           "structure_kind": "tensor",
           "rank": null,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "data_input"
         }
       },
       "outputs": {
@@ -8454,7 +8741,16 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": "(n_samples,)",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "n_samples"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -9823,7 +10119,7 @@
           "type_name": "int",
           "state": "bound_scalar",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": 0,
           "description": "Lowest integer to be drawn",
           "domain": "numpy",
           "required": true,
@@ -9835,7 +10131,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "high": {
           "type_name": "int",
@@ -10479,7 +10777,8 @@
           "structure_kind": "tensor",
           "rank": null,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "data_input"
         },
         "side": {
           "type_name": "str",
@@ -11205,7 +11504,16 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -11699,7 +12007,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "axis": {
           "type_name": "int",
@@ -11830,7 +12140,7 @@
           "type_name": "int",
           "state": "dim_size",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": 0,
           "description": "Number of columns for 2D reshaping",
           "domain": "numpy",
           "required": true,

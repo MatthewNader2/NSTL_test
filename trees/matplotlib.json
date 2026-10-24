@@ -19,12 +19,16 @@
   },
   "typestates": {
     "domain": "matplotlib",
-    "initial_state": "empty_figure",
-    "terminal_states": [
-      "figure_saved",
-      "figure_closed"
-    ],
     "states": [
+      {
+        "name": "annotated",
+        "parent_state": "axes_with_content",
+        "carrier_type": "Axes",
+        "description": "Axes with textual callouts, pointers, or coordinate markers.",
+        "properties": {
+          "has_annotations": true
+        }
+      },
       {
         "name": "axes_initialized",
         "parent_state": null,
@@ -44,48 +48,12 @@
         }
       },
       {
-        "name": "empty_figure",
-        "parent_state": null,
-        "carrier_type": "Figure",
-        "description": "Top-level Matplotlib Figure container with no attached subplots or axes.",
-        "properties": {
-          "num_axes": 0
-        }
-      },
-      {
-        "name": "line_plotted",
-        "parent_state": "axes_with_content",
-        "carrier_type": "Axes",
-        "description": "Axes containing 2D line plots rendered via plot.",
-        "properties": {
-          "plot_type": "line"
-        }
-      },
-      {
-        "name": "scatter_plotted",
-        "parent_state": "axes_with_content",
-        "carrier_type": "Axes",
-        "description": "Axes containing 2D scatter points rendered via scatter.",
-        "properties": {
-          "plot_type": "scatter"
-        }
-      },
-      {
         "name": "bar_plotted",
         "parent_state": "axes_with_content",
         "carrier_type": "Axes",
         "description": "Axes containing vertical or horizontal bar collections.",
         "properties": {
           "plot_type": "bar"
-        }
-      },
-      {
-        "name": "hist_plotted",
-        "parent_state": "axes_with_content",
-        "carrier_type": "Axes",
-        "description": "Axes containing frequency histograms or binned representations.",
-        "properties": {
-          "plot_type": "histogram"
         }
       },
       {
@@ -98,30 +66,19 @@
         }
       },
       {
-        "name": "violin_plotted",
-        "parent_state": "axes_with_content",
-        "carrier_type": "Axes",
-        "description": "Axes containing violin kernel density representations.",
-        "properties": {
-          "plot_type": "violin"
-        }
+        "name": "color_rgb",
+        "parent_state": null,
+        "carrier_type": "ndarray",
+        "description": "2D numeric array or (M, N, 3) / (M, N, 4) image tensor.",
+        "properties": {}
       },
       {
-        "name": "pie_plotted",
-        "parent_state": "axes_with_content",
-        "carrier_type": "Axes",
-        "description": "Axes containing circular proportional pie charts.",
+        "name": "colorbar_added",
+        "parent_state": null,
+        "carrier_type": "Figure",
+        "description": "Figure equipped with a mapped scalar colorbar axis.",
         "properties": {
-          "plot_type": "pie"
-        }
-      },
-      {
-        "name": "image_plotted",
-        "parent_state": "axes_with_content",
-        "carrier_type": "Axes",
-        "description": "Axes displaying 2D pixel rasters or colormapped matrix displays.",
-        "properties": {
-          "plot_type": "imshow"
+          "has_colorbar": true
         }
       },
       {
@@ -134,12 +91,12 @@
         }
       },
       {
-        "name": "plot3d_plotted",
-        "parent_state": "axes_with_content",
-        "carrier_type": "Axes",
-        "description": "Axes3D instance rendering 3D trajectories, scatter clouds, or surfaces.",
+        "name": "empty_figure",
+        "parent_state": null,
+        "carrier_type": "Figure",
+        "description": "Top-level Matplotlib Figure container with no attached subplots or axes.",
         "properties": {
-          "is_3d": true
+          "num_axes": 0
         }
       },
       {
@@ -152,12 +109,93 @@
         }
       },
       {
+        "name": "figure_closed",
+        "parent_state": null,
+        "carrier_type": "Figure",
+        "description": "Figure handle purged from pyplot GUI management to release memory.",
+        "properties": {
+          "closed": true
+        }
+      },
+      {
+        "name": "figure_saved",
+        "parent_state": "written_to_disk",
+        "carrier_type": "Figure",
+        "description": "Figure that has been serialized and persisted to disk storage.",
+        "properties": {
+          "persisted": true
+        }
+      },
+      {
         "name": "fill_plotted",
         "parent_state": "axes_with_content",
         "carrier_type": "Axes",
         "description": "Axes rendering shaded planar polygons between bounds or curves.",
         "properties": {
           "plot_type": "fill_between"
+        }
+      },
+      {
+        "name": "hist_plotted",
+        "parent_state": "axes_with_content",
+        "carrier_type": "Axes",
+        "description": "Axes containing frequency histograms or binned representations.",
+        "properties": {
+          "plot_type": "histogram"
+        }
+      },
+      {
+        "name": "image_plotted",
+        "parent_state": "axes_with_content",
+        "carrier_type": "Axes",
+        "description": "Axes displaying 2D pixel rasters or colormapped matrix displays.",
+        "properties": {
+          "plot_type": "imshow"
+        }
+      },
+      {
+        "name": "legend_added",
+        "parent_state": "axes_with_content",
+        "carrier_type": "Axes",
+        "description": "Axes with active legend mapping labels to plot symbols.",
+        "properties": {
+          "has_legend": true
+        }
+      },
+      {
+        "name": "line_plotted",
+        "parent_state": "axes_with_content",
+        "carrier_type": "Axes",
+        "description": "Axes containing 2D line plots rendered via plot.",
+        "properties": {
+          "plot_type": "line"
+        }
+      },
+      {
+        "name": "pie_plotted",
+        "parent_state": "axes_with_content",
+        "carrier_type": "Axes",
+        "description": "Axes containing circular proportional pie charts.",
+        "properties": {
+          "plot_type": "pie"
+        }
+      },
+      {
+        "name": "plot3d_plotted",
+        "parent_state": "axes_with_content",
+        "carrier_type": "Axes",
+        "description": "Axes3D instance rendering 3D trajectories, scatter clouds, or surfaces.",
+        "properties": {
+          "is_3d": true
+        }
+      },
+      {
+        "name": "scatter_plotted",
+        "parent_state": "axes_with_content",
+        "carrier_type": "Axes",
+        "description": "Axes containing 2D scatter points rendered via scatter.",
+        "properties": {
+          "plot_type": "scatter"
         }
       },
       {
@@ -179,33 +217,6 @@
         }
       },
       {
-        "name": "annotated",
-        "parent_state": "axes_with_content",
-        "carrier_type": "Axes",
-        "description": "Axes with textual callouts, pointers, or coordinate markers.",
-        "properties": {
-          "has_annotations": true
-        }
-      },
-      {
-        "name": "legend_added",
-        "parent_state": "axes_with_content",
-        "carrier_type": "Axes",
-        "description": "Axes with active legend mapping labels to plot symbols.",
-        "properties": {
-          "has_legend": true
-        }
-      },
-      {
-        "name": "colorbar_added",
-        "parent_state": null,
-        "carrier_type": "Figure",
-        "description": "Figure equipped with a mapped scalar colorbar axis.",
-        "properties": {
-          "has_colorbar": true
-        }
-      },
-      {
         "name": "tight_layout_applied",
         "parent_state": null,
         "carrier_type": "Figure",
@@ -215,21 +226,12 @@
         }
       },
       {
-        "name": "figure_saved",
-        "parent_state": "written_to_disk",
-        "carrier_type": "Figure",
-        "description": "Figure that has been serialized and persisted to disk storage.",
+        "name": "violin_plotted",
+        "parent_state": "axes_with_content",
+        "carrier_type": "Axes",
+        "description": "Axes containing violin kernel density representations.",
         "properties": {
-          "persisted": true
-        }
-      },
-      {
-        "name": "figure_closed",
-        "parent_state": null,
-        "carrier_type": "Figure",
-        "description": "Figure handle purged from pyplot GUI management to release memory.",
-        "properties": {
-          "closed": true
+          "plot_type": "violin"
         }
       }
     ],
@@ -769,6 +771,11 @@
         "to": "empty_figure",
         "via": "matplotlib_plt_subplots_single"
       }
+    ],
+    "initial_state": "empty_figure",
+    "terminal_states": [
+      "figure_saved",
+      "figure_closed"
     ]
   },
   "cells": [
@@ -1446,8 +1453,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[4]",
-          "structure_kind": "composite",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              4
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": 4
+          },
+          "structure_kind": "collection",
           "rank": 1,
           "element_type": "composite_record",
           "supported_formats": []
@@ -1574,7 +1590,16 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "port_role": "data_input",
           "structure_kind": "tensor",
           "rank": null,
@@ -1713,7 +1738,16 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "port_role": "data_input",
           "structure_kind": "tensor",
           "rank": null,
@@ -1734,7 +1768,16 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "port_role": "data_input",
           "structure_kind": "tensor",
           "rank": null,
@@ -1958,7 +2001,16 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "port_role": "data_input",
           "structure_kind": "tensor",
           "rank": null,
@@ -1979,7 +2031,16 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": null,
           "element_type": "float64",
@@ -2177,7 +2238,16 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "port_role": "data_input",
           "structure_kind": "tensor",
           "rank": null,
@@ -2198,7 +2268,16 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": null,
           "element_type": "float64",
@@ -2396,7 +2475,16 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "port_role": "data_input",
           "structure_kind": "tensor",
           "rank": null,
@@ -2955,7 +3043,16 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "port_role": "data_input",
           "structure_kind": "tensor",
           "rank": null,
@@ -2978,9 +3075,18 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": "[N]",
-          "structure_kind": "composite",
-          "rank": 0,
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
           "supported_formats": []
         },
@@ -3389,7 +3495,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[M, N]",
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "M",
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "port_role": "data_input",
           "structure_kind": "tensor",
           "rank": 2,
@@ -3410,7 +3526,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[M, N]",
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "M",
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "port_role": "data_input",
           "structure_kind": "tensor",
           "rank": 2,
@@ -3431,7 +3557,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[M, N]",
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "M",
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -3629,7 +3765,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[M, N]",
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "M",
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "port_role": "data_input",
           "structure_kind": "tensor",
           "rank": 2,
@@ -3650,7 +3796,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[M, N]",
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "M",
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "port_role": "data_input",
           "structure_kind": "tensor",
           "rank": 2,
@@ -3671,7 +3827,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[M, N]",
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "M",
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -3865,7 +4031,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[M, N]",
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "M",
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "port_role": "data_input",
           "structure_kind": "tensor",
           "rank": 2,
@@ -3886,7 +4062,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[M, N]",
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "M",
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "port_role": "data_input",
           "structure_kind": "tensor",
           "rank": 2,
@@ -3907,7 +4093,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[M, N]",
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "M",
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -4100,7 +4296,16 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": null,
           "element_type": "float64",
@@ -4120,7 +4325,16 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": null,
           "element_type": "float64",
@@ -4140,7 +4354,16 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": null,
           "element_type": "float64",
@@ -4300,7 +4523,16 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": null,
           "element_type": "float64",
@@ -4320,7 +4552,16 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": null,
           "element_type": "float64",
@@ -4340,7 +4581,16 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": null,
           "element_type": "float64",
@@ -4523,7 +4773,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[M, N]",
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "M",
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "port_role": "data_input",
           "structure_kind": "tensor",
           "rank": 2,
@@ -4544,7 +4804,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[M, N]",
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "M",
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "port_role": "data_input",
           "structure_kind": "tensor",
           "rank": 2,
@@ -4565,7 +4835,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[M, N]",
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "M",
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -4905,7 +5185,16 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "port_role": "data_input",
           "structure_kind": "tensor",
           "rank": null,
@@ -4926,7 +5215,16 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "port_role": "data_input",
           "structure_kind": "tensor",
           "rank": null,
@@ -5122,7 +5420,16 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "port_role": "data_input",
           "structure_kind": "tensor",
           "rank": null,
@@ -5143,7 +5450,16 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": null,
           "element_type": "float64",
@@ -5163,7 +5479,16 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": null,
           "element_type": "float64",
@@ -5334,7 +5659,16 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "port_role": "data_input",
           "structure_kind": "tensor",
           "rank": null,
@@ -5355,7 +5689,16 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "[N]",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "port_role": "data_input",
           "structure_kind": "tensor",
           "rank": null,
@@ -6109,7 +6452,7 @@
           "state": "unregistered",
           "accepted_states": null,
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Annotation callout text.",
           "domain": "matplotlib",
           "required": true,
@@ -6121,7 +6464,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "xy": {
           "name": "xy",
@@ -6137,7 +6482,16 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": "[2]",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              2
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": 2
+          },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
@@ -6159,7 +6513,16 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": "[2]",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              2
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": 2
+          },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
@@ -6302,7 +6665,7 @@
           "state": "unregistered",
           "accepted_states": null,
           "qualifiers": [],
-          "default_value": null,
+          "default_value": 0.0,
           "description": "X data position.",
           "domain": "matplotlib",
           "required": true,
@@ -6311,11 +6674,12 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input",
+          "port_role": "configuration",
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "configuration"
         },
         "y": {
           "name": "y",
@@ -6323,7 +6687,7 @@
           "state": "unregistered",
           "accepted_states": null,
           "qualifiers": [],
-          "default_value": null,
+          "default_value": 0.0,
           "description": "Y data position.",
           "domain": "matplotlib",
           "required": true,
@@ -6332,11 +6696,12 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "data_input",
+          "port_role": "configuration",
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "configuration"
         },
         "s": {
           "name": "s",
@@ -6344,7 +6709,7 @@
           "state": "unregistered",
           "accepted_states": null,
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "String message.",
           "domain": "matplotlib",
           "required": true,
@@ -6356,7 +6721,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "fontsize": {
           "name": "fontsize",
@@ -6515,7 +6882,7 @@
           "state": "unregistered",
           "accepted_states": null,
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "Title",
           "description": "Title text string.",
           "domain": "matplotlib",
           "required": true,
@@ -6527,7 +6894,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "fontsize": {
           "name": "fontsize",
@@ -6686,7 +7055,7 @@
           "state": "unregistered",
           "accepted_states": null,
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "X",
           "description": "Horizontal axis label text.",
           "domain": "matplotlib",
           "required": true,
@@ -6698,7 +7067,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "fontsize": {
           "name": "fontsize",
@@ -6857,7 +7228,7 @@
           "state": "unregistered",
           "accepted_states": null,
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "Y",
           "description": "Vertical axis label text.",
           "domain": "matplotlib",
           "required": true,
@@ -6869,7 +7240,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "fontsize": {
           "name": "fontsize",
@@ -7345,7 +7718,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         }
       },
       "outputs": {
@@ -7475,7 +7850,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         }
       },
       "outputs": {
@@ -7595,7 +7972,16 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": "[K]",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "K"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -7720,9 +8106,18 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": "[K]",
-          "structure_kind": "composite",
-          "rank": 0,
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "K"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
           "supported_formats": []
         },
@@ -8867,7 +9262,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         }
       },
       "outputs": {},
@@ -8959,7 +9356,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         }
       },
       "outputs": {
@@ -9084,7 +9483,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         }
       },
       "outputs": {
@@ -9215,7 +9616,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "visible": {
           "name": "visible",
@@ -9352,7 +9755,7 @@
           "state": "unregistered",
           "accepted_states": null,
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "Title",
           "description": "Super-title headline text.",
           "domain": "matplotlib",
           "required": true,
@@ -9364,7 +9767,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "fontsize": {
           "name": "fontsize",

@@ -112,10 +112,21 @@
           "required": false,
           "default_value": "[1, 3, 5, 7, 9]",
           "port_role": "data_input",
-          "structure_kind": "composite",
+          "structure_kind": "collection",
           "rank": 1,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "abstract_type": "collection",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         },
         "target": {
           "type_name": "int",
@@ -176,10 +187,21 @@
           "required": false,
           "default_value": "[5, 2, 8, 1, 9]",
           "port_role": "data_input",
-          "structure_kind": "composite",
+          "structure_kind": "collection",
           "rank": 1,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "abstract_type": "collection",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "outputs": {
@@ -187,10 +209,21 @@
           "type_name": "list",
           "state": "sorted_list",
           "required": true,
-          "structure_kind": "composite",
+          "structure_kind": "collection",
           "rank": 1,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "abstract_type": "collection",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "code_template": "def merge_sort(arr):\n    if len(arr) <= 1:\n        return arr\n    mid = len(arr) // 2\n    left = merge_sort(arr[:mid])\n    right = merge_sort(arr[mid:])\n    res = []\n    i = j = 0\n    while i < len(left) and j < len(right):\n        if left[i] <= right[j]:\n            res.append(left[i])\n            i += 1\n        else:\n            res.append(right[j])\n            j += 1\n    res.extend(left[i:])\n    res.extend(right[j:])\n    return res\n\n{output_var} = merge_sort({data})",
@@ -206,5 +239,62 @@
       "endable": true
     }
   ],
-  "supported_formats": []
+  "supported_formats": [],
+  "typestates": {
+    "domain": "python_core",
+    "states": [
+      {
+        "name": "adjacency_dict",
+        "parent_state": null,
+        "carrier_type": "dict",
+        "description": "adjacency_dict typestate",
+        "properties": {}
+      },
+      {
+        "name": "distances",
+        "parent_state": null,
+        "carrier_type": "dict",
+        "description": "distances typestate",
+        "properties": {}
+      },
+      {
+        "name": "index",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "index typestate",
+        "properties": {}
+      },
+      {
+        "name": "query",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "query typestate",
+        "properties": {}
+      },
+      {
+        "name": "raw_list",
+        "parent_state": null,
+        "carrier_type": "list",
+        "description": "raw_list typestate",
+        "properties": {}
+      },
+      {
+        "name": "sorted_list",
+        "parent_state": null,
+        "carrier_type": "list",
+        "description": "sorted_list typestate",
+        "properties": {}
+      },
+      {
+        "name": "source_node",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "source_node typestate",
+        "properties": {}
+      }
+    ],
+    "transitions": [],
+    "initial_state": null,
+    "terminal_states": []
+  }
 }

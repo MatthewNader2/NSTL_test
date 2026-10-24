@@ -49,14 +49,478 @@
     }
   ],
   "typestates": {
-    "raw": "Unprocessed or raw primitive byte stream.",
-    "initialized": "Cryptographic context or handle initialized with keys/parameters.",
-    "updated": "Intermediate state after ingesting data blocks.",
-    "finalized": "Terminal digest or derived cryptographic material ready for consumption.",
-    "encrypted": "Authenticated or enciphered ciphertext.",
-    "decrypted": "Deciphered and verified plaintext.",
-    "written": "Cryptographic artifact written to non-volatile storage.",
-    "verified": "Integrity or identity check outcome evaluated."
+    "domain": "cryptography",
+    "states": [
+      {
+        "name": "aad_bytes",
+        "parent_state": null,
+        "carrier_type": "bytes",
+        "description": "Additional authenticated data (AAD) or empty bytes.",
+        "properties": {}
+      },
+      {
+        "name": "aes_key_bytes",
+        "parent_state": null,
+        "carrier_type": "secret_key",
+        "description": "Generated 256-bit AES-GCM key bytes.",
+        "properties": {}
+      },
+      {
+        "name": "aesgcm_instance",
+        "parent_state": null,
+        "carrier_type": "cipher",
+        "description": "Initialized AESGCM cipher handle.",
+        "properties": {}
+      },
+      {
+        "name": "algorithm_name",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Digest algorithm identifier string (e.g., 'sha256').",
+        "properties": {}
+      },
+      {
+        "name": "authenticated_ciphertext",
+        "parent_state": null,
+        "carrier_type": "ciphertext",
+        "description": "Encrypted ciphertext with appended 16-byte authentication tag.",
+        "properties": {}
+      },
+      {
+        "name": "base64_encoded",
+        "parent_state": null,
+        "carrier_type": "bytes",
+        "description": "Standard Base64-encoded bytes.",
+        "properties": {}
+      },
+      {
+        "name": "bit_size",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Key size in bits (e.g., 2048, 3072, 4096).",
+        "properties": {}
+      },
+      {
+        "name": "blake2b_state",
+        "parent_state": null,
+        "carrier_type": "hasher",
+        "description": "Initialized BLAKE2b hash context.",
+        "properties": {}
+      },
+      {
+        "name": "block_size",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Block size parameter (e.g., 8).",
+        "properties": {}
+      },
+      {
+        "name": "byte_count",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Number of cryptographically secure random bytes to generate.",
+        "properties": {}
+      },
+      {
+        "name": "chacha_instance",
+        "parent_state": null,
+        "carrier_type": "cipher",
+        "description": "Initialized ChaCha20Poly1305 cipher handle.",
+        "properties": {}
+      },
+      {
+        "name": "chacha_key_bytes",
+        "parent_state": null,
+        "carrier_type": "secret_key",
+        "description": "Generated 256-bit ChaCha20-Poly1305 key bytes.",
+        "properties": {}
+      },
+      {
+        "name": "cipher_collection",
+        "parent_state": null,
+        "carrier_type": "list",
+        "description": "List of initialized Fernet instances ordered from newest to oldest.",
+        "properties": {}
+      },
+      {
+        "name": "comparison_result",
+        "parent_state": null,
+        "carrier_type": "bool",
+        "description": "Boolean flag indicating constant-time equality.",
+        "properties": {}
+      },
+      {
+        "name": "context_info",
+        "parent_state": null,
+        "carrier_type": "bytes",
+        "description": "Application-specific context information bytes.",
+        "properties": {}
+      },
+      {
+        "name": "cpu_cost",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "CPU/memory cost parameter (must be power of 2, e.g., 16384).",
+        "properties": {}
+      },
+      {
+        "name": "decrypted",
+        "description": "Deciphered and verified plaintext."
+      },
+      {
+        "name": "derived_bytes",
+        "parent_state": null,
+        "carrier_type": "secret_key",
+        "description": "Derived secret key bytes.",
+        "properties": {}
+      },
+      {
+        "name": "destination_path",
+        "parent_state": null,
+        "carrier_type": "File[key_file]",
+        "description": "Destination file path on disk.",
+        "properties": {}
+      },
+      {
+        "name": "digest_or_tag",
+        "parent_state": null,
+        "carrier_type": "bytes",
+        "description": "First byte sequence or signature.",
+        "properties": {}
+      },
+      {
+        "name": "ed25519_private_key",
+        "parent_state": null,
+        "carrier_type": "object",
+        "description": "Generated Ed25519 private key handle.",
+        "properties": {}
+      },
+      {
+        "name": "ed25519_public_key",
+        "parent_state": null,
+        "carrier_type": "object",
+        "description": "Corresponding Ed25519 public key handle.",
+        "properties": {}
+      },
+      {
+        "name": "ed25519_signature",
+        "parent_state": null,
+        "carrier_type": "signature",
+        "description": "64-byte Ed25519 signature.",
+        "properties": {}
+      },
+      {
+        "name": "encrypted",
+        "description": "Authenticated or enciphered ciphertext."
+      },
+      {
+        "name": "encrypted_token",
+        "parent_state": null,
+        "carrier_type": "ciphertext",
+        "description": "Authenticated encrypted ciphertext token.",
+        "properties": {}
+      },
+      {
+        "name": "fernet_instance",
+        "parent_state": null,
+        "carrier_type": "cipher",
+        "description": "Initialized Fernet cipher instance.",
+        "properties": {}
+      },
+      {
+        "name": "fernet_key_bytes",
+        "parent_state": null,
+        "carrier_type": "secret_key",
+        "description": "Generated Fernet symmetric key.",
+        "properties": {}
+      },
+      {
+        "name": "finalized",
+        "description": "Terminal digest or derived cryptographic material ready for consumption."
+      },
+      {
+        "name": "hex_string",
+        "parent_state": null,
+        "carrier_type": "hash_digest",
+        "description": "Finalized hash digest as hexadecimal string.",
+        "properties": {}
+      },
+      {
+        "name": "hex_token",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Cryptographically secure random hex string.",
+        "properties": {}
+      },
+      {
+        "name": "hkdf_instance",
+        "parent_state": null,
+        "carrier_type": "object",
+        "description": "Initialized HKDF instance.",
+        "properties": {}
+      },
+      {
+        "name": "initialized",
+        "description": "Cryptographic context or handle initialized with keys/parameters."
+      },
+      {
+        "name": "input_key_material",
+        "parent_state": null,
+        "carrier_type": "bytes",
+        "description": "Raw input keying material bytes.",
+        "properties": {}
+      },
+      {
+        "name": "iteration_count",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Number of PBKDF2 iterations.",
+        "properties": {}
+      },
+      {
+        "name": "key_length",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Desired derived key length in bytes.",
+        "properties": {}
+      },
+      {
+        "name": "md5_state",
+        "parent_state": null,
+        "carrier_type": "hasher",
+        "description": "Initialized MD5 hash context.",
+        "properties": {}
+      },
+      {
+        "name": "memory_limit",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Maximum memory limit in bytes.",
+        "properties": {}
+      },
+      {
+        "name": "multi_fernet_instance",
+        "parent_state": null,
+        "carrier_type": "cipher",
+        "description": "MultiFernet cipher instance.",
+        "properties": {}
+      },
+      {
+        "name": "nonce_bytes",
+        "parent_state": null,
+        "carrier_type": "bytes",
+        "description": "12-byte initialization vector or nonce (never reused per key).",
+        "properties": {}
+      },
+      {
+        "name": "parallelization",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Parallelization parameter (e.g., 1).",
+        "properties": {}
+      },
+      {
+        "name": "password_bytes",
+        "parent_state": null,
+        "carrier_type": "bytes",
+        "description": "Raw password bytes to stretch.",
+        "properties": {}
+      },
+      {
+        "name": "pbkdf2_instance",
+        "parent_state": null,
+        "carrier_type": "object",
+        "description": "Configured PBKDF2HMAC key derivation handle.",
+        "properties": {}
+      },
+      {
+        "name": "pem_encoded",
+        "parent_state": null,
+        "carrier_type": "bytes",
+        "description": "PEM key bytes to persist.",
+        "properties": {}
+      },
+      {
+        "name": "pem_encoded_private",
+        "parent_state": null,
+        "carrier_type": "bytes",
+        "description": "PKCS8 PEM-formatted private key bytes.",
+        "properties": {}
+      },
+      {
+        "name": "pem_encoded_public",
+        "parent_state": null,
+        "carrier_type": "bytes",
+        "description": "SubjectPublicKeyInfo PEM-formatted public key bytes.",
+        "properties": {}
+      },
+      {
+        "name": "random_entropy",
+        "parent_state": null,
+        "carrier_type": "bytes",
+        "description": "Generated cryptographically secure random bytes.",
+        "properties": {}
+      },
+      {
+        "name": "raw",
+        "description": "Unprocessed or raw primitive byte stream."
+      },
+      {
+        "name": "raw_bytes",
+        "parent_state": null,
+        "carrier_type": "plaintext",
+        "description": "Plaintext bytes to encrypt.",
+        "properties": {}
+      },
+      {
+        "name": "raw_ed25519_pub",
+        "parent_state": null,
+        "carrier_type": "bytes",
+        "description": "Raw 32-byte public key bytes.",
+        "properties": {}
+      },
+      {
+        "name": "raw_ed25519_seed",
+        "parent_state": null,
+        "carrier_type": "secret_key",
+        "description": "Raw 32-byte private key seed.",
+        "properties": {}
+      },
+      {
+        "name": "rsa_ciphertext",
+        "parent_state": null,
+        "carrier_type": "ciphertext",
+        "description": "Encrypted RSA ciphertext bytes.",
+        "properties": {}
+      },
+      {
+        "name": "rsa_private_key",
+        "parent_state": null,
+        "carrier_type": "object",
+        "description": "Generated RSA private key handle.",
+        "properties": {}
+      },
+      {
+        "name": "rsa_pss_signature",
+        "parent_state": null,
+        "carrier_type": "signature",
+        "description": "RSA-PSS signature bytes.",
+        "properties": {}
+      },
+      {
+        "name": "rsa_public_key",
+        "parent_state": null,
+        "carrier_type": "object",
+        "description": "Corresponding RSA public key handle.",
+        "properties": {}
+      },
+      {
+        "name": "salt_bytes",
+        "parent_state": null,
+        "carrier_type": "salt",
+        "description": "Cryptographic salt bytes.",
+        "properties": {}
+      },
+      {
+        "name": "seconds",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Maximum allowed token lifetime in seconds.",
+        "properties": {}
+      },
+      {
+        "name": "sha256_state",
+        "parent_state": null,
+        "carrier_type": "hasher",
+        "description": "Initialized SHA-256 hash context.",
+        "properties": {}
+      },
+      {
+        "name": "sha3_256_state",
+        "parent_state": null,
+        "carrier_type": "hasher",
+        "description": "Initialized SHA3-256 hash context.",
+        "properties": {}
+      },
+      {
+        "name": "sha512_state",
+        "parent_state": null,
+        "carrier_type": "hasher",
+        "description": "Initialized SHA-512 hash context.",
+        "properties": {}
+      },
+      {
+        "name": "shared_secret_bytes",
+        "parent_state": null,
+        "carrier_type": "secret_key",
+        "description": "32-byte shared secret key bytes.",
+        "properties": {}
+      },
+      {
+        "name": "source_path",
+        "parent_state": null,
+        "carrier_type": "File[key_file]",
+        "description": "Path to the existing key file.",
+        "properties": {}
+      },
+      {
+        "name": "timestamp",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Explicit integer Unix timestamp.",
+        "properties": {}
+      },
+      {
+        "name": "updated",
+        "description": "Intermediate state after ingesting data blocks."
+      },
+      {
+        "name": "urlsafe_base64_encoded",
+        "parent_state": null,
+        "carrier_type": "bytes",
+        "description": "URL-safe Base64-encoded bytes.",
+        "properties": {}
+      },
+      {
+        "name": "urlsafe_token",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Cryptographically secure random URL-safe string.",
+        "properties": {}
+      },
+      {
+        "name": "verification_status",
+        "parent_state": null,
+        "carrier_type": "bool",
+        "description": "True if password derives to expected key, False otherwise.",
+        "properties": {}
+      },
+      {
+        "name": "verified",
+        "description": "Integrity or identity check outcome evaluated."
+      },
+      {
+        "name": "written",
+        "description": "Cryptographic artifact written to non-volatile storage."
+      },
+      {
+        "name": "x25519_private_key",
+        "parent_state": null,
+        "carrier_type": "object",
+        "description": "Generated X25519 private key handle.",
+        "properties": {}
+      },
+      {
+        "name": "x25519_public_key",
+        "parent_state": null,
+        "carrier_type": "object",
+        "description": "Corresponding X25519 public key handle.",
+        "properties": {}
+      }
+    ],
+    "transitions": [],
+    "initial_state": null,
+    "terminal_states": []
   },
   "cells": [
     {
@@ -120,7 +584,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "data_input"
         }
       },
       "outputs": {
@@ -180,7 +645,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "data_input"
         }
       },
       "outputs": {
@@ -240,7 +706,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "data_input"
         }
       },
       "outputs": {
@@ -300,19 +767,21 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         },
         "current_time": {
           "type_name": "int",
           "state": "timestamp",
           "abstract_type": "scalar",
           "required": true,
-          "port_role": "parameter",
+          "port_role": "configuration",
           "description": "Explicit integer Unix timestamp.",
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 0
         }
       },
       "outputs": {
@@ -371,7 +840,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         }
       },
       "outputs": {
@@ -431,31 +901,34 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         },
         "ttl": {
           "type_name": "int",
           "state": "seconds",
           "abstract_type": "scalar",
           "required": true,
-          "port_role": "parameter",
+          "port_role": "configuration",
           "description": "Maximum allowed token lifetime in seconds.",
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 60
         },
         "current_time": {
           "type_name": "int",
           "state": "timestamp",
           "abstract_type": "scalar",
           "required": true,
-          "port_role": "parameter",
+          "port_role": "configuration",
           "description": "Reference Unix timestamp for evaluation.",
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 0
         }
       },
       "outputs": {
@@ -500,10 +973,20 @@
           "required": true,
           "port_role": "data_input",
           "description": "List of initialized Fernet instances ordered from newest to oldest.",
-          "structure_kind": "composite",
+          "structure_kind": "collection",
           "rank": 1,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "outputs": {
@@ -563,7 +1046,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         }
       },
       "outputs": {
@@ -801,7 +1285,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         }
       },
       "outputs": {
@@ -945,7 +1430,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         }
       },
       "outputs": {
@@ -993,7 +1479,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         }
       },
       "outputs": {
@@ -1041,7 +1528,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         }
       },
       "outputs": {
@@ -1089,7 +1577,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         }
       },
       "outputs": {
@@ -1137,7 +1626,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         },
         "digestmod": {
           "type_name": "str",
@@ -1149,7 +1639,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "sha256"
         }
       },
       "outputs": {
@@ -1209,7 +1700,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         }
       },
       "outputs": {
@@ -1353,7 +1845,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "data_input"
         },
         "b": {
           "type_name": "bytes",
@@ -1365,7 +1858,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "data_input"
         }
       },
       "outputs": {
@@ -1414,7 +1908,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 32
         }
       },
       "outputs": {
@@ -1463,7 +1958,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 32
         }
       },
       "outputs": {
@@ -1512,7 +2008,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 32
         }
       },
       "outputs": {
@@ -1560,7 +2057,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         },
         "length": {
           "type_name": "int",
@@ -1572,7 +2070,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 32
         },
         "iterations": {
           "type_name": "int",
@@ -1584,7 +2083,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 100000
         }
       },
       "outputs": {
@@ -1645,7 +2145,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "data_input"
         }
       },
       "outputs": {
@@ -1705,7 +2206,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "data_input"
         },
         "expected_key": {
           "type_name": "secret_key",
@@ -1717,7 +2219,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "data_input"
         }
       },
       "outputs": {
@@ -1765,7 +2268,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         },
         "length": {
           "type_name": "int",
@@ -1777,7 +2281,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 32
         },
         "info": {
           "type_name": "bytes",
@@ -1789,7 +2294,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         }
       },
       "outputs": {
@@ -1850,7 +2356,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "data_input"
         }
       },
       "outputs": {
@@ -1910,7 +2417,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "data_input"
         },
         "expected_key": {
           "type_name": "secret_key",
@@ -1922,7 +2430,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "data_input"
         }
       },
       "outputs": {
@@ -1970,7 +2479,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         }
       },
       "outputs": {
@@ -2018,7 +2528,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "data_input"
         }
       },
       "outputs": {
@@ -2066,7 +2577,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         }
       },
       "outputs": {
@@ -2114,7 +2626,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "data_input"
         }
       },
       "outputs": {
@@ -2162,7 +2675,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "data_input"
         }
       },
       "outputs": {
@@ -2208,7 +2722,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         }
       },
       "outputs": {
@@ -2254,7 +2769,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 32
         }
       },
       "outputs": {
@@ -2302,7 +2818,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "data_input"
         },
         "salt": {
           "type_name": "salt",
@@ -2314,67 +2831,73 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "data_input"
         },
         "n": {
           "type_name": "int",
           "state": "cpu_cost",
           "abstract_type": "scalar",
           "required": true,
-          "port_role": "parameter",
+          "port_role": "configuration",
           "description": "CPU/memory cost parameter (must be power of 2, e.g., 16384).",
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 16384
         },
         "r": {
           "type_name": "int",
           "state": "block_size",
           "abstract_type": "scalar",
           "required": true,
-          "port_role": "parameter",
+          "port_role": "configuration",
           "description": "Block size parameter (e.g., 8).",
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 8
         },
         "p": {
           "type_name": "int",
           "state": "parallelization",
           "abstract_type": "scalar",
           "required": true,
-          "port_role": "parameter",
+          "port_role": "configuration",
           "description": "Parallelization parameter (e.g., 1).",
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 1
         },
         "maxmem": {
           "type_name": "int",
           "state": "memory_limit",
           "abstract_type": "scalar",
           "required": true,
-          "port_role": "parameter",
+          "port_role": "configuration",
           "description": "Maximum memory limit in bytes.",
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 33554432
         },
         "dklen": {
           "type_name": "int",
           "state": "key_length",
           "abstract_type": "scalar",
           "required": true,
-          "port_role": "parameter",
+          "port_role": "configuration",
           "description": "Desired derived key length in bytes.",
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 64
         }
       },
       "outputs": {
@@ -2423,7 +2946,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         },
         "key_path": {
           "type_name": "File[key_file]",
@@ -2534,7 +3058,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         },
         "dest_path": {
           "type_name": "File[ciphertext_file]",
@@ -2644,7 +3169,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "bool",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": false
         }
       },
       "outputs": {
@@ -2725,7 +3251,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         }
       },
       "outputs": {
@@ -2785,7 +3312,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         },
         "data": {
           "type_name": "plaintext",
@@ -2797,7 +3325,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         },
         "associated_data": {
           "type_name": "bytes",
@@ -2809,7 +3338,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         }
       },
       "outputs": {
@@ -2869,7 +3399,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         },
         "ciphertext": {
           "type_name": "ciphertext",
@@ -2881,7 +3412,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         },
         "associated_data": {
           "type_name": "bytes",
@@ -2893,7 +3425,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         }
       },
       "outputs": {
@@ -2976,7 +3509,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         }
       },
       "outputs": {
@@ -3036,7 +3570,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         },
         "data": {
           "type_name": "plaintext",
@@ -3048,7 +3583,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         },
         "associated_data": {
           "type_name": "bytes",
@@ -3060,7 +3596,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         }
       },
       "outputs": {
@@ -3120,7 +3657,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         },
         "ciphertext": {
           "type_name": "ciphertext",
@@ -3132,7 +3670,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         },
         "associated_data": {
           "type_name": "bytes",
@@ -3144,7 +3683,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         }
       },
       "outputs": {
@@ -3192,7 +3732,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 2048
         }
       },
       "outputs": {
@@ -3300,7 +3841,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         }
       },
       "outputs": {
@@ -3361,7 +3903,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         }
       },
       "outputs": {
@@ -3422,7 +3965,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         }
       },
       "outputs": {
@@ -3483,7 +4027,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         },
         "data": {
           "type_name": "bytes",
@@ -3495,7 +4040,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         }
       },
       "outputs": {
@@ -3640,7 +4186,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         }
       },
       "outputs": {
@@ -3688,7 +4235,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         }
       },
       "outputs": {
@@ -3832,7 +4380,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         }
       },
       "outputs": {
@@ -3892,7 +4441,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         },
         "data": {
           "type_name": "bytes",
@@ -3904,7 +4454,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         }
       },
       "outputs": {
@@ -4045,7 +4596,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         }
       },
       "outputs": {
@@ -4092,7 +4644,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         }
       },
       "outputs": {
@@ -4284,7 +4837,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         },
         "sig_path": {
           "type_name": "File[sig_file]",
@@ -4346,7 +4900,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         },
         "dest_path": {
           "type_name": "File[pem_file]",
@@ -4408,7 +4963,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "bool",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": false
         }
       },
       "outputs": {

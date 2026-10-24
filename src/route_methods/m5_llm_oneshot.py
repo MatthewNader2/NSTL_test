@@ -57,7 +57,7 @@ class M5LLMOneShotRouteMethod(RouteMethod):
         ] or [tunnel[0]]
         cand_map = {c.cell_id.lower(): c for c in candidates}
         mm = ModelManager.get_instance()
-        has_llm = mm.profile is not None and getattr(mm.profile, "llm", None) is not None
+        has_llm = mm.can_synthesize()
 
         proposed = []
         _llm_error = None

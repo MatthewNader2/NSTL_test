@@ -31,7 +31,7 @@ from typing import Dict, List, Optional, Any, Set
 
 from .base import RouteMethod, _bridge_roles, tokenize_alphanumeric
 from .m1_clause_anchor import M1ClauseAnchorRouteMethod
-from lattice import Cell, LatticeOrchestrator
+from lattice import Cell, LatticeOrchestrator, TypeRegistry
 from unification import ExecutionContext
 from inference import ModelManager
 
@@ -149,10 +149,12 @@ class M9LLMMilestonePathfinderRouteMethod(RouteMethod):
                 if getattr(cand, "is_combinator", False) or getattr(cand, "node_role", "") == "combinator" or getattr(cand, "role", "") == "combinator" or cand.cell_id.startswith("CF_") or getattr(cand, "domain_name", "") == "control_flow":
                     continue
 
+                reg = TypeRegistry.get_instance()
+                destructive_names = set(reg.get_verification_semantics("destructive_effects"))
                 effects = getattr(cand, "effects", []) or []
                 has_destructive_effect = any(
-                    (isinstance(e, dict) and e.get("name") in ("removes_columns", "drops_columns"))
-                    or (isinstance(e, str) and e in ("removes_columns", "drops_columns"))
+                    (isinstance(e, dict) and e.get("name") in destructive_names)
+                    or (isinstance(e, str) and e in destructive_names)
                     for e in effects
                 )
                 if has_destructive_effect:
@@ -211,7 +213,7 @@ class M9LLMMilestonePathfinderRouteMethod(RouteMethod):
             )
         ] or [tunnel[0]]
         mm = ModelManager.get_instance()
-        has_llm = mm.profile is not None and getattr(mm.profile, "llm", None) is not None
+        has_llm = mm.can_synthesize()
 
         def _fallback(reason):
             return self._delegate_to_m1(

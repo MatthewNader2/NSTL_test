@@ -1351,15 +1351,30 @@ class LatticeRouter:
                     f"[ROUTER] RouteMethod '{method_name}' failed: {e}",
                     exc_info=True,
                 )
-                effective_route = "M0"
-                fallback_reason = f"{type(e).__name__}: {str(e)}"
-                path = self.planner.plan(
-                    prompt=prompt,
-                    tunnel=tunnel_cells,
-                    relevance_map=relevance_map,
-                    start_sig=start_sig,
-                    goal_sig=goal_sig
-                )
+                try:
+                    from config import settings
+                    allow_fb = getattr(settings, "allow_fallback", False)
+                except Exception:
+                    try:
+                        from .config import settings
+                        allow_fb = getattr(settings, "allow_fallback", False)
+                    except Exception:
+                        allow_fb = False
+
+                if allow_fb:
+                    effective_route = "M0"
+                    fallback_reason = f"{type(e).__name__}: {str(e)}"
+                    path = self.planner.plan(
+                        prompt=prompt,
+                        tunnel=tunnel_cells,
+                        relevance_map=relevance_map,
+                        start_sig=start_sig,
+                        goal_sig=goal_sig
+                    )
+                else:
+                    effective_route = method_name.upper()
+                    fallback_reason = f"{type(e).__name__}: {str(e)}"
+                    path = []
         else:
             # Find verified composition path inside tunnel T using baseline Trellis
             effective_route = "M0"

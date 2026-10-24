@@ -15,21 +15,40 @@
     "domain": "seaborn",
     "states": [
       {
-        "name": "ndarray_generic",
+        "name": "axes_initialized",
         "parent_state": null,
         "carrier_type": "Axes",
-        "description": "A plain numpy array, dimensionality/dtype unspecified.",
+        "description": "A blank plotting Axes with nothing drawn yet.",
         "properties": {
           "is_interchange": true
         }
       },
       {
-        "name": "dataframe_2d_generic",
+        "name": "axes_with_content",
         "parent_state": null,
-        "carrier_type": "DataFrame",
-        "description": "A fully numeric or tabular 2D DataFrame object ready for consumption.",
+        "carrier_type": "Axes",
+        "description": "A plotting Axes with at least one thing drawn on it, of any kind.",
         "properties": {
           "is_interchange": true
+        }
+      },
+      {
+        "name": "categorical_plotted",
+        "parent_state": "axes_with_content",
+        "carrier_type": "Axes",
+        "description": "An Axes rendered with a categorical visualization (barplot, boxplot, violinplot, stripplot).",
+        "properties": {
+          "is_statistical": true,
+          "plot_family": "categorical"
+        }
+      },
+      {
+        "name": "clustergrid_plotted",
+        "parent_state": null,
+        "carrier_type": "FacetGrid",
+        "description": "A ClusterGrid instance with hierarchically clustered heatmap and dendrograms rendered.",
+        "properties": {
+          "is_grid": true
         }
       },
       {
@@ -51,48 +70,21 @@
         }
       },
       {
-        "name": "gray",
-        "parent_state": "nd_tensor",
-        "carrier_type": "ndarray",
-        "description": "A single-channel 8-bit intensity array.",
-        "properties": {
-          "is_interchange": true
-        }
-      },
-      {
-        "name": "axes_initialized",
+        "name": "dataframe_2d_generic",
         "parent_state": null,
-        "carrier_type": "Axes",
-        "description": "A blank plotting Axes with nothing drawn yet.",
+        "carrier_type": "DataFrame",
+        "description": "A fully numeric or tabular 2D DataFrame object ready for consumption.",
         "properties": {
           "is_interchange": true
         }
       },
       {
-        "name": "axes_with_content",
-        "parent_state": null,
+        "name": "despined_canvas",
+        "parent_state": "axes_with_content",
         "carrier_type": "Axes",
-        "description": "A plotting Axes with at least one thing drawn on it, of any kind.",
+        "description": "An Axes with specified boundary spines removed for enhanced data-ink ratio.",
         "properties": {
-          "is_interchange": true
-        }
-      },
-      {
-        "name": "fitted_estimator",
-        "parent_state": null,
-        "carrier_type": "Axes",
-        "description": "Any object implementing a fitted-estimator interface.",
-        "properties": {
-          "is_interchange": true
-        }
-      },
-      {
-        "name": "themed_canvas",
-        "parent_state": "axes_initialized",
-        "carrier_type": "Axes",
-        "description": "An Axes canvas with global or local seaborn theme and style parameters configured.",
-        "properties": {
-          "is_statistical": false
+          "is_styled": true
         }
       },
       {
@@ -103,46 +95,6 @@
         "properties": {
           "is_statistical": true,
           "plot_family": "distribution"
-        }
-      },
-      {
-        "name": "categorical_plotted",
-        "parent_state": "axes_with_content",
-        "carrier_type": "Axes",
-        "description": "An Axes rendered with a categorical visualization (barplot, boxplot, violinplot, stripplot).",
-        "properties": {
-          "is_statistical": true,
-          "plot_family": "categorical"
-        }
-      },
-      {
-        "name": "relational_plotted",
-        "parent_state": "axes_with_content",
-        "carrier_type": "Axes",
-        "description": "An Axes rendered with a relational visualization (scatterplot, lineplot).",
-        "properties": {
-          "is_statistical": true,
-          "plot_family": "relational"
-        }
-      },
-      {
-        "name": "matrix_plotted",
-        "parent_state": "axes_with_content",
-        "carrier_type": "Axes",
-        "description": "An Axes rendered with a matrix heatmap visualization.",
-        "properties": {
-          "is_statistical": true,
-          "plot_family": "matrix"
-        }
-      },
-      {
-        "name": "regression_plotted",
-        "parent_state": "axes_with_content",
-        "carrier_type": "Axes",
-        "description": "An Axes rendered with a statistical linear or polynomial regression fit and confidence interval.",
-        "properties": {
-          "is_statistical": true,
-          "plot_family": "regression"
         }
       },
       {
@@ -164,21 +116,39 @@
         }
       },
       {
-        "name": "pairgrid_initialized",
+        "name": "figure_closed",
         "parent_state": null,
-        "carrier_type": "PairGrid",
-        "description": "A PairGrid instance initialized for pairwise bivariate comparison across variables.",
+        "carrier_type": "Axes",
+        "description": "The matplotlib/seaborn figure canvas has been deallocated from memory.",
         "properties": {
-          "is_grid": true
+          "is_terminal": true
         }
       },
       {
-        "name": "pairgrid_mapped",
-        "parent_state": null,
-        "carrier_type": "PairGrid",
-        "description": "A PairGrid instance populated with diagonal and off-diagonal pairwise visualizations.",
+        "name": "figure_saved",
+        "parent_state": "written_to_disk",
+        "carrier_type": "Axes",
+        "description": "The visualization has been exported and persisted to an external file on disk.",
         "properties": {
-          "is_grid": true
+          "is_terminal": true
+        }
+      },
+      {
+        "name": "fitted_estimator",
+        "parent_state": null,
+        "carrier_type": "Axes",
+        "description": "Any object implementing a fitted-estimator interface.",
+        "properties": {
+          "is_interchange": true
+        }
+      },
+      {
+        "name": "gray",
+        "parent_state": "nd_tensor",
+        "carrier_type": "ndarray",
+        "description": "A single-channel 8-bit intensity array.",
+        "properties": {
+          "is_interchange": true
         }
       },
       {
@@ -200,24 +170,6 @@
         }
       },
       {
-        "name": "clustergrid_plotted",
-        "parent_state": null,
-        "carrier_type": "FacetGrid",
-        "description": "A ClusterGrid instance with hierarchically clustered heatmap and dendrograms rendered.",
-        "properties": {
-          "is_grid": true
-        }
-      },
-      {
-        "name": "despined_canvas",
-        "parent_state": "axes_with_content",
-        "carrier_type": "Axes",
-        "description": "An Axes with specified boundary spines removed for enhanced data-ink ratio.",
-        "properties": {
-          "is_styled": true
-        }
-      },
-      {
         "name": "legend_configured",
         "parent_state": "axes_with_content",
         "carrier_type": "Axes",
@@ -227,22 +179,77 @@
         }
       },
       {
-        "name": "figure_saved",
-        "parent_state": "written_to_disk",
+        "name": "matrix_plotted",
+        "parent_state": "axes_with_content",
         "carrier_type": "Axes",
-        "description": "The visualization has been exported and persisted to an external file on disk.",
+        "description": "An Axes rendered with a matrix heatmap visualization.",
         "properties": {
-          "is_terminal": true
+          "is_statistical": true,
+          "plot_family": "matrix"
         }
       },
       {
-        "name": "figure_closed",
+        "name": "ndarray_generic",
         "parent_state": null,
         "carrier_type": "Axes",
-        "description": "The matplotlib/seaborn figure canvas has been deallocated from memory.",
+        "description": "A plain numpy array, dimensionality/dtype unspecified.",
         "properties": {
-          "is_terminal": true
+          "is_interchange": true
         }
+      },
+      {
+        "name": "pairgrid_initialized",
+        "parent_state": null,
+        "carrier_type": "PairGrid",
+        "description": "A PairGrid instance initialized for pairwise bivariate comparison across variables.",
+        "properties": {
+          "is_grid": true
+        }
+      },
+      {
+        "name": "pairgrid_mapped",
+        "parent_state": null,
+        "carrier_type": "PairGrid",
+        "description": "A PairGrid instance populated with diagonal and off-diagonal pairwise visualizations.",
+        "properties": {
+          "is_grid": true
+        }
+      },
+      {
+        "name": "regression_plotted",
+        "parent_state": "axes_with_content",
+        "carrier_type": "Axes",
+        "description": "An Axes rendered with a statistical linear or polynomial regression fit and confidence interval.",
+        "properties": {
+          "is_statistical": true,
+          "plot_family": "regression"
+        }
+      },
+      {
+        "name": "relational_plotted",
+        "parent_state": "axes_with_content",
+        "carrier_type": "Axes",
+        "description": "An Axes rendered with a relational visualization (scatterplot, lineplot).",
+        "properties": {
+          "is_statistical": true,
+          "plot_family": "relational"
+        }
+      },
+      {
+        "name": "themed_canvas",
+        "parent_state": "axes_initialized",
+        "carrier_type": "Axes",
+        "description": "An Axes canvas with global or local seaborn theme and style parameters configured.",
+        "properties": {
+          "is_statistical": false
+        }
+      },
+      {
+        "name": "unbound",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Base scaling context preset.",
+        "properties": {}
       }
     ],
     "transitions": [
@@ -715,7 +722,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         }
       },
       "outputs": {},
@@ -789,7 +798,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "port_1": {
           "type_name": "float",
@@ -885,7 +896,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "port_1": {
           "type_name": "int",
@@ -982,7 +995,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         }
       },
       "outputs": {
@@ -1122,7 +1137,16 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 3,
           "element_type": "uint8",
@@ -1205,7 +1229,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Column key in data for horizontal axis coordinate.",
           "domain": "seaborn",
           "required": true,
@@ -1217,7 +1241,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_2": {
           "type_name": "int",
@@ -1268,13 +1294,13 @@
           "description": "Target matplotlib Axes instance to draw onto.",
           "domain": "seaborn",
           "required": false,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -1288,13 +1314,13 @@
           "description": "Output plotting Axes object, usable by matplotlib-style finishing functions (savefig, legend, tight_layout, annotate) afterward.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -1394,7 +1420,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Variable for horizontal coordinate.",
           "domain": "seaborn",
           "required": true,
@@ -1406,13 +1432,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_2": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Variable for vertical coordinate.",
           "domain": "seaborn",
           "required": true,
@@ -1424,7 +1452,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_3": {
           "type_name": "bool",
@@ -1455,13 +1485,13 @@
           "description": "Target Axes instance.",
           "domain": "seaborn",
           "required": false,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -1475,13 +1505,13 @@
           "description": "Output plotting Axes object, usable by matplotlib-style finishing functions (savefig, legend, tight_layout, annotate) afterward.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -1564,7 +1594,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Primary variable for horizontal binning.",
           "domain": "seaborn",
           "required": true,
@@ -1576,13 +1606,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_2": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Categorical column to map onto color hue.",
           "domain": "seaborn",
           "required": true,
@@ -1594,7 +1626,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_3": {
           "type_name": "str",
@@ -1630,13 +1664,13 @@
           "description": "Target Axes instance.",
           "domain": "seaborn",
           "required": false,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -1650,13 +1684,13 @@
           "description": "Output plotting Axes object, usable by matplotlib-style finishing functions (savefig, legend, tight_layout, annotate) afterward.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -1740,7 +1774,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Column name for continuous variable.",
           "domain": "seaborn",
           "required": true,
@@ -1752,7 +1786,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_2": {
           "type_name": "float",
@@ -1803,13 +1839,13 @@
           "description": "Target Axes instance.",
           "domain": "seaborn",
           "required": false,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -1823,13 +1859,13 @@
           "description": "Output plotting Axes object, usable by matplotlib-style finishing functions (savefig, legend, tight_layout, annotate) afterward.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -1912,7 +1948,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "X variable.",
           "domain": "seaborn",
           "required": true,
@@ -1924,13 +1960,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_2": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Y variable.",
           "domain": "seaborn",
           "required": true,
@@ -1942,7 +1980,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_3": {
           "type_name": "bool",
@@ -1994,13 +2034,13 @@
           "description": "Target Axes instance.",
           "domain": "seaborn",
           "required": false,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -2014,13 +2054,13 @@
           "description": "Output plotting Axes object, usable by matplotlib-style finishing functions (savefig, legend, tight_layout, annotate) afterward.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -2102,7 +2142,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Variable on horizontal axis.",
           "domain": "seaborn",
           "required": true,
@@ -2114,7 +2154,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_2": {
           "type_name": "str",
@@ -2167,13 +2209,13 @@
           "description": "Target Axes instance.",
           "domain": "seaborn",
           "required": false,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -2187,13 +2229,13 @@
           "description": "Output plotting Axes object, usable by matplotlib-style finishing functions (savefig, legend, tight_layout, annotate) afterward.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -2274,7 +2316,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Variable for horizontal coordinate ticks.",
           "domain": "seaborn",
           "required": true,
@@ -2286,7 +2328,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_2": {
           "type_name": "float",
@@ -2320,13 +2364,13 @@
           "description": "Target Axes instance.",
           "domain": "seaborn",
           "required": false,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -2340,13 +2384,13 @@
           "description": "Output plotting Axes object, usable by matplotlib-style finishing functions (savefig, legend, tight_layout, annotate) afterward.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -2430,7 +2474,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Numeric variable for distributions.",
           "domain": "seaborn",
           "required": true,
@@ -2442,7 +2486,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_2": {
           "type_name": "str",
@@ -2603,7 +2649,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Categorical variable for x axis.",
           "domain": "seaborn",
           "required": true,
@@ -2615,13 +2661,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_2": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Numeric variable for y axis aggregation.",
           "domain": "seaborn",
           "required": true,
@@ -2633,7 +2681,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_3": {
           "type_name": "str",
@@ -2691,13 +2741,13 @@
           "description": "Target Axes instance.",
           "domain": "seaborn",
           "required": false,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -2711,13 +2761,13 @@
           "description": "Output plotting Axes object, usable by matplotlib-style finishing functions (savefig, legend, tight_layout, annotate) afterward.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -2800,7 +2850,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Primary categorical variable.",
           "domain": "seaborn",
           "required": true,
@@ -2812,13 +2862,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_2": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Numeric response variable.",
           "domain": "seaborn",
           "required": true,
@@ -2830,13 +2882,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_3": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Secondary grouping variable mapped to bar color.",
           "domain": "seaborn",
           "required": true,
@@ -2848,7 +2902,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_4": {
           "type_name": "str",
@@ -2879,13 +2935,13 @@
           "description": "Target Axes instance.",
           "domain": "seaborn",
           "required": false,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -2899,13 +2955,13 @@
           "description": "Output plotting Axes object, usable by matplotlib-style finishing functions (savefig, legend, tight_layout, annotate) afterward.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -2988,7 +3044,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Categorical column to count.",
           "domain": "seaborn",
           "required": true,
@@ -3000,7 +3056,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_2": {
           "type_name": "str",
@@ -3049,13 +3107,13 @@
           "description": "Target Axes instance.",
           "domain": "seaborn",
           "required": false,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -3069,13 +3127,13 @@
           "description": "Output plotting Axes object, usable by matplotlib-style finishing functions (savefig, legend, tight_layout, annotate) afterward.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -3160,7 +3218,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Categorical grouping variable on x axis.",
           "domain": "seaborn",
           "required": true,
@@ -3172,13 +3230,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_2": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Continuous response variable on y axis.",
           "domain": "seaborn",
           "required": true,
@@ -3190,7 +3250,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_3": {
           "type_name": "bool",
@@ -3239,13 +3301,13 @@
           "description": "Target Axes instance.",
           "domain": "seaborn",
           "required": false,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -3259,13 +3321,13 @@
           "description": "Output plotting Axes object, usable by matplotlib-style finishing functions (savefig, legend, tight_layout, annotate) afterward.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -3348,7 +3410,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Primary categorical variable.",
           "domain": "seaborn",
           "required": true,
@@ -3360,13 +3422,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_2": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Continuous variable.",
           "domain": "seaborn",
           "required": true,
@@ -3378,13 +3442,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_3": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Grouping variable mapped to hue.",
           "domain": "seaborn",
           "required": true,
@@ -3396,7 +3462,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_4": {
           "type_name": "bool",
@@ -3427,13 +3495,13 @@
           "description": "Target Axes instance.",
           "domain": "seaborn",
           "required": false,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -3447,13 +3515,13 @@
           "description": "Output plotting Axes object, usable by matplotlib-style finishing functions (savefig, legend, tight_layout, annotate) afterward.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -3538,7 +3606,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Categorical variable.",
           "domain": "seaborn",
           "required": true,
@@ -3550,13 +3618,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_2": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Continuous variable.",
           "domain": "seaborn",
           "required": true,
@@ -3568,7 +3638,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_3": {
           "type_name": "bool",
@@ -3623,13 +3695,13 @@
           "description": "Target Axes instance.",
           "domain": "seaborn",
           "required": false,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -3643,13 +3715,13 @@
           "description": "Output plotting Axes object, usable by matplotlib-style finishing functions (savefig, legend, tight_layout, annotate) afterward.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -3731,7 +3803,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Categorical variable.",
           "domain": "seaborn",
           "required": true,
@@ -3743,13 +3815,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_2": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Continuous response variable.",
           "domain": "seaborn",
           "required": true,
@@ -3761,13 +3835,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_3": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Binary categorical variable mapped to split halves.",
           "domain": "seaborn",
           "required": true,
@@ -3779,7 +3855,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_4": {
           "type_name": "str",
@@ -3815,13 +3893,13 @@
           "description": "Target Axes instance.",
           "domain": "seaborn",
           "required": false,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -3835,13 +3913,13 @@
           "description": "Output plotting Axes object, usable by matplotlib-style finishing functions (savefig, legend, tight_layout, annotate) afterward.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -3924,7 +4002,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Categorical column.",
           "domain": "seaborn",
           "required": true,
@@ -3936,13 +4014,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_2": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Continuous response column.",
           "domain": "seaborn",
           "required": true,
@@ -3954,7 +4034,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_3": {
           "type_name": "str",
@@ -3990,13 +4072,13 @@
           "description": "Target Axes instance.",
           "domain": "seaborn",
           "required": false,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -4010,13 +4092,13 @@
           "description": "Output plotting Axes object, usable by matplotlib-style finishing functions (savefig, legend, tight_layout, annotate) afterward.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -4098,7 +4180,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Categorical variable.",
           "domain": "seaborn",
           "required": true,
@@ -4110,13 +4192,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_2": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Continuous variable.",
           "domain": "seaborn",
           "required": true,
@@ -4128,7 +4212,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_3": {
           "type_name": "bool",
@@ -4180,13 +4266,13 @@
           "description": "Target Axes instance.",
           "domain": "seaborn",
           "required": false,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -4200,13 +4286,13 @@
           "description": "Output plotting Axes object, usable by matplotlib-style finishing functions (savefig, legend, tight_layout, annotate) afterward.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -4288,7 +4374,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Categorical variable.",
           "domain": "seaborn",
           "required": true,
@@ -4300,13 +4386,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_2": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Continuous variable.",
           "domain": "seaborn",
           "required": true,
@@ -4318,7 +4406,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_3": {
           "type_name": "float",
@@ -4369,13 +4459,13 @@
           "description": "Target Axes instance.",
           "domain": "seaborn",
           "required": false,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -4389,13 +4479,13 @@
           "description": "Output plotting Axes object, usable by matplotlib-style finishing functions (savefig, legend, tight_layout, annotate) afterward.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -4478,7 +4568,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Categorical variable on x axis.",
           "domain": "seaborn",
           "required": true,
@@ -4490,13 +4580,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_2": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "default",
           "description": "Continuous response on y axis.",
           "domain": "seaborn",
           "required": true,
@@ -4508,7 +4600,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "port_3": {
           "type_name": "str",
@@ -4562,13 +4656,13 @@
           "description": "Target Axes instance.",
           "domain": "seaborn",
           "required": false,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -4582,13 +4676,13 @@
           "description": "Output plotting Axes object, usable by matplotlib-style finishing functions (savefig, legend, tight_layout, annotate) afterward.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -4672,7 +4766,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Categorical x variable.",
           "domain": "seaborn",
           "required": true,
@@ -4684,13 +4778,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_2": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Continuous y variable.",
           "domain": "seaborn",
           "required": true,
@@ -4702,7 +4798,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_3": {
           "type_name": "str",
@@ -4847,7 +4945,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Numeric variable on horizontal axis.",
           "domain": "seaborn",
           "required": true,
@@ -4859,13 +4957,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_2": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Numeric variable on vertical axis.",
           "domain": "seaborn",
           "required": true,
@@ -4877,7 +4977,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_3": {
           "type_name": "float",
@@ -4911,13 +5013,13 @@
           "description": "Target Axes instance.",
           "domain": "seaborn",
           "required": false,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -4931,13 +5033,13 @@
           "description": "Output plotting Axes object, usable by matplotlib-style finishing functions (savefig, legend, tight_layout, annotate) afterward.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -5023,7 +5125,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "X coordinate variable.",
           "domain": "seaborn",
           "required": true,
@@ -5035,13 +5137,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_2": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Y coordinate variable.",
           "domain": "seaborn",
           "required": true,
@@ -5053,13 +5157,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_3": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Variable mapped to color hue.",
           "domain": "seaborn",
           "required": true,
@@ -5071,13 +5177,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_4": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Variable mapped to marker size.",
           "domain": "seaborn",
           "required": true,
@@ -5089,7 +5197,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_5": {
           "type_name": "List[str]",
@@ -5106,7 +5216,16 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -5141,13 +5260,13 @@
           "description": "Target Axes instance.",
           "domain": "seaborn",
           "required": false,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -5161,13 +5280,13 @@
           "description": "Output plotting Axes object, usable by matplotlib-style finishing functions (savefig, legend, tight_layout, annotate) afterward.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -5251,7 +5370,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Horizontal coordinate column.",
           "domain": "seaborn",
           "required": true,
@@ -5263,13 +5382,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_2": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Vertical response column.",
           "domain": "seaborn",
           "required": true,
@@ -5281,7 +5402,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_3": {
           "type_name": "str",
@@ -5318,13 +5441,13 @@
           "description": "Target Axes instance.",
           "domain": "seaborn",
           "required": false,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -5338,13 +5461,13 @@
           "description": "Output plotting Axes object, usable by matplotlib-style finishing functions (savefig, legend, tight_layout, annotate) afterward.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -5430,7 +5553,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "X variable.",
           "domain": "seaborn",
           "required": true,
@@ -5442,13 +5565,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_2": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Y variable.",
           "domain": "seaborn",
           "required": true,
@@ -5460,13 +5585,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_3": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Variable mapped to line color.",
           "domain": "seaborn",
           "required": true,
@@ -5478,13 +5605,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_4": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Variable mapped to line dash style.",
           "domain": "seaborn",
           "required": true,
@@ -5496,7 +5625,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_5": {
           "type_name": "bool",
@@ -5527,13 +5658,13 @@
           "description": "Target Axes instance.",
           "domain": "seaborn",
           "required": false,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -5547,13 +5678,13 @@
           "description": "Output plotting Axes object, usable by matplotlib-style finishing functions (savefig, legend, tight_layout, annotate) afterward.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -5637,7 +5768,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "X variable.",
           "domain": "seaborn",
           "required": true,
@@ -5649,13 +5780,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_2": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Y variable.",
           "domain": "seaborn",
           "required": true,
@@ -5667,7 +5800,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_3": {
           "type_name": "str",
@@ -5912,13 +6047,13 @@
           "description": "Target Axes instance.",
           "domain": "seaborn",
           "required": false,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -5932,13 +6067,13 @@
           "description": "Output plotting Axes object, usable by matplotlib-style finishing functions (savefig, legend, tight_layout, annotate) afterward.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -6118,13 +6253,13 @@
           "description": "Target Axes instance.",
           "domain": "seaborn",
           "required": false,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -6138,13 +6273,13 @@
           "description": "Output plotting Axes object, usable by matplotlib-style finishing functions (savefig, legend, tight_layout, annotate) afterward.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -6565,7 +6700,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "default",
           "description": "Plotting function callable name to apply to each facet.",
           "domain": "seaborn",
           "required": true,
@@ -6577,13 +6712,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "port_2": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Positional column argument names passed to func.",
           "domain": "seaborn",
           "required": true,
@@ -6595,7 +6732,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         }
       },
       "outputs": {
@@ -6690,7 +6829,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "default",
           "description": "Dataframe-aware plotting callable.",
           "domain": "seaborn",
           "required": true,
@@ -6702,7 +6841,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         }
       },
       "outputs": {
@@ -6929,7 +7070,16 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -7029,7 +7179,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "default",
           "description": "Callable for diagonal subplots (e.g., sns.histplot).",
           "domain": "seaborn",
           "required": true,
@@ -7041,13 +7191,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "port_2": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "default",
           "description": "Callable for off-diagonal subplots (e.g., sns.scatterplot).",
           "domain": "seaborn",
           "required": true,
@@ -7059,7 +7211,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         }
       },
       "outputs": {
@@ -7157,7 +7311,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "default",
           "description": "Callable for diagonal subplots.",
           "domain": "seaborn",
           "required": true,
@@ -7169,13 +7323,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "port_2": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "default",
           "description": "Callable for upper triangle subplots.",
           "domain": "seaborn",
           "required": true,
@@ -7187,13 +7343,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "port_3": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "default",
           "description": "Callable for lower triangle subplots.",
           "domain": "seaborn",
           "required": true,
@@ -7205,7 +7363,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         }
       },
       "outputs": {
@@ -7454,7 +7614,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Continuous variable on horizontal joint and top marginal axis.",
           "domain": "seaborn",
           "required": true,
@@ -7466,13 +7626,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_2": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Continuous variable on vertical joint and right marginal axis.",
           "domain": "seaborn",
           "required": true,
@@ -7484,7 +7646,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         }
       },
       "outputs": {
@@ -7581,7 +7745,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "default",
           "description": "Callable for joint central axes (e.g. sns.scatterplot).",
           "domain": "seaborn",
           "required": true,
@@ -7593,13 +7757,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "port_2": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "default",
           "description": "Callable for marginal top and right axes (e.g. sns.kdeplot).",
           "domain": "seaborn",
           "required": true,
@@ -7611,7 +7777,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         }
       },
       "outputs": {
@@ -7712,7 +7880,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Horizontal coordinate variable.",
           "domain": "seaborn",
           "required": true,
@@ -7724,13 +7892,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_2": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Vertical coordinate variable.",
           "domain": "seaborn",
           "required": true,
@@ -7742,7 +7912,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_3": {
           "type_name": "str",
@@ -7870,7 +8042,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Predictor variable name.",
           "domain": "seaborn",
           "required": true,
@@ -7882,13 +8054,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_2": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Response variable name.",
           "domain": "seaborn",
           "required": true,
@@ -7900,7 +8074,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_3": {
           "type_name": "int",
@@ -7952,13 +8128,13 @@
           "description": "Target Axes instance.",
           "domain": "seaborn",
           "required": false,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -7972,13 +8148,13 @@
           "description": "Output plotting Axes object, usable by matplotlib-style finishing functions (savefig, legend, tight_layout, annotate) afterward.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -8061,7 +8237,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Predictor variable.",
           "domain": "seaborn",
           "required": true,
@@ -8073,13 +8249,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_2": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Response variable.",
           "domain": "seaborn",
           "required": true,
@@ -8091,7 +8269,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_3": {
           "type_name": "int",
@@ -8124,13 +8304,13 @@
           "description": "Target Axes instance.",
           "domain": "seaborn",
           "required": false,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -8144,13 +8324,13 @@
           "description": "Output plotting Axes object, usable by matplotlib-style finishing functions (savefig, legend, tight_layout, annotate) afterward.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -8235,7 +8415,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Continuous predictor variable.",
           "domain": "seaborn",
           "required": true,
@@ -8247,13 +8427,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_2": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Binary 0/1 response variable.",
           "domain": "seaborn",
           "required": true,
@@ -8265,7 +8447,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_3": {
           "type_name": "bool",
@@ -8316,13 +8500,13 @@
           "description": "Target Axes instance.",
           "domain": "seaborn",
           "required": false,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -8336,13 +8520,13 @@
           "description": "Output plotting Axes object, usable by matplotlib-style finishing functions (savefig, legend, tight_layout, annotate) afterward.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -8425,7 +8609,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Predictor variable.",
           "domain": "seaborn",
           "required": true,
@@ -8437,13 +8621,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_2": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Response variable.",
           "domain": "seaborn",
           "required": true,
@@ -8455,7 +8641,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_3": {
           "type_name": "bool",
@@ -8486,13 +8674,13 @@
           "description": "Target Axes instance.",
           "domain": "seaborn",
           "required": false,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -8506,13 +8694,13 @@
           "description": "Output plotting Axes object, usable by matplotlib-style finishing functions (savefig, legend, tight_layout, annotate) afterward.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -8597,7 +8785,7 @@
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "X variable.",
           "domain": "seaborn",
           "required": true,
@@ -8609,13 +8797,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_2": {
           "type_name": "str",
           "state": "unbound",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Y variable.",
           "domain": "seaborn",
           "required": true,
@@ -8627,7 +8817,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "role": "column_projection"
         },
         "port_3": {
           "type_name": "str",
@@ -8768,13 +8960,13 @@
           "description": "Target Axes instance.",
           "domain": "seaborn",
           "required": false,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -8878,13 +9070,13 @@
           "description": "Output plotting Axes object, usable by matplotlib-style finishing functions (savefig, legend, tight_layout, annotate) afterward.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -8951,13 +9143,13 @@
           "description": "Axes instance holding legend.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -8987,7 +9179,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "port_2": {
           "type_name": "list",
@@ -9001,7 +9195,16 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -9055,13 +9258,13 @@
           "description": "Output plotting Axes object, usable by matplotlib-style finishing functions (savefig, legend, tight_layout, annotate) afterward.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -9464,13 +9667,13 @@
           "description": "Source Axes containing statistical visualization to export.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -9613,13 +9816,13 @@
           "description": "Output plotting Axes object, usable by matplotlib-style finishing functions (savefig, legend, tight_layout, annotate) afterward.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -9677,13 +9880,13 @@
           "description": "Axes instance containing finalized plotting content.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -9697,13 +9900,13 @@
           "description": "Output plotting Axes object, usable by matplotlib-style finishing functions (savefig, legend, tight_layout, annotate) afterward.",
           "domain": "seaborn",
           "required": true,
-          "abstract_type": "tensor",
+          "abstract_type": "plot_handle",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "tensor",
-          "rank": 2,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }

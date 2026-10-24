@@ -29,7 +29,7 @@ logger = get_logger("route_methods.m8")
 
 from .base import RouteMethod, is_terminal_sink
 from .m1_clause_anchor import M1ClauseAnchorRouteMethod, _clause_has_egress_intent
-from lattice import Cell, LatticeOrchestrator
+from lattice import Cell, LatticeOrchestrator, TypeRegistry
 from unification import ExecutionContext
 from inference import ModelManager
 
@@ -147,7 +147,7 @@ class M8LLMStepwisePathfinderRouteMethod(RouteMethod):
             )
         ] or [tunnel[0]]
         mm = ModelManager.get_instance()
-        has_llm = mm.profile is not None and getattr(mm.profile, "llm", None) is not None
+        has_llm = mm.can_synthesize()
 
         def _fallback(reason):
             return self._delegate_to_m1(
@@ -385,7 +385,9 @@ class M8LLMStepwisePathfinderRouteMethod(RouteMethod):
                 logger.debug("[M8] ModelManager generate_text failed: %s", e)
                 chosen_id = None
 
-            if chosen_id and chosen_id.upper() in ("FINISH", "DONE", "STOP", "END"):
+            reg = TypeRegistry.get_instance()
+            stop_tokens = {str(t).upper() for t in (reg.get_verification_semantics("stopping_tokens") or ())}
+            if chosen_id and chosen_id.upper() in stop_tokens:
                 if uncovered_indices:
                     chosen_id = None
                 else:

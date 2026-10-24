@@ -22,5 +22,12 @@
       "template": "{var_name} = 'ATGCGATCGATCGATC'"
     }
   ],
-  "supported_formats": []
+  "supported_formats": [],
+  "typestates": {
+    "domain": "bio",
+    "states": [],
+    "transitions": [],
+    "initial_state": null,
+    "terminal_states": []
+  }
 }

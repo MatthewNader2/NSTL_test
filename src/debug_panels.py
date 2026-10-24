@@ -92,7 +92,7 @@ def render_synthesis_diagnostics(console: Any, ctx: Any, cells: List[Any], promp
     bt = list(getattr(ctx, "binding_trace", []) or [])
     if bt:
         tb = _t("🧵 Layer-3 Binding Decisions (which code site bound each port; rejections are the interesting rows)", "magenta")
-        for col in ("Event", "Cell.port", "Value / var", "Clause", "Target col", "Detail"):
+        for col in ("Event", "Cell.port", "Value / var", "Clause", "Target key", "Detail"):
             tb.add_column(col, overflow="fold")
         for e in bt:
             if e["event"] == "bind" and e["port"] == "output_var":
@@ -107,7 +107,7 @@ def render_synthesis_diagnostics(console: Any, ctx: Any, cells: List[Any], promp
             style = "red" if "rejected" in e["event"] or "failed" in e["event"] else ""
             tb.add_row(f"[{style}]{e['event']}[/{style}]" if style else e["event"], f"{e.get('cell')}.{e.get('port')}",
                        str(e.get("value", e.get("var", e.get("rejected", "")))), str(e.get("clause", "")),
-                       str(e.get("target_col", "")), str(detail))
+                       str(e.get("target_key", "")), str(detail))
         console.print(tb)
     try:
         try:

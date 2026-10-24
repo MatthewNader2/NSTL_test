@@ -24,13 +24,170 @@
     "domain": "cv2",
     "states": [
       {
-        "name": "file_path",
-        "parent_state": "source_identifier",
-        "carrier_type": "str",
-        "description": "Filesystem path pointing to an image or video asset",
+        "name": "accum_thresh",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Accumulator threshold for circle centers at detection stage.",
         "properties": {
-          "exists": true,
-          "format": "path"
+          "min": 1.0
+        }
+      },
+      {
+        "name": "accumulator_threshold",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Accumulator threshold parameter; only lines with sufficient votes are returned.",
+        "properties": {
+          "min": 1
+        }
+      },
+      {
+        "name": "affine_matrix",
+        "parent_state": null,
+        "carrier_type": "ndarray",
+        "description": "2x3 affine transformation matrix (float32 or float64).",
+        "properties": {}
+      },
+      {
+        "name": "angle_res",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Angle resolution of the accumulator in radians (e.g. np.pi/180).",
+        "properties": {
+          "min": 0.001
+        }
+      },
+      {
+        "name": "aperture",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Aperture size for the Sobel operator; must be 3, 5, or 7.",
+        "properties": {}
+      },
+      {
+        "name": "approx_method",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Contour approximation algorithm: cv2.CHAIN_APPROX_NONE=1, cv2.CHAIN_APPROX_SIMPLE=2.",
+        "properties": {}
+      },
+      {
+        "name": "area_scalar",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Computed contour enclosed area scalar in square pixels.",
+        "properties": {
+          "min": 0.0
+        }
+      },
+      {
+        "name": "bf_matcher",
+        "parent_state": null,
+        "carrier_type": "cv2.BFMatcher",
+        "description": "Initialized Brute-Force matcher handle.",
+        "properties": {}
+      },
+      {
+        "name": "bias",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Optional additive offset bias.",
+        "properties": {}
+      },
+      {
+        "name": "bin_counts",
+        "parent_state": null,
+        "carrier_type": "List[int]",
+        "description": "Array of histogram bin counts in each dimension.",
+        "properties": {}
+      },
+      {
+        "name": "bin_ranges",
+        "parent_state": null,
+        "carrier_type": "List[float]",
+        "description": "Array of the dims boundaries of bin values in each dimension.",
+        "properties": {}
+      },
+      {
+        "name": "binary",
+        "parent_state": "gray",
+        "carrier_type": "ndarray",
+        "description": "Single-channel mask containing boolean or 0/255 values",
+        "properties": {
+          "channels": 1,
+          "dtype": "uint8",
+          "binary": true
+        }
+      },
+      {
+        "name": "blurred",
+        "parent_state": "gray",
+        "carrier_type": "ndarray",
+        "description": "Spatially smoothed tensor with high-frequency spatial noise attenuated",
+        "properties": {
+          "filtered": true
+        }
+      },
+      {
+        "name": "border_flag",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Border extrapolation method (cv2.BORDER_CONSTANT=0, cv2.BORDER_REPLICATE=1, cv2.BORDER_REFLECT=2).",
+        "properties": {}
+      },
+      {
+        "name": "border_type",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Pixel extrapolation method border type flag.",
+        "properties": {}
+      },
+      {
+        "name": "bound_vector",
+        "parent_state": null,
+        "carrier_type": "ndarray",
+        "description": "Inclusive lower boundary array or tuple of scalars.",
+        "properties": {}
+      },
+      {
+        "name": "canny_thresh",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Higher threshold passed to internal Canny edge detector.",
+        "properties": {
+          "min": 1.0
+        }
+      },
+      {
+        "name": "channel_indices",
+        "parent_state": null,
+        "carrier_type": "List[int]",
+        "description": "List of the dims channels used to compute the histogram.",
+        "properties": {}
+      },
+      {
+        "name": "channel_list",
+        "parent_state": null,
+        "carrier_type": "List[ndarray]",
+        "description": "Tuple/list containing isolated single-channel matrices.",
+        "properties": {}
+      },
+      {
+        "name": "circles",
+        "parent_state": null,
+        "carrier_type": "ndarray",
+        "description": "Output vector of found circles (N, 1, 3) containing [center_x, center_y, radius].",
+        "properties": {
+          "dtype": "float32"
+        }
+      },
+      {
+        "name": "clahe_object",
+        "parent_state": null,
+        "carrier_type": "cv2.CLAHE",
+        "description": "Initialized Contrast Limited Adaptive Histogram Equalization instance",
+        "properties": {
+          "engine": "CLAHE"
         }
       },
       {
@@ -56,26 +213,203 @@
         }
       },
       {
-        "name": "gray",
-        "parent_state": "nd_tensor",
+        "name": "color_scalar",
+        "parent_state": null,
+        "carrier_type": "tuple",
+        "description": "Drawing color (B, G, R) tuple.",
+        "properties": {}
+      },
+      {
+        "name": "compressed_buffer",
+        "parent_state": null,
         "carrier_type": "ndarray",
-        "description": "Single-channel intensity image (grayscale)",
+        "description": "Single-dimension contiguous 1D array of encoded binary bytes.",
         "properties": {
-          "channels": 1,
-          "dtype": "uint8",
-          "color_order": "GRAY"
+          "dtype": "uint8"
         }
       },
       {
-        "name": "binary",
-        "parent_state": "gray",
+        "name": "computed_threshold",
+        "parent_state": "binary",
         "carrier_type": "ndarray",
-        "description": "Single-channel mask containing boolean or 0/255 values",
+        "description": "Declared by data migration (formerly engine bootstrap state 'computed_threshold').",
         "properties": {
-          "channels": 1,
-          "dtype": "uint8",
-          "binary": true
+          "channels": 1
         }
+      },
+      {
+        "name": "constant",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Constant subtracted from the mean or weighted sum.",
+        "properties": {}
+      },
+      {
+        "name": "contour",
+        "parent_state": null,
+        "carrier_type": "Contour",
+        "description": "Single contour point array (N, 1, 2) or (N, 2).",
+        "properties": {}
+      },
+      {
+        "name": "contours",
+        "parent_state": "collection",
+        "carrier_type": "list",
+        "description": "Topological vector sequences representing shape contours",
+        "properties": {
+          "element_type": "ndarray",
+          "ndim": 3
+        }
+      },
+      {
+        "name": "coord",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Leftmost top X coordinate.",
+        "properties": {
+          "min": 0
+        }
+      },
+      {
+        "name": "corner_points",
+        "parent_state": null,
+        "carrier_type": "ndarray",
+        "description": "Detected corner coordinates array of shape (N, 1, 2) with float32 values.",
+        "properties": {
+          "dtype": "float32"
+        }
+      },
+      {
+        "name": "corner_response",
+        "parent_state": null,
+        "carrier_type": "ndarray",
+        "description": "Floating-point corner response matrix (float32).",
+        "properties": {
+          "dtype": "float32"
+        }
+      },
+      {
+        "name": "count",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Number of times erosion is applied.",
+        "properties": {
+          "min": 1
+        }
+      },
+      {
+        "name": "count_limit",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Maximum number of corners to return. Non-positive returns all detected corners.",
+        "properties": {}
+      },
+      {
+        "name": "degrees",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Rotation angle in degrees counter-clockwise.",
+        "properties": {}
+      },
+      {
+        "name": "delay_ms",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Delay in milliseconds. 0 means wait indefinitely until a keypress.",
+        "properties": {
+          "min": 0
+        }
+      },
+      {
+        "name": "depth",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Desired depth of destination image (-1 keeps same as src).",
+        "properties": {}
+      },
+      {
+        "name": "descriptors",
+        "parent_state": null,
+        "carrier_type": "ndarray",
+        "description": "Feature invariant local neighborhood representation embeddings",
+        "properties": {
+          "ndim": 2
+        }
+      },
+      {
+        "name": "device_index",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Camera hardware device index integer (e.g. 0) or filesystem path string to video container.",
+        "properties": {}
+      },
+      {
+        "name": "diameter",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Diameter of each pixel neighborhood used during filtering.",
+        "properties": {
+          "min": 1
+        }
+      },
+      {
+        "name": "dilated",
+        "parent_state": "binary",
+        "carrier_type": "ndarray",
+        "description": "Declared by data migration (formerly engine bootstrap state 'dilated').",
+        "properties": {
+          "channels": 1
+        }
+      },
+      {
+        "name": "dimension",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Rectangle width.",
+        "properties": {
+          "min": 0
+        }
+      },
+      {
+        "name": "display_window",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Identifier title for the host OS window.",
+        "properties": {}
+      },
+      {
+        "name": "displayed",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "GUI framebuffer rendered state",
+        "properties": {
+          "rendered": true
+        }
+      },
+      {
+        "name": "distance",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Minimum spatial distance between detected circle centers.",
+        "properties": {
+          "min": 1.0
+        }
+      },
+      {
+        "name": "distance_res",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Distance resolution of the accumulator in pixels.",
+        "properties": {
+          "min": 0.1
+        }
+      },
+      {
+        "name": "draw_flags",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Drawing flags (e.g. cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS=4).",
+        "properties": {}
       },
       {
         "name": "edge_map",
@@ -89,12 +423,130 @@
         }
       },
       {
-        "name": "blurred",
-        "parent_state": "gray",
-        "carrier_type": "ndarray",
-        "description": "Spatially smoothed tensor with high-frequency spatial noise attenuated",
+        "name": "epsilon",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Parameter specifying the maximum Hausdorff distance approximation accuracy.",
         "properties": {
-          "filtered": true
+          "min": 0.0
+        }
+      },
+      {
+        "name": "eroded",
+        "parent_state": "binary",
+        "carrier_type": "ndarray",
+        "description": "Declared by data migration (formerly engine bootstrap state 'eroded').",
+        "properties": {
+          "channels": 1
+        }
+      },
+      {
+        "name": "euclidean_dist",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Minimum possible Euclidean distance between returned corners.",
+        "properties": {
+          "min": 0.0
+        }
+      },
+      {
+        "name": "extension",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "File format extension determining encoder (e.g. '.jpg', '.png').",
+        "properties": {}
+      },
+      {
+        "name": "feature_limit",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "The number of best features to retain (0 means unlimited).",
+        "properties": {
+          "min": 0
+        }
+      },
+      {
+        "name": "file_path",
+        "parent_state": "source_identifier",
+        "carrier_type": "str",
+        "description": "Filesystem path pointing to an image or video asset",
+        "properties": {
+          "exists": true,
+          "format": "path"
+        }
+      },
+      {
+        "name": "filter_strength",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Parameter regulating filter strength for luminance component.",
+        "properties": {
+          "min": 0.1
+        }
+      },
+      {
+        "name": "flag",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Flag that can take values of cv2.ImreadModes (e.g. cv2.IMREAD_COLOR=1, cv2.IMREAD_GRAYSCALE=0).",
+        "properties": {}
+      },
+      {
+        "name": "flip_flag",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Axis selector: 0 for vertical (X-axis), 1 for horizontal (Y-axis), -1 for both axes.",
+        "properties": {}
+      },
+      {
+        "name": "font_type",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Font font-face identifier (e.g. cv2.FONT_HERSHEY_SIMPLEX=0).",
+        "properties": {}
+      },
+      {
+        "name": "fourcc_code",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "4-character code of codec (e.g. cv2.VideoWriter_fourcc(*'mp4v')).",
+        "properties": {}
+      },
+      {
+        "name": "framerate",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Framerate of the encoded stream.",
+        "properties": {
+          "min": 1.0
+        }
+      },
+      {
+        "name": "free_parameter",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Harris detector free empirical sensitivity parameter.",
+        "properties": {
+          "min": 0.01,
+          "max": 0.2
+        }
+      },
+      {
+        "name": "gap",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Maximum allowed gap between points on the same line to link them.",
+        "properties": {
+          "min": 0.0
+        }
+      },
+      {
+        "name": "gaussian_sigma",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "The sigma of the base Gaussian applied to input image at octave #0.",
+        "properties": {
+          "min": 0.1
         }
       },
       {
@@ -107,45 +559,22 @@
         }
       },
       {
-        "name": "morphology_processed",
-        "parent_state": "binary",
+        "name": "gray",
+        "parent_state": "nd_tensor",
         "carrier_type": "ndarray",
-        "description": "Binary or grayscale image processed via structural element operations",
+        "description": "Single-channel intensity image (grayscale)",
         "properties": {
-          "structured": true
-        }
-      },
-      {
-        "name": "hsv",
-        "parent_state": null,
-        "carrier_type": "ndarray",
-        "description": "Hue, Saturation, Value transformed color space tensor",
-        "properties": {
-          "channels": 3,
+          "channels": 1,
           "dtype": "uint8",
-          "color_order": "HSV"
+          "color_order": "GRAY"
         }
       },
       {
-        "name": "lab",
+        "name": "grid_size",
         "parent_state": null,
-        "carrier_type": "ndarray",
-        "description": "CIE L*a*b* perceptually uniform color space tensor",
-        "properties": {
-          "channels": 3,
-          "dtype": "uint8",
-          "color_order": "LAB"
-        }
-      },
-      {
-        "name": "contours",
-        "parent_state": "collection",
-        "carrier_type": "list",
-        "description": "Topological vector sequences representing shape contours",
-        "properties": {
-          "element_type": "ndarray",
-          "ndim": 3
-        }
+        "carrier_type": "tuple",
+        "description": "Size of grid for histogram equalization (columns, rows).",
+        "properties": {}
       },
       {
         "name": "hierarchy",
@@ -160,6 +589,84 @@
         }
       },
       {
+        "name": "histogram",
+        "parent_state": null,
+        "carrier_type": "ndarray",
+        "description": "Computed histogram matrix of shape (256, 1).",
+        "properties": {
+          "dtype": "float32"
+        }
+      },
+      {
+        "name": "homography_matrix",
+        "parent_state": null,
+        "carrier_type": "ndarray",
+        "description": "3x3 perspective transformation matrix.",
+        "properties": {}
+      },
+      {
+        "name": "hough_method",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Detection method flag (cv2.HOUGH_GRADIENT=3).",
+        "properties": {}
+      },
+      {
+        "name": "hsv",
+        "parent_state": null,
+        "carrier_type": "ndarray",
+        "description": "Hue, Saturation, Value transformed color space tensor",
+        "properties": {
+          "channels": 3,
+          "dtype": "uint8",
+          "color_order": "HSV"
+        }
+      },
+      {
+        "name": "index",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Index of contour to draw (-1 draws all contours).",
+        "properties": {}
+      },
+      {
+        "name": "inpaint_flag",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Inpainting algorithm flag: cv2.INPAINT_TELEA=1 or cv2.INPAINT_NS=0 (Navier-Stokes).",
+        "properties": {}
+      },
+      {
+        "name": "interpolation_flag",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Interpolation algorithm flag (e.g. cv2.INTER_LINEAR=1, cv2.INTER_AREA=3, cv2.INTER_CUBIC=2).",
+        "properties": {}
+      },
+      {
+        "name": "kernel_matrix",
+        "parent_state": null,
+        "carrier_type": "ndarray",
+        "description": "Convolution kernel, single-channel floating point matrix.",
+        "properties": {
+          "dtype": "float32"
+        }
+      },
+      {
+        "name": "kernel_size",
+        "parent_state": null,
+        "carrier_type": "tuple",
+        "description": "Gaussian kernel size (width, height). Both must be positive and odd integers.",
+        "properties": {}
+      },
+      {
+        "name": "key_code",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "ASCII / Unicode keycode integer or -1 on timeout.",
+        "properties": {}
+      },
+      {
         "name": "keypoints",
         "parent_state": null,
         "carrier_type": "list",
@@ -169,12 +676,64 @@
         }
       },
       {
-        "name": "descriptors",
+        "name": "lab",
         "parent_state": null,
         "carrier_type": "ndarray",
-        "description": "Feature invariant local neighborhood representation embeddings",
+        "description": "CIE L*a*b* perceptually uniform color space tensor",
         "properties": {
-          "ndim": 2
+          "channels": 3,
+          "dtype": "uint8",
+          "color_order": "LAB"
+        }
+      },
+      {
+        "name": "length",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Minimum line length in pixels. Shorter segments are rejected.",
+        "properties": {
+          "min": 0.0
+        }
+      },
+      {
+        "name": "limit",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Threshold for contrast limiting.",
+        "properties": {
+          "min": 1.0
+        }
+      },
+      {
+        "name": "line_segments",
+        "parent_state": null,
+        "carrier_type": "ndarray",
+        "description": "Array of detected line endpoints of shape (N, 1, 4) with entries [x1, y1, x2, y2].",
+        "properties": {
+          "dtype": "int32"
+        }
+      },
+      {
+        "name": "line_type",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Type of line boundary: cv2.LINE_8=8, cv2.LINE_4=4, cv2.LINE_AA=16 (antialiased).",
+        "properties": {}
+      },
+      {
+        "name": "lower_bound",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Lower range boundary in case of range normalization.",
+        "properties": {}
+      },
+      {
+        "name": "marker_map",
+        "parent_state": null,
+        "carrier_type": "ndarray",
+        "description": "32-bit signed integer single-channel marker image array with rough component labels.",
+        "properties": {
+          "dtype": "int32"
         }
       },
       {
@@ -187,13 +746,317 @@
         }
       },
       {
-        "name": "clahe_object",
+        "name": "maximum_value",
         "parent_state": null,
-        "carrier_type": "cv2.CLAHE",
-        "description": "Initialized Contrast Limited Adaptive Histogram Equalization instance",
+        "carrier_type": "float",
+        "description": "Maximum value assigned to pixels exceeding the threshold.",
         "properties": {
-          "engine": "CLAHE"
+          "min": 0.0,
+          "max": 255.0
         }
+      },
+      {
+        "name": "moments_dict",
+        "parent_state": null,
+        "carrier_type": "dict",
+        "description": "Dictionary containing keys 'm00', 'm10', 'm01', 'mu20', etc.",
+        "properties": {}
+      },
+      {
+        "name": "morph_shape",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Element shape: cv2.MORPH_RECT=0, cv2.MORPH_CROSS=1, cv2.MORPH_ELLIPSE=2.",
+        "properties": {}
+      },
+      {
+        "name": "morphology_processed",
+        "parent_state": "binary",
+        "carrier_type": "ndarray",
+        "description": "Binary or grayscale image processed via structural element operations",
+        "properties": {
+          "structured": true
+        }
+      },
+      {
+        "name": "neighborhood_size",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Size of pixel neighborhood used to calculate threshold; odd number > 1.",
+        "properties": {
+          "min": 3
+        }
+      },
+      {
+        "name": "norm_flag",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Normalization type (e.g. cv2.NORM_MINMAX=32, cv2.NORM_L2=4).",
+        "properties": {}
+      },
+      {
+        "name": "norm_metric",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Distance metric flag: cv2.NORM_L2=4 (for SIFT), cv2.NORM_HAMMING=6 (for ORB).",
+        "properties": {}
+      },
+      {
+        "name": "octaves",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "The number of pyramid scale levels.",
+        "properties": {
+          "min": 1
+        }
+      },
+      {
+        "name": "orb_detector",
+        "parent_state": null,
+        "carrier_type": "cv2.ORB",
+        "description": "Configured cv2.ORB algorithm instance.",
+        "properties": {}
+      },
+      {
+        "name": "order",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Order of the derivative along X axis.",
+        "properties": {
+          "min": 0
+        }
+      },
+      {
+        "name": "padding",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Pixels to pad at top.",
+        "properties": {
+          "min": 0
+        }
+      },
+      {
+        "name": "perimeter_scalar",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Computed curve length scalar in pixels.",
+        "properties": {
+          "min": 0.0
+        }
+      },
+      {
+        "name": "point_2d",
+        "parent_state": null,
+        "carrier_type": "tuple",
+        "description": "Center point coordinates of rotation (x, y).",
+        "properties": {}
+      },
+      {
+        "name": "points",
+        "parent_state": null,
+        "carrier_type": "ndarray",
+        "description": "Coordinates of quadrangle vertices in source image (shape: 4x2, float32).",
+        "properties": {}
+      },
+      {
+        "name": "polygons",
+        "parent_state": null,
+        "carrier_type": "List[ndarray]",
+        "description": "List of polygonal curve vertex point coordinate arrays (int32).",
+        "properties": {}
+      },
+      {
+        "name": "pyramid_decimation",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Pyramid decimation ratio greater than 1.",
+        "properties": {
+          "min": 1.01
+        }
+      },
+      {
+        "name": "radius",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Radius of the circle in pixels.",
+        "properties": {
+          "min": 0
+        }
+      },
+      {
+        "name": "radius_scalar",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Circle radius scalar float.",
+        "properties": {
+          "min": 0.0
+        }
+      },
+      {
+        "name": "ratio",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Inverse ratio of accumulator resolution to image resolution.",
+        "properties": {
+          "min": 0.5
+        }
+      },
+      {
+        "name": "released",
+        "parent_state": null,
+        "carrier_type": "bool",
+        "description": "Hardware or OS stream resource deallocated",
+        "properties": {
+          "closed": true
+        }
+      },
+      {
+        "name": "retrieval_mode",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Contour retrieval mode: cv2.RETR_EXTERNAL=0, cv2.RETR_LIST=1, cv2.RETR_CCOMP=2, cv2.RETR_TREE=3.",
+        "properties": {}
+      },
+      {
+        "name": "saved",
+        "parent_state": null,
+        "carrier_type": "bool",
+        "description": "Persistent disk serialization status",
+        "properties": {
+          "persisted": true
+        }
+      },
+      {
+        "name": "scalar_bias",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Scalar added to each sum.",
+        "properties": {}
+      },
+      {
+        "name": "scale",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Isotropic scale factor.",
+        "properties": {
+          "min": 0.001
+        }
+      },
+      {
+        "name": "scale_factor",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Scale factor along horizontal axis.",
+        "properties": {
+          "min": 0.0
+        }
+      },
+      {
+        "name": "segmented_markers",
+        "parent_state": null,
+        "carrier_type": "ndarray",
+        "description": "Updated marker matrix where boundaries are designated with -1.",
+        "properties": {
+          "dtype": "int32"
+        }
+      },
+      {
+        "name": "sift_detector",
+        "parent_state": null,
+        "carrier_type": "cv2.SIFT",
+        "description": "Configured cv2.SIFT algorithm handle.",
+        "properties": {}
+      },
+      {
+        "name": "sigma",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Gaussian kernel standard deviation in horizontal X direction. 0 means computed from ksize.",
+        "properties": {
+          "min": 0.0
+        }
+      },
+      {
+        "name": "size",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Size of an average block for computing a derivative covariation matrix.",
+        "properties": {
+          "min": 1
+        }
+      },
+      {
+        "name": "size_tuple",
+        "parent_state": null,
+        "carrier_type": "Tuple[int, int]",
+        "description": "Target spatial dimensions tuple (width, height).",
+        "properties": {}
+      },
+      {
+        "name": "status_flag",
+        "parent_state": null,
+        "carrier_type": "bool",
+        "description": "Success boolean flag. False if no frames were grabbed.",
+        "properties": {}
+      },
+      {
+        "name": "structuring_element",
+        "parent_state": null,
+        "carrier_type": "ndarray",
+        "description": "Structuring element kernel matrix.",
+        "properties": {
+          "dtype": "uint8"
+        }
+      },
+      {
+        "name": "text_string",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Text string content to render.",
+        "properties": {}
+      },
+      {
+        "name": "thickness",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Thickness of line. If negative (e.g. cv2.FILLED=-1), contour interiors are filled.",
+        "properties": {}
+      },
+      {
+        "name": "threshold",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "First threshold for the hysteresis procedure (lower limit).",
+        "properties": {
+          "min": 0.0
+        }
+      },
+      {
+        "name": "threshold_ratio",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Minimal accepted quality level ratio multiplied by best corner response.",
+        "properties": {
+          "min": 0.0,
+          "max": 1.0
+        }
+      },
+      {
+        "name": "threshold_value",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Threshold value cutoff.",
+        "properties": {
+          "min": 0.0,
+          "max": 255.0
+        }
+      },
+      {
+        "name": "upper_bound",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Upper range boundary in case of range normalization.",
+        "properties": {}
       },
       {
         "name": "video_capture",
@@ -214,58 +1077,11 @@
         }
       },
       {
-        "name": "saved",
+        "name": "weight",
         "parent_state": null,
-        "carrier_type": "bool",
-        "description": "Persistent disk serialization status",
-        "properties": {
-          "persisted": true
-        }
-      },
-      {
-        "name": "displayed",
-        "parent_state": null,
-        "carrier_type": "int",
-        "description": "GUI framebuffer rendered state",
-        "properties": {
-          "rendered": true
-        }
-      },
-      {
-        "name": "released",
-        "parent_state": null,
-        "carrier_type": "bool",
-        "description": "Hardware or OS stream resource deallocated",
-        "properties": {
-          "closed": true
-        }
-      },
-      {
-        "name": "computed_threshold",
-        "parent_state": "binary",
-        "carrier_type": "ndarray",
-        "description": "Declared by data migration (formerly engine bootstrap state 'computed_threshold').",
-        "properties": {
-          "channels": 1
-        }
-      },
-      {
-        "name": "dilated",
-        "parent_state": "binary",
-        "carrier_type": "ndarray",
-        "description": "Declared by data migration (formerly engine bootstrap state 'dilated').",
-        "properties": {
-          "channels": 1
-        }
-      },
-      {
-        "name": "eroded",
-        "parent_state": "binary",
-        "carrier_type": "ndarray",
-        "description": "Declared by data migration (formerly engine bootstrap state 'eroded').",
-        "properties": {
-          "channels": 1
-        }
+        "carrier_type": "float",
+        "description": "Weight of the first image array elements.",
+        "properties": {}
       }
     ],
     "transitions": [
@@ -699,7 +1515,12 @@
             "dtype": "uint8"
           },
           "shape_contract": {
-            "ndim": 3
+            "ndim": 3,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 3,
@@ -805,7 +1626,8 @@
             "bmp",
             "tiff",
             "webp"
-          ]
+          ],
+          "port_role": "destination"
         },
         "image": {
           "type_name": "ndarray",
@@ -957,7 +1779,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "image": {
           "type_name": "ndarray",
@@ -1190,8 +2014,11 @@
           },
           "shape_contract": {
             "ndim": 3,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": 3,
             "channel_axis": -1,
-            "channel_count": 3
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 3,
@@ -1220,7 +2047,12 @@
             "dtype": "uint8"
           },
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -1325,7 +2157,12 @@
             "dtype": "uint8"
           },
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -1355,7 +2192,11 @@
           },
           "shape_contract": {
             "ndim": 3,
-            "channel_count": 3
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 3,
@@ -1447,7 +2288,11 @@
           },
           "shape_contract": {
             "ndim": 3,
-            "channel_count": 3
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 3,
@@ -1477,7 +2322,11 @@
           },
           "shape_contract": {
             "ndim": 3,
-            "channel_count": 3
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 3,
@@ -1568,7 +2417,11 @@
           },
           "shape_contract": {
             "ndim": 3,
-            "channel_count": 3
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 3,
@@ -1598,7 +2451,11 @@
           },
           "shape_contract": {
             "ndim": 3,
-            "channel_count": 3
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 3,
@@ -1687,7 +2544,11 @@
           },
           "shape_contract": {
             "ndim": 3,
-            "channel_count": 3
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 3,
@@ -1717,7 +2578,11 @@
           },
           "shape_contract": {
             "ndim": 3,
-            "channel_count": 3
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 3,
@@ -1818,7 +2683,10 @@
           "type_name": "Tuple[int, int]",
           "state": "size_tuple",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": [
+            100,
+            100
+          ],
           "description": "Target spatial dimensions tuple (width, height).",
           "domain": "cv2",
           "required": true,
@@ -1827,12 +2695,20 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              2
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
             "len": 2
           },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration"
         },
         "fx": {
           "type_name": "float",
@@ -2025,7 +2901,11 @@
             "shape": [
               2,
               3
-            ]
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -2036,7 +2916,10 @@
           "type_name": "Tuple[int, int]",
           "state": "size_tuple",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": [
+            100,
+            100
+          ],
           "description": "Output canvas dimensions (width, height).",
           "domain": "cv2",
           "required": true,
@@ -2045,12 +2928,20 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              2
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
             "len": 2
           },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration"
         },
         "flags": {
           "type_name": "int",
@@ -2185,6 +3076,13 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              2
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
             "len": 2
           },
           "structure_kind": "composite",
@@ -2208,7 +3106,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "scale": {
           "type_name": "float",
@@ -2228,7 +3128,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         }
       },
       "outputs": {
@@ -2251,7 +3153,11 @@
             "shape": [
               2,
               3
-            ]
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -2357,7 +3263,11 @@
             "shape": [
               3,
               3
-            ]
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -2368,7 +3278,10 @@
           "type_name": "Tuple[int, int]",
           "state": "size_tuple",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": [
+            100,
+            100
+          ],
           "description": "Output frame dimensions (width, height).",
           "domain": "cv2",
           "required": true,
@@ -2377,12 +3290,20 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              2
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
             "len": 2
           },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration"
         },
         "flags": {
           "type_name": "int",
@@ -2514,10 +3435,15 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
+            "ndim": 2,
             "shape": [
               4,
               2
-            ]
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -2537,10 +3463,15 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
+            "ndim": 2,
             "shape": [
               4,
               2
-            ]
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -2564,10 +3495,15 @@
             "dtype": "float64"
           },
           "shape_contract": {
+            "ndim": 2,
             "shape": [
               3,
               3
-            ]
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -2828,6 +3764,13 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              2
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
             "len": 2
           },
           "structure_kind": "composite",
@@ -3012,7 +3955,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         }
       },
       "outputs": {
@@ -3137,7 +4082,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "sigma_color": {
           "type_name": "float",
@@ -3157,7 +4104,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "sigma_space": {
           "type_name": "float",
@@ -3177,7 +4126,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         }
       },
       "outputs": {
@@ -3313,12 +4264,18 @@
             "dtype": "float32"
           },
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float32",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration"
         }
       },
       "outputs": {
@@ -3422,7 +4379,12 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -3454,7 +4416,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "dx": {
           "type_name": "int",
@@ -3478,7 +4442,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "dy": {
           "type_name": "int",
@@ -3502,7 +4468,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "ksize": {
           "type_name": "int",
@@ -3547,7 +4515,12 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -3637,7 +4610,12 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -3664,7 +4642,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "ksize": {
           "type_name": "int",
@@ -3709,7 +4689,12 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -3798,7 +4783,12 @@
             "dtype": "uint8"
           },
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -3823,7 +4813,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration"
         },
         "threshold2": {
           "type_name": "float",
@@ -3843,7 +4834,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration"
         },
         "aperture_size": {
           "type_name": "int",
@@ -3910,7 +4902,12 @@
             "dtype": "uint8"
           },
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -4002,7 +4999,12 @@
             "dtype": "uint8"
           },
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -4028,7 +5030,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "maxval": {
           "type_name": "float",
@@ -4049,7 +5053,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         }
       },
       "outputs": {
@@ -4091,7 +5097,12 @@
             "dtype": "uint8"
           },
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -4183,7 +5194,12 @@
             "dtype": "uint8"
           },
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -4251,7 +5267,12 @@
             "dtype": "uint8"
           },
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -4345,7 +5366,12 @@
             "dtype": "uint8"
           },
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -4396,7 +5422,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration"
         },
         "C": {
           "type_name": "float",
@@ -4414,7 +5441,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration"
         }
       },
       "outputs": {
@@ -4438,7 +5466,12 @@
             "dtype": "uint8"
           },
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -4589,7 +5622,12 @@
             "dtype": "uint8"
           },
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -4698,6 +5736,13 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              2
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
             "len": 2
           },
           "structure_kind": "composite",
@@ -4722,7 +5767,12 @@
             "dtype": "uint8"
           },
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -4810,7 +5860,12 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "type": "Optional[ndarray]",
           "role": "parameter",
@@ -4955,7 +6010,12 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "type": "Optional[ndarray]",
           "role": "parameter",
@@ -5100,7 +6160,12 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -5233,7 +6298,12 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -5356,7 +6426,12 @@
             "dtype": "uint8"
           },
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -5433,10 +6508,19 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null,
-          "structure_kind": "composite",
-          "rank": 0,
-          "element_type": "composite_record",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
+          "rank": 1,
+          "element_type": "ndarray",
           "supported_formats": []
         },
         "hierarchy": {
@@ -5454,7 +6538,12 @@
             "dtype": "int32"
           },
           "shape_contract": {
-            "ndim": 3
+            "ndim": 3,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 3,
@@ -5540,10 +6629,19 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null,
-          "structure_kind": "composite",
-          "rank": 0,
-          "element_type": "composite_record",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
+          "rank": 1,
+          "element_type": "ndarray",
           "supported_formats": []
         },
         "k": {
@@ -5578,10 +6676,19 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null,
-          "structure_kind": "composite",
-          "rank": 0,
-          "element_type": "composite_record",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
+          "rank": 1,
+          "element_type": "ndarray",
           "supported_formats": []
         }
       },
@@ -5680,10 +6787,19 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null,
-          "structure_kind": "composite",
-          "rank": 0,
-          "element_type": "composite_record",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
+          "rank": 1,
+          "element_type": "ndarray",
           "supported_formats": []
         },
         "contour_idx": {
@@ -5721,6 +6837,13 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
             "len": 3
           },
           "structure_kind": "composite",
@@ -5962,7 +7085,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "bool",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         }
       },
       "outputs": {
@@ -6207,6 +7332,13 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              2
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
             "len": 2
           },
           "structure_kind": "composite",
@@ -6318,7 +7450,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "closed": {
           "type_name": "bool",
@@ -6339,7 +7473,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "bool",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         }
       },
       "outputs": {
@@ -6679,7 +7815,8 @@
           "structure_kind": "tensor",
           "rank": 3,
           "element_type": "uint8",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "data_input"
         }
       },
       "outputs": {
@@ -6801,7 +7938,8 @@
           "structure_kind": "tensor",
           "rank": 3,
           "element_type": "uint8",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "data_input"
         }
       },
       "outputs": {
@@ -6916,7 +8054,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "src2": {
           "type_name": "ndarray",
@@ -6939,7 +8079,8 @@
           "structure_kind": "tensor",
           "rank": 3,
           "element_type": "uint8",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "data_input"
         },
         "beta": {
           "type_name": "float",
@@ -6957,7 +8098,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "gamma": {
           "type_name": "float",
@@ -6975,7 +8118,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         }
       },
       "outputs": {
@@ -7102,7 +8247,8 @@
           "structure_kind": "tensor",
           "rank": 3,
           "element_type": "uint8",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "data_input"
         },
         "mask": {
           "type_name": "ndarray",
@@ -7241,7 +8387,8 @@
           "structure_kind": "tensor",
           "rank": 3,
           "element_type": "uint8",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "data_input"
         },
         "mask": {
           "type_name": "ndarray",
@@ -7486,7 +8633,8 @@
           "structure_kind": "tensor",
           "rank": 3,
           "element_type": "uint8",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "data_input"
         }
       },
       "outputs": {
@@ -7576,7 +8724,12 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
-            "ndim": 3
+            "ndim": 3,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 3,
@@ -7597,9 +8750,18 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null,
-          "structure_kind": "composite",
-          "rank": 0,
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
           "supported_formats": []
         }
@@ -7666,9 +8828,18 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null,
-          "structure_kind": "composite",
-          "rank": 0,
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
           "supported_formats": []
         }
@@ -7692,7 +8863,12 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
-            "ndim": 3
+            "ndim": 3,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 3,
@@ -7792,9 +8968,18 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null,
-          "structure_kind": "composite",
-          "rank": 0,
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
           "supported_formats": []
         },
@@ -7830,9 +9015,18 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null,
-          "structure_kind": "composite",
-          "rank": 0,
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
           "supported_formats": []
         },
@@ -7851,9 +9045,18 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null,
-          "structure_kind": "composite",
-          "rank": 0,
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
           "supported_formats": []
         }
@@ -7874,7 +9077,12 @@
             "dtype": "float32"
           },
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -7946,7 +9154,12 @@
             "dtype": "uint8"
           },
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -7975,7 +9188,12 @@
             "dtype": "uint8"
           },
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -8245,6 +9463,13 @@
           "param_kind": "keyword_only",
           "value_constraints": null,
           "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              2
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
             "len": 2
           },
           "structure_kind": "composite",
@@ -8262,13 +9487,13 @@
           "description": "Initialized CLAHE processing engine object.",
           "domain": "cv2",
           "required": true,
-          "abstract_type": "scalar",
+          "abstract_type": "handle",
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "scalar",
-          "rank": 0,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -8323,13 +9548,13 @@
           "description": "Instantiated CLAHE object.",
           "domain": "cv2",
           "required": true,
-          "abstract_type": "scalar",
+          "abstract_type": "handle",
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "scalar",
-          "rank": 0,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -8353,7 +9578,12 @@
             "dtype": "uint8"
           },
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -8382,7 +9612,12 @@
             "dtype": "uint8"
           },
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -8478,7 +9713,10 @@
           "type_name": "tuple",
           "state": "point_2d",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": [
+            0,
+            0
+          ],
           "description": "First point coordinates (x1, y1) of the line segment.",
           "domain": "cv2",
           "required": true,
@@ -8487,18 +9725,29 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              2
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
             "len": 2
           },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration"
         },
         "pt2": {
           "type_name": "tuple",
           "state": "point_2d",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": [
+            10,
+            10
+          ],
           "description": "Second point coordinates (x2, y2) of the line segment.",
           "domain": "cv2",
           "required": true,
@@ -8507,12 +9756,20 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              2
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
             "len": 2
           },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration"
         },
         "color": {
           "type_name": "tuple",
@@ -8531,6 +9788,13 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
             "len": 3
           },
           "structure_kind": "composite",
@@ -8693,7 +9957,10 @@
           "type_name": "tuple",
           "state": "point_2d",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": [
+            0,
+            0
+          ],
           "description": "Top-left vertex coordinates (x1, y1).",
           "domain": "cv2",
           "required": true,
@@ -8702,18 +9969,29 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              2
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
             "len": 2
           },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration"
         },
         "pt2": {
           "type_name": "tuple",
           "state": "point_2d",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": [
+            10,
+            10
+          ],
           "description": "Opposite bottom-right vertex coordinates (x2, y2).",
           "domain": "cv2",
           "required": true,
@@ -8722,12 +10000,20 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              2
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
             "len": 2
           },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration"
         },
         "color": {
           "type_name": "tuple",
@@ -8746,6 +10032,13 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
             "len": 3
           },
           "structure_kind": "composite",
@@ -8905,7 +10198,10 @@
           "type_name": "tuple",
           "state": "point_2d",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": [
+            0,
+            0
+          ],
           "description": "Center of the circle coordinates (x, y).",
           "domain": "cv2",
           "required": true,
@@ -8914,18 +10210,26 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              2
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
             "len": 2
           },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration"
         },
         "radius": {
           "type_name": "int",
           "state": "radius",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": 10,
           "description": "Radius of the circle in pixels.",
           "domain": "cv2",
           "required": true,
@@ -8939,7 +10243,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration"
         },
         "color": {
           "type_name": "tuple",
@@ -8958,6 +10263,13 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
             "len": 3
           },
           "structure_kind": "composite",
@@ -9120,7 +10432,7 @@
           "type_name": "str",
           "state": "text_string",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Text string content to render.",
           "domain": "cv2",
           "required": true,
@@ -9132,13 +10444,17 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "literal_parameter"
         },
         "org": {
           "type_name": "tuple",
           "state": "point_2d",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": [
+            10,
+            10
+          ],
           "description": "Bottom-left corner coordinates of text string origin (x, y).",
           "domain": "cv2",
           "required": true,
@@ -9147,12 +10463,20 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              2
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
             "len": 2
           },
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration"
         },
         "font_face": {
           "type_name": "int",
@@ -9223,6 +10547,13 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
             "len": 3
           },
           "structure_kind": "composite",
@@ -9391,9 +10722,18 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null,
-          "structure_kind": "composite",
-          "rank": 0,
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
           "supported_formats": []
         },
@@ -9435,6 +10775,13 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
             "len": 3
           },
           "structure_kind": "composite",
@@ -9604,9 +10951,18 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null,
-          "structure_kind": "composite",
-          "rank": 0,
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
           "supported_formats": []
         },
@@ -9755,7 +11111,12 @@
             "dtype": "uint8"
           },
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -9780,7 +11141,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "theta": {
           "type_name": "float",
@@ -9800,7 +11163,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "threshold": {
           "type_name": "int",
@@ -9820,7 +11185,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "min_line_length": {
           "type_name": "float",
@@ -9879,7 +11246,12 @@
             "dtype": "int32"
           },
           "shape_contract": {
-            "ndim": 3
+            "ndim": 3,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 3,
@@ -9968,7 +11340,12 @@
             "dtype": "uint8"
           },
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -9999,7 +11376,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "dp": {
           "type_name": "float",
@@ -10019,7 +11398,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "min_dist": {
           "type_name": "float",
@@ -10039,7 +11420,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "param1": {
           "type_name": "float",
@@ -10138,7 +11521,12 @@
             "dtype": "float32"
           },
           "shape_contract": {
-            "ndim": 3
+            "ndim": 3,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 3,
@@ -10221,7 +11609,12 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -10246,7 +11639,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "ksize": {
           "type_name": "int",
@@ -10269,7 +11664,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "k": {
           "type_name": "float",
@@ -10290,7 +11687,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         }
       },
       "outputs": {
@@ -10309,7 +11708,12 @@
             "dtype": "float32"
           },
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -10394,7 +11798,12 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -10417,7 +11826,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "quality_level": {
           "type_name": "float",
@@ -10438,7 +11849,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "min_distance": {
           "type_name": "float",
@@ -10458,7 +11871,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "mask": {
           "type_name": "ndarray",
@@ -10515,7 +11930,12 @@
             "dtype": "float32"
           },
           "shape_contract": {
-            "ndim": 3
+            "ndim": 3,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 3,
@@ -10672,13 +12092,13 @@
           "description": "Configured cv2.SIFT algorithm handle.",
           "domain": "cv2",
           "required": true,
-          "abstract_type": "scalar",
+          "abstract_type": "handle",
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "scalar",
-          "rank": 0,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -10737,13 +12157,13 @@
           "description": "Constructed SIFT feature instance.",
           "domain": "cv2",
           "required": true,
-          "abstract_type": "scalar",
+          "abstract_type": "handle",
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "scalar",
-          "rank": 0,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -10767,7 +12187,12 @@
             "dtype": "uint8"
           },
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -10806,9 +12231,18 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null,
-          "structure_kind": "composite",
-          "rank": 0,
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
           "supported_formats": []
         },
@@ -10828,7 +12262,11 @@
           },
           "shape_contract": {
             "ndim": 2,
-            "channel_count": 128
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": 128,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -10982,13 +12420,13 @@
           "description": "Configured cv2.ORB algorithm instance.",
           "domain": "cv2",
           "required": true,
-          "abstract_type": "scalar",
+          "abstract_type": "handle",
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "scalar",
-          "rank": 0,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -11046,13 +12484,13 @@
           "description": "Constructed ORB algorithm handle.",
           "domain": "cv2",
           "required": true,
-          "abstract_type": "scalar",
+          "abstract_type": "handle",
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "scalar",
-          "rank": 0,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -11076,7 +12514,12 @@
             "dtype": "uint8"
           },
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -11115,9 +12558,18 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null,
-          "structure_kind": "composite",
-          "rank": 0,
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
           "supported_formats": []
         },
@@ -11137,7 +12589,11 @@
           },
           "shape_contract": {
             "ndim": 2,
-            "channel_count": 32
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": 32,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -11260,13 +12716,13 @@
           "description": "Initialized Brute-Force matcher handle.",
           "domain": "cv2",
           "required": true,
-          "abstract_type": "scalar",
+          "abstract_type": "handle",
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "scalar",
-          "rank": 0,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -11322,13 +12778,13 @@
           "description": "Constructed BFMatcher object.",
           "domain": "cv2",
           "required": true,
-          "abstract_type": "scalar",
+          "abstract_type": "handle",
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "scalar",
-          "rank": 0,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -11345,7 +12801,12 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -11365,7 +12826,12 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -11386,9 +12852,18 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null,
-          "structure_kind": "composite",
-          "rank": 0,
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
           "supported_formats": []
         }
@@ -11497,9 +12972,18 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null,
-          "structure_kind": "composite",
-          "rank": 0,
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
           "supported_formats": []
         },
@@ -11543,6 +13027,13 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              3
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
             "len": 3
           },
           "structure_kind": "composite",
@@ -11687,9 +13178,18 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null,
-          "structure_kind": "composite",
-          "rank": 0,
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
           "supported_formats": []
         },
@@ -11728,9 +13228,18 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null,
-          "structure_kind": "composite",
-          "rank": 0,
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
           "supported_formats": []
         },
@@ -11746,9 +13255,18 @@
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
-          "shape_contract": null,
-          "structure_kind": "composite",
-          "rank": 0,
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
           "supported_formats": []
         },
@@ -11897,7 +13415,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "bottom": {
           "type_name": "int",
@@ -11917,7 +13437,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "left": {
           "type_name": "int",
@@ -11937,7 +13459,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "right": {
           "type_name": "int",
@@ -11957,7 +13481,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "border_type": {
           "type_name": "int",
@@ -11985,7 +13511,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "value": {
           "type_name": "tuple",
@@ -12237,7 +13765,11 @@
           },
           "shape_contract": {
             "ndim": 3,
-            "channel_count": 3
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 3,
@@ -12259,7 +13791,12 @@
             "dtype": "int32"
           },
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -12283,7 +13820,12 @@
             "dtype": "int32"
           },
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -12400,7 +13942,12 @@
             "dtype": "uint8"
           },
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -12557,7 +14104,11 @@
           },
           "shape_contract": {
             "ndim": 3,
-            "channel_count": 3
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 3,
@@ -12669,7 +14220,11 @@
           "value_constraints": null,
           "shape_contract": {
             "ndim": 3,
-            "channel_count": 3
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 3,
@@ -12750,7 +14305,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         }
       },
       "outputs": {
@@ -12762,13 +14319,13 @@
           "description": "Constructed VideoCapture object.",
           "domain": "cv2",
           "required": true,
-          "abstract_type": "scalar",
+          "abstract_type": "handle",
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "scalar",
-          "rank": 0,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -12825,13 +14382,13 @@
           "description": "Opened VideoCapture handle.",
           "domain": "cv2",
           "required": true,
-          "abstract_type": "scalar",
+          "abstract_type": "handle",
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "scalar",
-          "rank": 0,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -12879,7 +14436,11 @@
           },
           "shape_contract": {
             "ndim": 3,
-            "channel_count": 3
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": 3,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 3,
@@ -12946,13 +14507,13 @@
           "description": "VideoCapture object to close.",
           "domain": "cv2",
           "required": true,
-          "abstract_type": "scalar",
+          "abstract_type": "handle",
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "scalar",
-          "rank": 0,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -13054,7 +14615,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "fps": {
           "type_name": "float",
@@ -13074,7 +14637,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "frame_size": {
           "type_name": "Tuple[int, int]",
@@ -13089,6 +14654,13 @@
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              2
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
             "len": 2
           },
           "structure_kind": "composite",
@@ -13127,13 +14699,13 @@
           "description": "Constructed VideoWriter instance.",
           "domain": "cv2",
           "required": true,
-          "abstract_type": "scalar",
+          "abstract_type": "handle",
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "scalar",
-          "rank": 0,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -13189,13 +14761,13 @@
           "description": "Active VideoWriter handle.",
           "domain": "cv2",
           "required": true,
-          "abstract_type": "scalar",
+          "abstract_type": "handle",
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "scalar",
-          "rank": 0,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -13278,13 +14850,13 @@
           "description": "VideoWriter object to flush and close.",
           "domain": "cv2",
           "required": true,
-          "abstract_type": "scalar",
+          "abstract_type": "handle",
           "enum_values": null,
           "param_kind": "standard",
           "value_constraints": null,
           "shape_contract": null,
-          "structure_kind": "scalar",
-          "rank": 0,
+          "structure_kind": "handle",
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -13359,7 +14931,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "image": {
           "type_name": "ndarray",
@@ -13424,7 +14998,12 @@
             "dtype": "uint8"
           },
           "shape_contract": {
-            "ndim": 2
+            "ndim": 2,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 2,
@@ -13548,7 +15127,12 @@
             "dtype": "uint8"
           },
           "shape_contract": {
-            "ndim": 3
+            "ndim": 3,
+            "shape": null,
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
           },
           "structure_kind": "tensor",
           "rank": 3,

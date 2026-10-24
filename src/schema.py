@@ -137,6 +137,89 @@ class TypestateDefinition(BaseModel):
     properties: Dict[str, Any] = Field(default_factory=dict)
 
 
+class ShapeContractSchema(BaseModel):
+    """
+    Unified formal contract for port tensor shapes and rank constraints.
+    Supports rank polymorphism where operations accept arbitrary/variable ndims.
+    """
+    model_config = ConfigDict(extra="ignore")
+
+    ndim: Optional[int] = None
+    shape: Optional[List[Union[int, str]]] = None
+    rank_polymorphic: bool = False
+    channel_count: Optional[int] = None
+    channel_axis: Optional[int] = None
+    len: Optional[int] = None
+
+    @classmethod
+    def from_any(cls, v: Any) -> Optional["ShapeContractSchema"]:
+        if v is None:
+            return None
+        if isinstance(v, ShapeContractSchema):
+            return v
+        if isinstance(v, dict):
+            ndim = v.get("ndim")
+            shape = v.get("shape")
+            poly = bool(v.get("rank_polymorphic", False))
+            ch = v.get("channel_count")
+            ch_ax = v.get("channel_axis")
+            l = v.get("len")
+            if shape is not None and ndim is None and not poly:
+                ndim = len(shape)
+            if l is not None and ndim is None:
+                ndim = 1
+                shape = [l]
+            if shape is not None:
+                shape = list(shape)
+            return cls(
+                ndim=ndim,
+                shape=shape,
+                rank_polymorphic=poly,
+                channel_count=ch,
+                channel_axis=ch_ax,
+                len=l,
+            )
+        if isinstance(v, str):
+            s = v.strip()
+            if not s or s.lower() in ("none", "null", "any", "*"):
+                return cls(
+                    ndim=None,
+                    shape=None,
+                    rank_polymorphic=True,
+                    channel_count=None,
+                    channel_axis=None,
+                    len=None,
+                )
+            if (s.startswith("(") and s.endswith(")")) or (s.startswith("[") and s.endswith("]")):
+                s = s[1:-1]
+            parts = [p.strip() for p in s.split(",") if p.strip()]
+            shape_elements: List[Union[int, str]] = []
+            for p in parts:
+                if p.isdigit():
+                    shape_elements.append(int(p))
+                else:
+                    shape_elements.append(p)
+            ndim = len(shape_elements)
+            poly = any(p in ("*", "...", "any") for p in shape_elements)
+            ch = None
+            ch_ax = None
+            l = None
+            if ndim == 3 and shape_elements[0] in ("H", "height", "rows") and isinstance(shape_elements[2], int):
+                ch = shape_elements[2]
+                ch_ax = -1
+            elif ndim == 1 and isinstance(shape_elements[0], int):
+                l = shape_elements[0]
+            return cls(
+                ndim=None if poly else ndim,
+                shape=shape_elements,
+                rank_polymorphic=poly,
+                channel_count=ch,
+                channel_axis=ch_ax,
+                len=l,
+            )
+        return None
+
+
 class TypestateVocabularySchema(BaseModel):
     """Domain-level typestate vocabulary and state transitions."""
     model_config = ConfigDict(extra="ignore")
@@ -164,7 +247,7 @@ class PortSchema(BaseModel):
     enum_values: Optional[List[Any]] = None
     param_kind: Optional[str] = "standard"
     value_constraints: Optional[Dict[str, Any]] = None
-    shape_contract: Optional[Union[Dict[str, Any], str]] = None
+    shape_contract: Optional[Union[ShapeContractSchema, Dict[str, Any]]] = None
     port_role: Optional[str] = None
     role: Optional[str] = None
     polarity: Optional[str] = None
@@ -179,6 +262,14 @@ class PortSchema(BaseModel):
             self.port_role = self.role
         elif self.port_role and not self.role:
             self.role = self.port_role
+
+    @field_validator("shape_contract", mode="before")
+    @classmethod
+    def normalize_shape_contract(cls, v: Any) -> Optional[Dict[str, Any]]:
+        if v is None:
+            return None
+        res = ShapeContractSchema.from_any(v)
+        return res.model_dump() if res else None
 
     @field_validator("accepted_states", mode="before")
     @classmethod

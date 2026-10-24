@@ -66,14 +66,14 @@ def is_terminal_sink(cell: Any, orch: Optional[Any] = None) -> bool:
         if term_stages and getattr(cell, "stage", None) in term_stages:
             return True
     except Exception:
-        pass
+        term_roles = set()
     if getattr(cell, "is_endable", False):
         return True
     outs = getattr(cell, "outputs", {}) or {}
     if not outs:
         return True
     role = str(getattr(cell, "node_role", "") or getattr(cell, "role", "") or "").lower()
-    return role in ("sink", "terminal", "egress", "consumer")
+    return role in term_roles
 
 
 def is_ingress_source(cell: Any, orch: Optional[Any] = None) -> bool:
@@ -97,7 +97,7 @@ def is_ingress_source(cell: Any, orch: Optional[Any] = None) -> bool:
         if ing_stages and getattr(cell, "stage", None) in ing_stages:
             return True
     except Exception:
-        pass
+        ing_roles = set()
     if getattr(cell, "is_ingress", False):
         return True
     ins = getattr(cell, "inputs", {}) or {}
@@ -108,7 +108,7 @@ def is_ingress_source(cell: Any, orch: Optional[Any] = None) -> bool:
     if not required_data_ins:
         return True
     role = str(getattr(cell, "node_role", "") or getattr(cell, "role", "") or "").lower()
-    return role in ("source", "ingress", "producer")
+    return role in ing_roles
 
 
 def is_intermediate_transform(cell: Any, orch: Optional[Any] = None) -> bool:
@@ -1189,6 +1189,10 @@ class RouteMethod(ABC):
             # Any explicit bridge cell is redundant iff removing it still unifies and
             # passes all static preflight contracts (including property preconditions).
             b_roles = _bridge_roles()
+            from lattice import TypeRegistry
+            reg = TypeRegistry.get_instance()
+            est_roles = {str(r).lower() for r in reg.get_verification_semantics("estimator_roles")}
+            est_roles.update(str(r).lower() for r in reg.get_verification_semantics("model_roles"))
             from planner import _active_vocab
             vocab = _active_vocab(getattr(self, "orchestrator", None))
             bridge_tags = {"bridge", "array_bridge", "adapter", "coercion", "cast"}
@@ -1200,7 +1204,7 @@ class RouteMethod(ABC):
                 is_exempt = (
                     is_ingress_source(c, getattr(self, "orchestrator", None))
                     or is_terminal_sink(c, getattr(self, "orchestrator", None))
-                    or c_role in ("estimator", "trainer", "classifier", "regressor")
+                    or c_role in est_roles
                 )
                 is_candidate_bridge = not is_exempt and (
                     c_role in b_roles

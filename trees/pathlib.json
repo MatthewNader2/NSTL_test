@@ -41,6 +41,37 @@
     "path_abstract_types": [
       "path"
     ],
+    "path_roles": [
+      "path",
+      "file",
+      "filepath",
+      "filename",
+      "pathlike",
+      "dest_path",
+      "source_path",
+      "dest_identifier",
+      "source_identifier"
+    ],
+    "path_type_names": [
+      "path",
+      "filepath",
+      "uri",
+      "url",
+      "file",
+      "pathlike"
+    ],
+    "path_port_tokens": [
+      "path",
+      "filepath",
+      "dest_path",
+      "source_path",
+      "dest_identifier",
+      "source_identifier",
+      "uri",
+      "url",
+      "file",
+      "pathlike"
+    ],
     "source_roles": [
       "source",
       "ingress"
@@ -133,33 +164,120 @@
     }
   ],
   "typestates": {
-    "unresolved_path": "Path instance that may or may not exist and has not been normalized.",
-    "absolute_path": "Path instance with fully resolved absolute filesystem coordinates.",
-    "existing_path": "Path verified to exist on current filesystem.",
-    "directory": "Path referencing an existing directory node.",
-    "directory_created": "Directory newly created or verified present on filesystem.",
-    "file": "Path referencing an existing regular file node.",
-    "file_created": "File newly created or touched on filesystem.",
-    "file_deleted": "File node deleted from filesystem.",
-    "directory_deleted": "Directory node removed from filesystem.",
-    "file_renamed": "File or directory path successfully renamed.",
-    "symlink": "Path referencing a symbolic link.",
-    "hardlink": "Path referencing a hard-linked filesystem node.",
-    "glob_pattern": "String representing search glob pattern with wildcards.",
-    "paths_list": "Collection of Path objects resulting from query or traversal.",
-    "file_list": "Collection of file Path objects.",
-    "dir_list": "Collection of directory Path objects.",
-    "text_payload": "In-memory string content for read or write operations.",
-    "binary_payload": "In-memory bytes content for read or write operations.",
-    "byte_count": "Integer count of bytes written, transferred, or measured.",
-    "char_count": "Integer count of characters written.",
-    "stat_metadata": "POSIX stat metadata object describing filesystem attributes.",
-    "disk_usage_tuple": "Namedtuple storing total, used, and free disk space.",
-    "boolean_flag": "Boolean predicate outcome.",
-    "string_name": "String representing path leaf or segment name.",
-    "string_extension": "String representing file suffix or extension.",
-    "string_parts": "Tuple or list of component parts of a path.",
-    "command_name": "Executable binary or command name string."
+    "domain": "pathlib",
+    "states": [
+      {
+        "name": "absolute_path",
+        "description": "Path instance with fully resolved absolute filesystem coordinates."
+      },
+      {
+        "name": "binary_payload",
+        "description": "In-memory bytes content for read or write operations."
+      },
+      {
+        "name": "boolean_flag",
+        "description": "Boolean predicate outcome."
+      },
+      {
+        "name": "byte_count",
+        "description": "Integer count of bytes written, transferred, or measured."
+      },
+      {
+        "name": "char_count",
+        "description": "Integer count of characters written."
+      },
+      {
+        "name": "command_name",
+        "description": "Executable binary or command name string."
+      },
+      {
+        "name": "dir_list",
+        "description": "Collection of directory Path objects."
+      },
+      {
+        "name": "directory",
+        "description": "Path referencing an existing directory node."
+      },
+      {
+        "name": "directory_created",
+        "description": "Directory newly created or verified present on filesystem."
+      },
+      {
+        "name": "directory_deleted",
+        "description": "Directory node removed from filesystem."
+      },
+      {
+        "name": "disk_usage_tuple",
+        "description": "Namedtuple storing total, used, and free disk space."
+      },
+      {
+        "name": "existing_path",
+        "description": "Path verified to exist on current filesystem."
+      },
+      {
+        "name": "file",
+        "description": "Path referencing an existing regular file node."
+      },
+      {
+        "name": "file_created",
+        "description": "File newly created or touched on filesystem."
+      },
+      {
+        "name": "file_deleted",
+        "description": "File node deleted from filesystem."
+      },
+      {
+        "name": "file_list",
+        "description": "Collection of file Path objects."
+      },
+      {
+        "name": "file_renamed",
+        "description": "File or directory path successfully renamed."
+      },
+      {
+        "name": "glob_pattern",
+        "description": "String representing search glob pattern with wildcards."
+      },
+      {
+        "name": "hardlink",
+        "description": "Path referencing a hard-linked filesystem node."
+      },
+      {
+        "name": "paths_list",
+        "description": "Collection of Path objects resulting from query or traversal."
+      },
+      {
+        "name": "stat_metadata",
+        "description": "POSIX stat metadata object describing filesystem attributes."
+      },
+      {
+        "name": "string_extension",
+        "description": "String representing file suffix or extension."
+      },
+      {
+        "name": "string_name",
+        "description": "String representing path leaf or segment name."
+      },
+      {
+        "name": "string_parts",
+        "description": "Tuple or list of component parts of a path."
+      },
+      {
+        "name": "symlink",
+        "description": "Path referencing a symbolic link."
+      },
+      {
+        "name": "text_payload",
+        "description": "In-memory string content for read or write operations."
+      },
+      {
+        "name": "unresolved_path",
+        "description": "Path instance that may or may not exist and has not been normalized."
+      }
+    ],
+    "transitions": [],
+    "initial_state": null,
+    "terminal_states": []
   },
   "cells": [
     {
@@ -378,7 +496,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         }
       },
       "outputs": {
@@ -442,7 +561,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         }
       },
       "outputs": {
@@ -622,11 +742,21 @@
           "port_role": "data_output",
           "description": "List of ancestor directory Path objects.",
           "structure_kind": "path_spec",
-          "rank": 0,
+          "rank": 1,
           "element_type": "string",
           "supported_formats": [
             "*"
-          ]
+          ],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "code_template": "{parents_list} = list({path_obj}.parents)",
@@ -725,7 +855,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "file.txt"
         }
       },
       "outputs": {
@@ -789,7 +920,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ".txt"
         }
       },
       "outputs": {
@@ -853,7 +985,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "file"
         }
       },
       "outputs": {
@@ -1847,10 +1980,20 @@
           "abstract_type": "collection",
           "port_role": "data_output",
           "description": "List of suffix strings.",
-          "structure_kind": "composite",
-          "rank": 0,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "code_template": "{suffixes} = {path_obj}.suffixes",
@@ -2163,7 +2306,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "*"
         }
       },
       "outputs": {
@@ -2238,11 +2382,21 @@
           "port_role": "data_output",
           "description": "List of matching Path objects.",
           "structure_kind": "path_spec",
-          "rank": 0,
+          "rank": 1,
           "element_type": "string",
           "supported_formats": [
             "*"
-          ]
+          ],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "code_template": "{matched_paths} = list({dir_path}.glob({pattern}))",
@@ -2304,11 +2458,21 @@
           "port_role": "data_output",
           "description": "List of recursively matched Path objects.",
           "structure_kind": "path_spec",
-          "rank": 0,
+          "rank": 1,
           "element_type": "string",
           "supported_formats": [
             "*"
-          ]
+          ],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "code_template": "{matched_paths} = list({dir_path}.rglob({pattern}))",
@@ -2356,11 +2520,21 @@
           "port_role": "data_output",
           "description": "List of child Path objects.",
           "structure_kind": "path_spec",
-          "rank": 0,
+          "rank": 1,
           "element_type": "string",
           "supported_formats": [
             "*"
-          ]
+          ],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "code_template": "{child_paths} = list({dir_path}.iterdir())",
@@ -2392,11 +2566,21 @@
           "port_role": "data_input",
           "description": "Input collection of Path objects.",
           "structure_kind": "path_spec",
-          "rank": 0,
+          "rank": 1,
           "element_type": "string",
           "supported_formats": [
             "*"
-          ]
+          ],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         },
         "suffix": {
           "type_name": "str",
@@ -2408,7 +2592,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ".txt"
         }
       },
       "outputs": {
@@ -2419,11 +2604,21 @@
           "port_role": "data_output",
           "description": "Filtered list of Path objects.",
           "structure_kind": "path_spec",
-          "rank": 0,
+          "rank": 1,
           "element_type": "string",
           "supported_formats": [
             "*"
-          ]
+          ],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "code_template": "{filtered_paths} = [p for p in {paths} if p.suffix == {suffix}]",
@@ -2455,11 +2650,21 @@
           "port_role": "data_input",
           "description": "Input collection of Path objects.",
           "structure_kind": "path_spec",
-          "rank": 0,
+          "rank": 1,
           "element_type": "string",
           "supported_formats": [
             "*"
-          ]
+          ],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "outputs": {
@@ -2470,11 +2675,21 @@
           "port_role": "data_output",
           "description": "Collection containing only regular files.",
           "structure_kind": "path_spec",
-          "rank": 0,
+          "rank": 1,
           "element_type": "string",
           "supported_formats": [
             "*"
-          ]
+          ],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "code_template": "{files_only} = [p for p in {paths} if p.is_file()]",
@@ -2506,11 +2721,21 @@
           "port_role": "data_input",
           "description": "Input collection of Path objects.",
           "structure_kind": "path_spec",
-          "rank": 0,
+          "rank": 1,
           "element_type": "string",
           "supported_formats": [
             "*"
-          ]
+          ],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "outputs": {
@@ -2521,11 +2746,21 @@
           "port_role": "data_output",
           "description": "Collection containing only directories.",
           "structure_kind": "path_spec",
-          "rank": 0,
+          "rank": 1,
           "element_type": "string",
           "supported_formats": [
             "*"
-          ]
+          ],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "code_template": "{dirs_only} = [p for p in {paths} if p.is_dir()]",
@@ -2557,11 +2792,21 @@
           "port_role": "data_input",
           "description": "Input collection of Path objects.",
           "structure_kind": "path_spec",
-          "rank": 0,
+          "rank": 1,
           "element_type": "string",
           "supported_formats": [
             "*"
-          ]
+          ],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "outputs": {
@@ -2572,11 +2817,21 @@
           "port_role": "data_output",
           "description": "Alphabetically sorted list of Path objects.",
           "structure_kind": "path_spec",
-          "rank": 0,
+          "rank": 1,
           "element_type": "string",
           "supported_formats": [
             "*"
-          ]
+          ],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "code_template": "{sorted_paths} = sorted({paths}, key=lambda p: p.name)",
@@ -2608,11 +2863,21 @@
           "port_role": "data_input",
           "description": "Input collection of Path objects.",
           "structure_kind": "path_spec",
-          "rank": 0,
+          "rank": 1,
           "element_type": "string",
           "supported_formats": [
             "*"
-          ]
+          ],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         },
         "reverse": {
           "type_name": "bool",
@@ -2636,11 +2901,21 @@
           "port_role": "data_output",
           "description": "Time-sorted list of Path objects.",
           "structure_kind": "path_spec",
-          "rank": 0,
+          "rank": 1,
           "element_type": "string",
           "supported_formats": [
             "*"
-          ]
+          ],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "code_template": "{sorted_paths} = sorted({paths}, key=lambda p: p.stat().st_mtime, reverse={reverse})",
@@ -2672,11 +2947,21 @@
           "port_role": "data_input",
           "description": "Input collection of Path objects.",
           "structure_kind": "path_spec",
-          "rank": 0,
+          "rank": 1,
           "element_type": "string",
           "supported_formats": [
             "*"
-          ]
+          ],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         },
         "reverse": {
           "type_name": "bool",
@@ -2700,11 +2985,21 @@
           "port_role": "data_output",
           "description": "Size-sorted list of Path objects.",
           "structure_kind": "path_spec",
-          "rank": 0,
+          "rank": 1,
           "element_type": "string",
           "supported_formats": [
             "*"
-          ]
+          ],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "code_template": "{sorted_paths} = sorted({paths}, key=lambda p: p.stat().st_size, reverse={reverse})",
@@ -2743,11 +3038,21 @@
           "port_role": "data_input",
           "description": "List of files to iterate over.",
           "structure_kind": "path_spec",
-          "rank": 0,
+          "rank": 1,
           "element_type": "string",
           "supported_formats": [
             "*"
-          ]
+          ],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "outputs": {
@@ -2985,10 +3290,20 @@
           "abstract_type": "collection",
           "port_role": "data_output",
           "description": "List of text lines.",
-          "structure_kind": "composite",
-          "rank": 0,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "code_template": "{lines} = {file_path}.read_text(encoding={encoding}).splitlines()",
@@ -3074,7 +3389,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "data_input"
         }
       },
       "outputs": {
@@ -3531,7 +3847,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 420
         }
       },
       "outputs": {
@@ -3728,7 +4045,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "data_input"
         },
         "encoding": {
           "type_name": "str",
@@ -3803,7 +4121,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "data_input"
         }
       },
       "outputs": {
@@ -3865,7 +4184,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "data_input"
         },
         "encoding": {
           "type_name": "str",
@@ -3937,10 +4257,20 @@
           "required": true,
           "port_role": "data_input",
           "description": "List of strings to write.",
-          "structure_kind": "composite",
-          "rank": 0,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         },
         "encoding": {
           "type_name": "str",

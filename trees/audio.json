@@ -25,120 +25,164 @@
     }
   ],
   "typestates": {
-    "audio_file_path": {
-      "description": "Filesystem path pointing to an encoded audio format file (.wav, .flac, .ogg)."
-    },
-    "destination_path": {
-      "description": "Filesystem destination path for persisting audio, image, or serialized data."
-    },
-    "floating_waveform": {
-      "description": "Floating-point numeric audio time-series tensor (typically bounded in [-1.0, 1.0])."
-    },
-    "integer_waveform": {
-      "description": "Integer PCM audio time-series tensor (e.g. 16-bit or 24-bit PCM)."
-    },
-    "frequency_hz": {
-      "description": "Frequency metric or sampling rate scalar specified in Hertz (Hz)."
-    },
-    "duration_sec": {
-      "description": "Temporal length or offset scalar specified in seconds."
-    },
-    "channel_count": {
-      "description": "Discrete integer count of spatial audio channels or Mel frequency bands."
-    },
-    "duty_cycle": {
-      "description": "Square wave duty cycle scalar bounded in [0.0, 1.0]."
-    },
-    "window_size": {
-      "description": "Sample count per Fourier transform window segment."
-    },
-    "filter_order": {
-      "description": "Polynomial order of an infinite impulse response or Butterworth filter."
-    },
-    "filter_q": {
-      "description": "Dimensionless quality factor Q specifying notch filter resonance bandwidth."
-    },
-    "coefficient": {
-      "description": "Difference equation pre-emphasis multiplier scalar."
-    },
-    "unnormalized": {
-      "description": "Audio waveform with unconstrained or arbitrary amplitude scaling."
-    },
-    "peak_normalized": {
-      "description": "Audio waveform scaled such that peak absolute amplitude matches target."
-    },
-    "rms_normalized": {
-      "description": "Audio waveform scaled such that root-mean-square loudness matches target."
-    },
-    "gain_adjusted": {
-      "description": "Audio waveform scaled by a decibel gain multiplier."
-    },
-    "mono_waveform": {
-      "description": "Single-channel monophonic audio waveform."
-    },
-    "stereo_waveform": {
-      "description": "Dual-channel stereophonic audio waveform."
-    },
-    "clipped": {
-      "description": "Waveform with dynamic range constrained within hard amplitude thresholds."
-    },
-    "faded": {
-      "description": "Audio waveform with boundary fade-in or fade-out envelopes applied."
-    },
-    "trimmed": {
-      "description": "Audio waveform with temporal slices or low-energy silence removed."
-    },
-    "resampled": {
-      "description": "Audio waveform converted to a target sampling frequency."
-    },
-    "concatenated": {
-      "description": "Sequentially appended composite audio waveform."
-    },
-    "reversed": {
-      "description": "Waveform with reversed time axis (retrograde playback)."
-    },
-    "padded": {
-      "description": "Waveform prepended or appended with silence padding."
-    },
-    "stft_complex": {
-      "description": "Short-Time Fourier Transform complex-valued time-frequency representation."
-    },
-    "spectrogram_magnitude": {
-      "description": "Real-valued magnitude or power distribution over time and frequency."
-    },
-    "spectrogram_db": {
-      "description": "Decibel-scaled logarithmic spectrogram representation."
-    },
-    "mel_spectrum": {
-      "description": "Non-linear Mel-scale filtered spectral energy representation."
-    },
-    "filtered": {
-      "description": "Time-domain signal processed through frequency-selective filters."
-    },
-    "synthetic": {
-      "description": "Waveform procedurally generated via mathematical synthesis."
-    },
-    "max_amplitude": {
-      "description": "Scalar amplitude limit or scaling parameter."
-    },
-    "energy_value": {
-      "description": "Scalar root-mean-square or zero-crossing rate energy metric."
-    },
-    "amplitude_value": {
-      "description": "Scalar peak absolute amplitude measurement."
-    },
-    "db_scale": {
-      "description": "Decibel gain factor or ratio scalar."
-    },
-    "rendered": {
-      "description": "Waveform finalized and formatted for storage serialization."
-    },
-    "written": {
-      "description": "File successfully written and verified on storage disk."
-    },
-    "plot_saved": {
-      "description": "Rendered visual image successfully written to storage disk."
-    }
+    "domain": "audio",
+    "states": [
+      {
+        "name": "amplitude_value",
+        "description": "Scalar peak absolute amplitude measurement."
+      },
+      {
+        "name": "audio_file_path",
+        "description": "Filesystem path pointing to an encoded audio format file (.wav, .flac, .ogg)."
+      },
+      {
+        "name": "channel_count",
+        "description": "Discrete integer count of spatial audio channels or Mel frequency bands."
+      },
+      {
+        "name": "clipped",
+        "description": "Waveform with dynamic range constrained within hard amplitude thresholds."
+      },
+      {
+        "name": "coefficient",
+        "description": "Difference equation pre-emphasis multiplier scalar."
+      },
+      {
+        "name": "concatenated",
+        "description": "Sequentially appended composite audio waveform."
+      },
+      {
+        "name": "db_scale",
+        "description": "Decibel gain factor or ratio scalar."
+      },
+      {
+        "name": "destination_path",
+        "description": "Filesystem destination path for persisting audio, image, or serialized data."
+      },
+      {
+        "name": "duration_sec",
+        "description": "Temporal length or offset scalar specified in seconds."
+      },
+      {
+        "name": "duty_cycle",
+        "description": "Square wave duty cycle scalar bounded in [0.0, 1.0]."
+      },
+      {
+        "name": "energy_value",
+        "description": "Scalar root-mean-square or zero-crossing rate energy metric."
+      },
+      {
+        "name": "faded",
+        "description": "Audio waveform with boundary fade-in or fade-out envelopes applied."
+      },
+      {
+        "name": "filter_order",
+        "description": "Polynomial order of an infinite impulse response or Butterworth filter."
+      },
+      {
+        "name": "filter_q",
+        "description": "Dimensionless quality factor Q specifying notch filter resonance bandwidth."
+      },
+      {
+        "name": "filtered",
+        "description": "Time-domain signal processed through frequency-selective filters."
+      },
+      {
+        "name": "floating_waveform",
+        "description": "Floating-point numeric audio time-series tensor (typically bounded in [-1.0, 1.0])."
+      },
+      {
+        "name": "frequency_hz",
+        "description": "Frequency metric or sampling rate scalar specified in Hertz (Hz)."
+      },
+      {
+        "name": "gain_adjusted",
+        "description": "Audio waveform scaled by a decibel gain multiplier."
+      },
+      {
+        "name": "integer_waveform",
+        "description": "Integer PCM audio time-series tensor (e.g. 16-bit or 24-bit PCM)."
+      },
+      {
+        "name": "max_amplitude",
+        "description": "Scalar amplitude limit or scaling parameter."
+      },
+      {
+        "name": "mel_spectrum",
+        "description": "Non-linear Mel-scale filtered spectral energy representation."
+      },
+      {
+        "name": "mono_waveform",
+        "description": "Single-channel monophonic audio waveform."
+      },
+      {
+        "name": "padded",
+        "description": "Waveform prepended or appended with silence padding."
+      },
+      {
+        "name": "peak_normalized",
+        "description": "Audio waveform scaled such that peak absolute amplitude matches target."
+      },
+      {
+        "name": "plot_saved",
+        "description": "Rendered visual image successfully written to storage disk."
+      },
+      {
+        "name": "rendered",
+        "description": "Waveform finalized and formatted for storage serialization."
+      },
+      {
+        "name": "resampled",
+        "description": "Audio waveform converted to a target sampling frequency."
+      },
+      {
+        "name": "reversed",
+        "description": "Waveform with reversed time axis (retrograde playback)."
+      },
+      {
+        "name": "rms_normalized",
+        "description": "Audio waveform scaled such that root-mean-square loudness matches target."
+      },
+      {
+        "name": "spectrogram_db",
+        "description": "Decibel-scaled logarithmic spectrogram representation."
+      },
+      {
+        "name": "spectrogram_magnitude",
+        "description": "Real-valued magnitude or power distribution over time and frequency."
+      },
+      {
+        "name": "stereo_waveform",
+        "description": "Dual-channel stereophonic audio waveform."
+      },
+      {
+        "name": "stft_complex",
+        "description": "Short-Time Fourier Transform complex-valued time-frequency representation."
+      },
+      {
+        "name": "synthetic",
+        "description": "Waveform procedurally generated via mathematical synthesis."
+      },
+      {
+        "name": "trimmed",
+        "description": "Audio waveform with temporal slices or low-energy silence removed."
+      },
+      {
+        "name": "unnormalized",
+        "description": "Audio waveform with unconstrained or arbitrary amplitude scaling."
+      },
+      {
+        "name": "window_size",
+        "description": "Sample count per Fourier transform window segment."
+      },
+      {
+        "name": "written",
+        "description": "File successfully written and verified on storage disk."
+      }
+    ],
+    "transitions": [],
+    "initial_state": null,
+    "terminal_states": []
   },
   "cells": [
     {
@@ -738,7 +782,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 44100
         }
       },
       "outputs": {
@@ -784,7 +829,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "data_input"
         }
       },
       "outputs": {
@@ -1425,7 +1471,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 44100
         },
         "fade_duration": {
           "type_name": "float",
@@ -1498,7 +1545,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 44100
         },
         "fade_duration": {
           "type_name": "float",
@@ -1633,7 +1681,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 44100
         },
         "start_sec": {
           "type_name": "float",
@@ -1884,7 +1933,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 44100
         },
         "pad_start_sec": {
           "type_name": "float",
@@ -1970,7 +2020,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 44100
         },
         "target_sr": {
           "type_name": "sample_rate",
@@ -1982,7 +2033,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 22050
         }
       },
       "outputs": {
@@ -2053,7 +2105,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 44100
         },
         "delay_sec": {
           "type_name": "float",
@@ -2139,7 +2192,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 44100
         },
         "nperseg": {
           "type_name": "int",
@@ -2234,7 +2288,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 44100
         }
       },
       "outputs": {
@@ -2305,7 +2360,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 44100
         },
         "nperseg": {
           "type_name": "int",
@@ -2400,7 +2456,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 44100
         },
         "n_mels": {
           "type_name": "int",
@@ -2595,7 +2652,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 44100
         },
         "cutoff_freq": {
           "type_name": "float",
@@ -2681,7 +2739,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 44100
         },
         "cutoff_freq": {
           "type_name": "float",
@@ -2767,7 +2826,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 44100
         },
         "lowcut": {
           "type_name": "float",
@@ -2866,7 +2926,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 44100
         },
         "notch_freq": {
           "type_name": "float",
@@ -2971,7 +3032,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 44100
         }
       },
       "outputs": {
@@ -3055,7 +3117,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 44100
         }
       },
       "outputs": {

@@ -53,50 +53,188 @@
     }
   ],
   "typestates": {
-    "uninitialized": "Resource or network transport has not been established.",
-    "url_string": "Valid target URL representation ready for HTTP dispatch.",
-    "request_headers": "Dictionary containing HTTP request header key-value pairs.",
-    "query_parameters": "Key-value mapping formatted for query string appending.",
-    "raw_params": "Raw, unvalidated query parameter mappings.",
-    "json_payload": "Serializable Python dictionary or list intended for JSON encoding.",
-    "form_data": "Form-encoded dictionary or byte stream for HTTP POST/PUT payloads.",
-    "timeout_seconds": "Floating-point network transport timeout in seconds.",
-    "timeout_tuple": "Pair of connect and read timeout floats.",
-    "active_session": "Persistent requests.Session object with active connection pooling.",
-    "http_response": "Raw HTTP response received from server endpoint.",
-    "received": "HTTP response buffered and ready for inspection or extraction.",
-    "streaming": "Active response stream open for chunked reading.",
-    "stream_chunks": "Chunked byte iterator from HTTP response stream.",
-    "parsed_json": "Deserialized JSON data representation.",
-    "raw_bytes": "Raw binary payload extracted from response body.",
-    "decoded_text": "Unicode text decoded using response character encoding.",
-    "status_code_value": "Integer HTTP status code received from server.",
-    "boolean_flag": "Boolean flag indicating status evaluation or boolean condition.",
-    "auth_credentials": "Authenticated credentials object or handler.",
-    "bearer_token": "Secret token string for HTTP Bearer Authorization.",
-    "username": "Username string for basic authentication.",
-    "password": "Password string for basic authentication.",
-    "header_key": "String representing an HTTP header field name.",
-    "header_value": "String value of an arbitrary HTTP header.",
-    "api_key_secret": "Secret key string for API authentication header.",
-    "user_agent_string": "User agent identifier string.",
-    "cookie_jar": "Key-value cookie mappings for session state.",
-    "encoding_name": "String identifier of text character encoding.",
-    "chunk_size_bytes": "Integer byte size for chunked streaming transfer.",
-    "destination_path": "Filesystem path targeting file write operations.",
-    "source_path": "Filesystem path locating a source file on disk.",
-    "field_name": "Name of the multipart form field.",
-    "configured_adapter": "HTTPAdapter instance initialized with pool and retry configuration.",
-    "url_prefix": "String URL prefix for mounting network transport adapters.",
-    "proxy_address": "Proxy server URL address string.",
-    "prepared_message": "Pre-serialized HTTP request envelope ready for low-level transport dispatch.",
-    "redirect_chain": "List of intermediate response objects encountered during redirects.",
-    "link_headers": "Dictionary of parsed RFC 5988 web pagination relation links.",
-    "reason_phrase": "HTTP textual status reason phrase.",
-    "mime_type": "MIME media type string from Content-Type header.",
-    "content_length_bytes": "Integer length of payload in bytes.",
-    "written": "Content persisted to local file system destination.",
-    "closed": "Transport session or connection pool terminated."
+    "domain": "requests",
+    "states": [
+      {
+        "name": "active_session",
+        "description": "Persistent requests.Session object with active connection pooling."
+      },
+      {
+        "name": "api_key_secret",
+        "description": "Secret key string for API authentication header."
+      },
+      {
+        "name": "auth_credentials",
+        "description": "Authenticated credentials object or handler."
+      },
+      {
+        "name": "bearer_token",
+        "description": "Secret token string for HTTP Bearer Authorization."
+      },
+      {
+        "name": "boolean_flag",
+        "description": "Boolean flag indicating status evaluation or boolean condition."
+      },
+      {
+        "name": "chunk_size_bytes",
+        "description": "Integer byte size for chunked streaming transfer."
+      },
+      {
+        "name": "closed",
+        "description": "Transport session or connection pool terminated."
+      },
+      {
+        "name": "configured_adapter",
+        "description": "HTTPAdapter instance initialized with pool and retry configuration."
+      },
+      {
+        "name": "content_length_bytes",
+        "description": "Integer length of payload in bytes."
+      },
+      {
+        "name": "cookie_jar",
+        "description": "Key-value cookie mappings for session state."
+      },
+      {
+        "name": "decoded_text",
+        "description": "Unicode text decoded using response character encoding."
+      },
+      {
+        "name": "destination_path",
+        "description": "Filesystem path targeting file write operations."
+      },
+      {
+        "name": "encoding_name",
+        "description": "String identifier of text character encoding."
+      },
+      {
+        "name": "field_name",
+        "description": "Name of the multipart form field."
+      },
+      {
+        "name": "form_data",
+        "description": "Form-encoded dictionary or byte stream for HTTP POST/PUT payloads."
+      },
+      {
+        "name": "header_key",
+        "description": "String representing an HTTP header field name."
+      },
+      {
+        "name": "header_value",
+        "description": "String value of an arbitrary HTTP header."
+      },
+      {
+        "name": "http_response",
+        "description": "Raw HTTP response received from server endpoint."
+      },
+      {
+        "name": "json_payload",
+        "description": "Serializable Python dictionary or list intended for JSON encoding."
+      },
+      {
+        "name": "link_headers",
+        "description": "Dictionary of parsed RFC 5988 web pagination relation links."
+      },
+      {
+        "name": "mime_type",
+        "description": "MIME media type string from Content-Type header."
+      },
+      {
+        "name": "parsed_json",
+        "description": "Deserialized JSON data representation."
+      },
+      {
+        "name": "password",
+        "description": "Password string for basic authentication."
+      },
+      {
+        "name": "prepared_message",
+        "description": "Pre-serialized HTTP request envelope ready for low-level transport dispatch."
+      },
+      {
+        "name": "proxy_address",
+        "description": "Proxy server URL address string."
+      },
+      {
+        "name": "query_parameters",
+        "description": "Key-value mapping formatted for query string appending."
+      },
+      {
+        "name": "raw_bytes",
+        "description": "Raw binary payload extracted from response body."
+      },
+      {
+        "name": "raw_params",
+        "description": "Raw, unvalidated query parameter mappings."
+      },
+      {
+        "name": "reason_phrase",
+        "description": "HTTP textual status reason phrase."
+      },
+      {
+        "name": "received",
+        "description": "HTTP response buffered and ready for inspection or extraction."
+      },
+      {
+        "name": "redirect_chain",
+        "description": "List of intermediate response objects encountered during redirects."
+      },
+      {
+        "name": "request_headers",
+        "description": "Dictionary containing HTTP request header key-value pairs."
+      },
+      {
+        "name": "source_path",
+        "description": "Filesystem path locating a source file on disk."
+      },
+      {
+        "name": "status_code_value",
+        "description": "Integer HTTP status code received from server."
+      },
+      {
+        "name": "stream_chunks",
+        "description": "Chunked byte iterator from HTTP response stream."
+      },
+      {
+        "name": "streaming",
+        "description": "Active response stream open for chunked reading."
+      },
+      {
+        "name": "timeout_seconds",
+        "description": "Floating-point network transport timeout in seconds."
+      },
+      {
+        "name": "timeout_tuple",
+        "description": "Pair of connect and read timeout floats."
+      },
+      {
+        "name": "uninitialized",
+        "description": "Resource or network transport has not been established."
+      },
+      {
+        "name": "url_prefix",
+        "description": "String URL prefix for mounting network transport adapters."
+      },
+      {
+        "name": "url_string",
+        "description": "Valid target URL representation ready for HTTP dispatch."
+      },
+      {
+        "name": "user_agent_string",
+        "description": "User agent identifier string."
+      },
+      {
+        "name": "username",
+        "description": "Username string for basic authentication."
+      },
+      {
+        "name": "written",
+        "description": "Content persisted to local file system destination."
+      }
+    ],
+    "transitions": [],
+    "initial_state": null,
+    "terminal_states": []
   },
   "cells": [
     {
@@ -1518,7 +1656,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "X-API-Key"
         },
         "api_key": {
           "type_name": "str",
@@ -2281,7 +2420,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "data_input"
         }
       },
       "outputs": {
@@ -2330,7 +2470,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "data_input"
         }
       },
       "outputs": {
@@ -2379,7 +2520,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "data_input"
         }
       },
       "outputs": {
@@ -2995,7 +3137,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "configuration",
+          "default_value": "https://"
         },
         "adapter": {
           "type_name": "http_adapter",
@@ -3068,7 +3212,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "configuration",
+          "default_value": ""
         },
         "https_proxy": {
           "type_name": "str",
@@ -3080,7 +3226,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "configuration",
+          "default_value": ""
         }
       },
       "outputs": {
@@ -3141,7 +3289,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "bool",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "configuration",
+          "default_value": true
         }
       },
       "outputs": {
@@ -3451,7 +3601,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "GET"
         },
         "url": {
           "type_name": "url",
@@ -3621,10 +3772,20 @@
           "abstract_type": "collection",
           "port_role": "data_output",
           "description": "List of intermediate Response objects encountered during redirects.",
-          "structure_kind": "composite",
+          "structure_kind": "collection",
           "rank": 1,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "code_template": "{history} = list({response}.history)",
@@ -4184,7 +4345,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "Content-Type"
         },
         "value": {
           "type_name": "str",
@@ -4256,7 +4418,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         }
       },
       "outputs": {
@@ -4304,7 +4467,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "configuration",
+          "default_value": 5.0
         },
         "read_timeout": {
           "type_name": "float",
@@ -4316,7 +4481,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "configuration",
+          "default_value": 30.0
         }
       },
       "outputs": {

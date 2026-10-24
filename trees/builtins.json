@@ -38,24 +38,118 @@
     ],
     "source_roles": [
       "source",
-      "ingress"
+      "ingress",
+      "producer"
     ],
     "ingress_roles": [
       "source",
-      "ingress"
+      "ingress",
+      "producer"
     ],
     "sink_roles": [
       "sink",
       "terminal",
-      "egress"
+      "egress",
+      "consumer"
     ],
     "terminal_roles": [
       "sink",
+      "terminal",
+      "egress",
+      "consumer",
       "model_sink",
       "evaluator",
       "export",
-      "terminal",
       "output"
+    ],
+    "destination_roles": [
+      "model_sink",
+      "destination",
+      "output_file",
+      "dest_identifier",
+      "sink"
+    ],
+    "source_data_roles": [
+      "source_data",
+      "source",
+      "input_file",
+      "source_identifier"
+    ],
+    "source_states": [
+      "source_identifier",
+      "file_path"
+    ],
+    "path_roles": [
+      "path",
+      "file",
+      "filepath",
+      "filename",
+      "pathlike",
+      "dest_path",
+      "source_path",
+      "dest_identifier",
+      "source_identifier"
+    ],
+    "path_type_names": [
+      "path",
+      "filepath",
+      "uri",
+      "url",
+      "file",
+      "pathlike"
+    ],
+    "materialization_states": [
+      "dest_identifier",
+      "filepath_written",
+      "destination_written",
+      "saved",
+      "exported",
+      "materialized",
+      "written"
+    ],
+    "terminal_states": [
+      "dest_identifier",
+      "filepath_written",
+      "destination_written",
+      "saved",
+      "exported",
+      "materialized",
+      "written"
+    ],
+    "key_binds": [
+      "column_key",
+      "key",
+      "projection_key"
+    ],
+    "receiver_port_names": [
+      "data",
+      "self",
+      "this",
+      "model",
+      "estimator"
+    ],
+    "carrier_binds": [
+      "receiver",
+      "carrier",
+      "data_carrier"
+    ],
+    "stopping_tokens": [
+      "finish",
+      "done",
+      "stop",
+      "end"
+    ],
+    "assigned_value_roles": [
+      "assigned_value",
+      "column_value",
+      "field_value",
+      "value"
+    ],
+    "assigned_value_port_names": [
+      "value",
+      "val",
+      "values",
+      "new_column"
     ],
     "bridge_roles": [
       "bridge",
@@ -144,10 +238,20 @@
           "required": true,
           "port_role": "data_input",
           "description": "Container or sequence to measure.",
-          "structure_kind": "composite",
-          "rank": 0,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "outputs": {
@@ -187,10 +291,20 @@
           "required": true,
           "port_role": "data_input",
           "description": "Iterable of elements to compare.",
-          "structure_kind": "composite",
-          "rank": 0,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "outputs": {
@@ -230,10 +344,20 @@
           "required": true,
           "port_role": "data_input",
           "description": "Iterable of elements to compare.",
-          "structure_kind": "composite",
-          "rank": 0,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "outputs": {
@@ -271,10 +395,20 @@
           "required": true,
           "port_role": "data_input",
           "description": "Iterable of numbers to sum.",
-          "structure_kind": "composite",
-          "rank": 0,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "outputs": {
@@ -315,7 +449,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "data_input"
         }
       },
       "outputs": {
@@ -355,7 +490,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "data_input"
         },
         "ndigits": {
           "type_name": "int",
@@ -407,7 +543,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "data_input"
         }
       },
       "outputs": {
@@ -415,10 +552,20 @@
           "type_name": "list",
           "abstract_type": "collection",
           "description": "List of integers.",
-          "structure_kind": "composite",
+          "structure_kind": "collection",
           "rank": 1,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "code_template": "{result} = list(range({stop}))",
@@ -597,20 +744,40 @@
           "abstract_type": "collection",
           "required": true,
           "port_role": "data_input",
-          "structure_kind": "composite",
-          "rank": 0,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "outputs": {
         "result": {
           "type_name": "list",
           "abstract_type": "collection",
-          "structure_kind": "composite",
+          "structure_kind": "collection",
           "rank": 1,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "code_template": "{result} = list({data})",
@@ -635,20 +802,40 @@
           "abstract_type": "collection",
           "required": true,
           "port_role": "data_input",
-          "structure_kind": "composite",
-          "rank": 0,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "outputs": {
         "result": {
           "type_name": "set",
           "abstract_type": "collection",
-          "structure_kind": "composite",
-          "rank": 0,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "code_template": "{result} = set({data})",
@@ -679,10 +866,20 @@
           "required": true,
           "port_role": "data_input",
           "description": "Collection to check for zero length.",
-          "structure_kind": "composite",
-          "rank": 0,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "outputs": {
@@ -720,10 +917,20 @@
           "abstract_type": "collection",
           "required": true,
           "port_role": "data_input",
-          "structure_kind": "composite",
-          "rank": 0,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "outputs": {
@@ -866,7 +1073,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         },
         "b": {
           "type_name": "numeric",
@@ -917,7 +1125,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         },
         "b": {
           "type_name": "numeric",
@@ -947,5 +1156,41 @@
       "primary_out": "condition"
     }
   ],
-  "supported_formats": []
+  "supported_formats": [],
+  "typestates": {
+    "domain": "builtins",
+    "states": [
+      {
+        "name": "accum",
+        "parent_state": null,
+        "carrier_type": "numeric",
+        "description": "Total sum.",
+        "properties": {}
+      },
+      {
+        "name": "condition",
+        "parent_state": null,
+        "carrier_type": "bool",
+        "description": "condition typestate",
+        "properties": {}
+      },
+      {
+        "name": "count",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Number of elements in the container.",
+        "properties": {}
+      },
+      {
+        "name": "extremum",
+        "parent_state": null,
+        "carrier_type": "scalar",
+        "description": "Smallest element.",
+        "properties": {}
+      }
+    ],
+    "transitions": [],
+    "initial_state": null,
+    "terminal_states": []
+  }
 }

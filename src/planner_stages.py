@@ -72,9 +72,9 @@ class ClauseSegmentationPhase:
         target_sink = None
         if ctx:
             target_sink = (
-                getattr(ctx, "target_col", None)
+                getattr(ctx, "target_key", None)
                 or getattr(ctx, "parameters", {}).get("target_sink")
-                or getattr(ctx, "parameters", {}).get("target_col")
+                or getattr(ctx, "parameters", {}).get("target_key")
             )
         if not target_sink:
             target_sink = ExecutionContext._extract_target_sink(prompt or "")

@@ -19,12 +19,20 @@ from log_config import get_logger
 
 try:
     from .lattice import LatticeOrchestrator, Cell, MicroCell, MacroCell, TypeRegistry, is_path_port as _lattice_is_path_port
-    from .unification import unify, Substitution, verify_traced_loop_invariant, verify_coproduct_branch, substitute_generics, ExecutionContext, UnificationGate, Success
+    from .unification import (
+        unify, Substitution, verify_traced_loop_invariant, verify_coproduct_branch,
+        substitute_generics, ExecutionContext, UnificationGate, Success,
+        is_edge_valid, _shape_compatible,
+    )
     from .tokenizer import CellTokenizer, normalize_token
     from .utils import tokenize_alphanumeric
 except (ImportError, ValueError):
     from lattice import LatticeOrchestrator, Cell, MicroCell, MacroCell, TypeRegistry, is_path_port as _lattice_is_path_port
-    from unification import unify, Substitution, verify_traced_loop_invariant, verify_coproduct_branch, substitute_generics, ExecutionContext, UnificationGate, Success
+    from unification import (
+        unify, Substitution, verify_traced_loop_invariant, verify_coproduct_branch,
+        substitute_generics, ExecutionContext, UnificationGate, Success,
+        is_edge_valid, _shape_compatible,
+    )
     from tokenizer import CellTokenizer, normalize_token
     from utils import tokenize_alphanumeric
 
@@ -1540,9 +1548,9 @@ class LatticePlanner:
         target_sink = None
         if ctx:
             target_sink = (
-                getattr(ctx, "target_col", None)
+                getattr(ctx, "target_key", None)
                 or getattr(ctx, "parameters", {}).get("target_sink")
-                or getattr(ctx, "parameters", {}).get("target_col")
+                or getattr(ctx, "parameters", {}).get("target_key")
             )
         if not target_sink:
             target_sink = ExecutionContext._extract_target_sink(prompt or "")
@@ -3495,7 +3503,6 @@ class LatticePlanner:
                     _u._current_prompt = prompt
                     cand_private = _u.prune_unrequested(cand_private, prompt)
                     _RM.tag_cells_with_clause_indices(cand_private, prompt, orchestrator=self.orchestrator)
-                    cand_private = _u.insert_column_commits(cand_private, trace=False)
                     cand_private = _u.insert_property_bridges(
                         cand_private, prompt=prompt, ctx=ExecutionContext(prompt=prompt), trace=False
                     )
@@ -3824,25 +3831,6 @@ class LatticePlanner:
                 pass
             return val
 
-        def _shape_compatible(p_out: Any, p_in: Any) -> bool:
-            if not _is_port_role_compatible(p_out, p_in):
-                return False
-            out_abs = getattr(p_out, "abstract_type", None)
-            in_abs = getattr(p_in, "abstract_type", None)
-            if out_abs and in_abs and str(out_abs).lower() not in ("any", "*") and str(in_abs).lower() not in ("any", "*"):
-                reg = getattr(self.orchestrator, "type_registry", None) or getattr(self.orchestrator, "registry", None) or TypeRegistry.get_instance()
-                o_a, i_a = str(out_abs).lower(), str(in_abs).lower()
-                if not (reg.is_subtype(o_a, i_a) or reg.is_subtype(i_a, o_a)):
-                    return False
-            out_sc = getattr(p_out, "shape_contract", None)
-            in_sc = getattr(p_in, "shape_contract", None)
-            if out_sc and in_sc:
-                o_ndim = _get_ndim(p_out)
-                i_ndim = _get_ndim(p_in)
-                if o_ndim is not None and i_ndim is not None and o_ndim != i_ndim:
-                    return False
-            return True
-
         # 1. Check primary input first
         sub = None
         if _shape_compatible(prev_cell.primary_output, cand.primary_input):
@@ -4022,8 +4010,13 @@ class LatticePlanner:
                     return None
             return sub
 
+        _cell_succ_cache: Dict[str, List[Cell]] = {}
+
         def _successors(prev_cell: Cell) -> List[Cell]:
+            if prev_cell.cell_id in _cell_succ_cache:
+                return _cell_succ_cache[prev_cell.cell_id]
             if (getattr(prev_cell, "node_role", "") == "macro" or getattr(prev_cell, "cell_type", "") == "macro") and getattr(prev_cell, "endable", False):
+                _cell_succ_cache[prev_cell.cell_id] = []
                 return []
             macro_subs = set(getattr(prev_cell, "sub_cells", ()) or ())
 
@@ -4049,7 +4042,9 @@ class LatticePlanner:
                            for p_sig in cand.inputs.values()):
                         acc.setdefault(cand.cell_id, cand)
                 res_cells = [c for c in acc.values() if c.cell_id not in macro_subs and prev_cell.cell_id not in getattr(c, "sub_cells", ())]
-                return sorted(res_cells, key=lambda c: self._calculate_edge_affinity(prev_cell, c), reverse=True)
+                res = sorted(res_cells, key=lambda c: self._calculate_edge_affinity(prev_cell, c), reverse=True)
+                _cell_succ_cache[prev_cell.cell_id] = res
+                return res
 
             for in_t, cell_list in cells_by_in_type.items():
                 if not registry.is_subtype(out_t, in_t):
@@ -4067,7 +4062,9 @@ class LatticePlanner:
                     ) for p_sig in c.inputs.values()):
                         acc.setdefault(c.cell_id, c)
             res_cells = [c for c in acc.values() if c.cell_id not in macro_subs and prev_cell.cell_id not in getattr(c, "sub_cells", ())]
-            return sorted(res_cells, key=lambda c: self._calculate_edge_affinity(prev_cell, c), reverse=True)
+            res = sorted(res_cells, key=lambda c: self._calculate_edge_affinity(prev_cell, c), reverse=True)
+            _cell_succ_cache[prev_cell.cell_id] = res
+            return res
 
         for step in range(2, max_steps + 1):
             if time.perf_counter() > self._plan_deadline:
@@ -4252,51 +4249,13 @@ class LatticePlanner:
                             continue
             return None
 
-        def _wire_possible(p_out: Any, p_in: Any) -> bool:
+        def _shape_compatible(p_out: Any, p_in: Any) -> bool:
             key = (id(p_out), id(p_in))
             hit = _wire_memo.get(key)
             if hit is None:
-                hit = (_shape_compatible_raw(p_out, p_in)
-                       and _unify_with_product_support(p_out, p_in, Substitution()) is not None)
+                hit = is_edge_valid(p_out, p_in)
                 _wire_memo[key] = hit
             return hit
-
-        def _shape_compatible(p_out: Any, p_in: Any) -> bool:
-            return _wire_possible(p_out, p_in)
-
-        def _shape_compatible_raw(p_out: Any, p_in: Any) -> bool:
-            if not _is_port_role_compatible(p_out, p_in):
-                return False
-            out_abs = getattr(p_out, "abstract_type", None)
-            in_abs = getattr(p_in, "abstract_type", None)
-            out_tn = str(getattr(getattr(p_out, "signature", p_out), "type_name", "") or "")
-            ctor = out_tn.split("[", 1)[0].strip().lower() if "[" in out_tn else ""
-            is_prod = bool(ctor and registry.is_product_constructor(ctor))
-            if not is_prod:
-                if out_abs and in_abs and str(out_abs).lower() not in ("any", "*") and str(in_abs).lower() not in ("any", "*"):
-                    o_a, i_a = str(out_abs).lower(), str(in_abs).lower()
-                    if not (registry.is_subtype(o_a, i_a) or registry.is_subtype(i_a, o_a)):
-                        return False
-            out_sc = getattr(p_out, "shape_contract", None)
-            in_sc = getattr(p_in, "shape_contract", None)
-            if out_sc and in_sc:
-                o_ndim = getattr(p_out, "_cached_ndim", None)
-                if o_ndim is None:
-                    o_ndim = _extract_ndim_from_contract(out_sc)
-                    try:
-                        p_out._cached_ndim = o_ndim
-                    except (AttributeError, TypeError):
-                        pass
-                i_ndim = getattr(p_in, "_cached_ndim", None)
-                if i_ndim is None:
-                    i_ndim = _extract_ndim_from_contract(in_sc)
-                    try:
-                        p_in._cached_ndim = i_ndim
-                    except (AttributeError, TypeError):
-                        pass
-                if o_ndim is not None and i_ndim is not None and o_ndim != i_ndim:
-                    return False
-            return True
 
         def _verify_frontier_step(
             prev_path: List[Cell],

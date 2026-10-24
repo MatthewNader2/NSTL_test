@@ -128,40 +128,148 @@
     }
   ],
   "typestates": {
-    "uninitialized": "Resource or engine subsystem not yet allocated or initialized.",
-    "initialized": "Resource or engine subsystem allocated and initialized into operational state.",
-    "active": "Resource actively in use and available for morphism transformations.",
-    "modified": "Resource mutated during step transformation morphism.",
-    "rendered": "Buffer or surface updated with graphical primitives ready for display.",
-    "display_surface": "Primary hardware frame buffer Surface bound to the display window.",
-    "flushed": "Frame buffer swapped or output committed to terminal sink.",
-    "closed": "Resource deallocated or subsystem shut down.",
-    "geometry": "Rect or spatial bounding box representation.",
-    "geometry_list": "Sequence of Rect objects representing multi-region geometries.",
-    "dimensions": "Width and height pair defining spatial bounds.",
-    "coordinate": "2D Cartesian coordinate (x, y) location.",
-    "coordinate_list": "Sequence of 2D Cartesian coordinates defining paths or polygons.",
-    "rgb_color": "3-channel RGB color specification tuple.",
-    "rgba_color": "4-channel RGBA color specification tuple.",
-    "color_object": "Pygame Color instance supporting color space math and interpolation.",
-    "loop_condition": "Boolean continuation flag for iterative cycles.",
-    "event_queue": "Sequence of pending window or operating system events.",
-    "event_object": "Individual event message representing user or system input.",
-    "key_map": "Sequence or map of physical keys to boolean pressed states.",
-    "mouse_state": "Mouse cursor state or button depressed flags.",
-    "time_delta": "Elapsed time in milliseconds between frame steps.",
-    "time_stamp": "Absolute millisecond tick counter since engine initialization.",
-    "sound_handle": "Decoded audio sample ready for mixer playback.",
-    "font_handle": "Raster font resource ready for glyph rendering.",
-    "configuration": "Configuration parameter or state option.",
-    "index_state": "Integer index indicating position or result code.",
-    "logical_state": "Boolean logical predicate evaluation result.",
-    "terminated": "Terminal state signifying completed iteration or cycle.",
-    "vector_cartesian": "2D Cartesian coordinate vector handle.",
-    "sprite_handle": "Autonomous game entity encapsulating Surface and Rect states.",
-    "group_handle": "Container holding homogeneous collection of sprite morphisms.",
-    "mask_handle": "1-bit per pixel alpha silhouette mask for precise collision.",
-    "scalar_magnitude": "Floating point scalar representing magnitude or normalized factor."
+    "domain": "pygame",
+    "states": [
+      {
+        "name": "active",
+        "description": "Resource actively in use and available for morphism transformations."
+      },
+      {
+        "name": "closed",
+        "description": "Resource deallocated or subsystem shut down."
+      },
+      {
+        "name": "color_object",
+        "description": "Pygame Color instance supporting color space math and interpolation."
+      },
+      {
+        "name": "configuration",
+        "description": "Configuration parameter or state option."
+      },
+      {
+        "name": "coordinate",
+        "description": "2D Cartesian coordinate (x, y) location."
+      },
+      {
+        "name": "coordinate_list",
+        "description": "Sequence of 2D Cartesian coordinates defining paths or polygons."
+      },
+      {
+        "name": "dimensions",
+        "description": "Width and height pair defining spatial bounds."
+      },
+      {
+        "name": "display_surface",
+        "description": "Primary hardware frame buffer Surface bound to the display window."
+      },
+      {
+        "name": "event_object",
+        "description": "Individual event message representing user or system input."
+      },
+      {
+        "name": "event_queue",
+        "description": "Sequence of pending window or operating system events."
+      },
+      {
+        "name": "flushed",
+        "description": "Frame buffer swapped or output committed to terminal sink."
+      },
+      {
+        "name": "font_handle",
+        "description": "Raster font resource ready for glyph rendering."
+      },
+      {
+        "name": "geometry",
+        "description": "Rect or spatial bounding box representation."
+      },
+      {
+        "name": "geometry_list",
+        "description": "Sequence of Rect objects representing multi-region geometries."
+      },
+      {
+        "name": "group_handle",
+        "description": "Container holding homogeneous collection of sprite morphisms."
+      },
+      {
+        "name": "index_state",
+        "description": "Integer index indicating position or result code."
+      },
+      {
+        "name": "initialized",
+        "description": "Resource or engine subsystem allocated and initialized into operational state."
+      },
+      {
+        "name": "key_map",
+        "description": "Sequence or map of physical keys to boolean pressed states."
+      },
+      {
+        "name": "logical_state",
+        "description": "Boolean logical predicate evaluation result."
+      },
+      {
+        "name": "loop_condition",
+        "description": "Boolean continuation flag for iterative cycles."
+      },
+      {
+        "name": "mask_handle",
+        "description": "1-bit per pixel alpha silhouette mask for precise collision."
+      },
+      {
+        "name": "modified",
+        "description": "Resource mutated during step transformation morphism."
+      },
+      {
+        "name": "mouse_state",
+        "description": "Mouse cursor state or button depressed flags."
+      },
+      {
+        "name": "rendered",
+        "description": "Buffer or surface updated with graphical primitives ready for display."
+      },
+      {
+        "name": "rgb_color",
+        "description": "3-channel RGB color specification tuple."
+      },
+      {
+        "name": "rgba_color",
+        "description": "4-channel RGBA color specification tuple."
+      },
+      {
+        "name": "scalar_magnitude",
+        "description": "Floating point scalar representing magnitude or normalized factor."
+      },
+      {
+        "name": "sound_handle",
+        "description": "Decoded audio sample ready for mixer playback."
+      },
+      {
+        "name": "sprite_handle",
+        "description": "Autonomous game entity encapsulating Surface and Rect states."
+      },
+      {
+        "name": "terminated",
+        "description": "Terminal state signifying completed iteration or cycle."
+      },
+      {
+        "name": "time_delta",
+        "description": "Elapsed time in milliseconds between frame steps."
+      },
+      {
+        "name": "time_stamp",
+        "description": "Absolute millisecond tick counter since engine initialization."
+      },
+      {
+        "name": "uninitialized",
+        "description": "Resource or engine subsystem not yet allocated or initialized."
+      },
+      {
+        "name": "vector_cartesian",
+        "description": "2D Cartesian coordinate vector handle."
+      }
+    ],
+    "transitions": [],
+    "initial_state": null,
+    "terminal_states": []
   },
   "cells": [
     {
@@ -329,7 +437,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "Pygame Window"
         }
       },
       "outputs": {
@@ -548,7 +657,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 10
         }
       },
       "outputs": {
@@ -594,10 +704,20 @@
           "abstract_type": "sequence",
           "port_role": "data_output",
           "description": "List of pending Event objects.",
-          "structure_kind": "composite",
+          "structure_kind": "collection",
           "rank": 1,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "code_template": "{events} = pygame.event.get()",
@@ -787,7 +907,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 0
         }
       },
       "outputs": {
@@ -836,7 +957,12 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "configuration",
+          "default_value": [
+            800,
+            600
+          ]
         }
       },
       "outputs": {
@@ -897,7 +1023,13 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "configuration",
+          "default_value": [
+            0,
+            0,
+            0
+          ]
         }
       },
       "outputs": {
@@ -970,7 +1102,11 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": [
+            0,
+            0
+          ]
         }
       },
       "outputs": {
@@ -1215,7 +1351,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 0
         },
         "y": {
           "type_name": "int",
@@ -1227,7 +1364,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 0
         },
         "width": {
           "type_name": "int",
@@ -1239,7 +1377,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "configuration",
+          "default_value": 100
         },
         "height": {
           "type_name": "int",
@@ -1251,7 +1391,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "configuration",
+          "default_value": 100
         }
       },
       "outputs": {
@@ -1312,7 +1454,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 1
         },
         "dy": {
           "type_name": "int",
@@ -1324,7 +1467,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 1
         }
       },
       "outputs": {
@@ -1385,7 +1529,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 1
         },
         "dy": {
           "type_name": "int",
@@ -1397,7 +1542,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 1
         }
       },
       "outputs": {
@@ -1519,7 +1665,11 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": [
+            0,
+            0
+          ]
         }
       },
       "outputs": {
@@ -1577,10 +1727,20 @@
           "required": true,
           "port_role": "data_input",
           "description": "List of Rect objects.",
-          "structure_kind": "composite",
+          "structure_kind": "collection",
           "rank": 1,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "outputs": {
@@ -1702,7 +1862,11 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": [
+            0,
+            0
+          ]
         }
       },
       "outputs": {
@@ -1858,7 +2022,11 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": [
+            0,
+            0
+          ]
         },
         "radius": {
           "type_name": "int",
@@ -1870,7 +2038,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 10
         }
       },
       "outputs": {
@@ -1948,7 +2117,11 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": [
+            0,
+            0
+          ]
         },
         "end_pos": {
           "type_name": "Tuple[int, int]",
@@ -1960,7 +2133,11 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": [
+            100,
+            100
+          ]
         },
         "width": {
           "type_name": "int",
@@ -2061,10 +2238,20 @@
           "required": true,
           "port_role": "configuration",
           "description": "List of (x, y) points.",
-          "structure_kind": "composite",
+          "structure_kind": "collection",
           "rank": 1,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         },
         "width": {
           "type_name": "int",
@@ -2152,10 +2339,20 @@
           "required": true,
           "port_role": "configuration",
           "description": "List of vertex coordinates [(x, y), ...].",
-          "structure_kind": "composite",
+          "structure_kind": "collection",
           "rank": 1,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "outputs": {
@@ -2340,10 +2537,20 @@
           "required": true,
           "port_role": "data_input",
           "description": "List of dirty Rect regions to update.",
-          "structure_kind": "composite",
+          "structure_kind": "collection",
           "rank": 1,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "outputs": {
@@ -2578,7 +2785,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "data_input"
         },
         "antialias": {
           "type_name": "bool",
@@ -3078,7 +3286,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "bool",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "data_input"
         }
       },
       "outputs": {
@@ -3192,7 +3401,12 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "configuration",
+          "default_value": [
+            100,
+            100
+          ]
         }
       },
       "outputs": {
@@ -3253,7 +3467,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 0.0
         },
         "scale": {
           "type_name": "float",
@@ -3265,7 +3480,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 1.0
         }
       },
       "outputs": {
@@ -3326,7 +3542,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 0.0
         }
       },
       "outputs": {
@@ -3387,7 +3604,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "bool",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": false
         },
         "flip_y": {
           "type_name": "bool",
@@ -3399,7 +3617,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "bool",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": false
         }
       },
       "outputs": {
@@ -3460,7 +3679,12 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "configuration",
+          "default_value": [
+            100,
+            100
+          ]
         }
       },
       "outputs": {
@@ -3521,7 +3745,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 1.0
         }
       },
       "outputs": {
@@ -3631,7 +3856,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 0
         },
         "y": {
           "type_name": "float",
@@ -3643,7 +3869,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 0
         }
       },
       "outputs": {
@@ -3826,7 +4053,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 0.0
         }
       },
       "outputs": {
@@ -3985,7 +4213,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 0.0
         }
       },
       "outputs": {
@@ -4095,7 +4324,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 8
         },
         "g": {
           "type_name": "int",
@@ -4107,7 +4337,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 0
         },
         "b": {
           "type_name": "int",
@@ -4119,7 +4350,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 0
         },
         "a": {
           "type_name": "int",
@@ -4205,7 +4437,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 0.0
         }
       },
       "outputs": {
@@ -4780,7 +5013,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         }
       },
       "outputs": {
@@ -5093,7 +5327,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 0.0
         }
       },
       "outputs": {
@@ -5154,7 +5389,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 0.0
         }
       },
       "outputs": {
@@ -5203,7 +5439,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "bool",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": false
         }
       },
       "outputs": {
@@ -5252,7 +5489,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": ""
         }
       },
       "outputs": {
@@ -5379,7 +5617,11 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": [
+            0,
+            0
+          ]
         },
         "end_pos": {
           "type_name": "Tuple[int, int]",
@@ -5391,7 +5633,11 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": [
+            100,
+            100
+          ]
         },
         "blend": {
           "type_name": "int",
@@ -5494,7 +5740,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 0.0
         },
         "stop_angle": {
           "type_name": "float",
@@ -5506,7 +5753,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 0.0
         },
         "width": {
           "type_name": "int",
@@ -5568,7 +5816,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 0
         },
         "millis": {
           "type_name": "int",
@@ -5580,7 +5829,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 0
         },
         "loops": {
           "type_name": "int",
@@ -5691,7 +5941,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 0
         },
         "attributes": {
           "type_name": "dict",
@@ -5760,7 +6011,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 0.0
         },
         "time_step": {
           "type_name": "float",
@@ -5772,7 +6024,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 0.0
         }
       },
       "outputs": {

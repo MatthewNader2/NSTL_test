@@ -1784,21 +1784,23 @@ def is_path_port(port: Any) -> bool:
 def _compute_is_path_port(port: Any) -> bool:
     registry = TypeRegistry.get_instance()
     path_tokens = registry.get_path_port_tokens()   # declared in tree JSON: `path_port_tokens`
+    path_roles = set(registry.get_verification_semantics("path_roles")) | path_tokens
     role = str(getattr(port, "port_role", None) or getattr(port, "role", None) or "").strip().lower()
-    if role and (role in path_tokens or role in ("path", "filepath", "dest_path", "source_path", "dest_identifier", "source_identifier")):
+    if role and (role in path_roles):
         return True
     sig = getattr(port, "signature", port)
     t_name = str(getattr(sig, "type_name", "") or "").lower()
-    if t_name and (t_name in ("path", "filepath", "uri", "url", "file", "pathlike") or any(registry.is_subtype(t_name, tok) for tok in path_tokens) or registry.is_subtype(t_name, "path")):
+    path_types = set(registry.get_verification_semantics("path_type_names")) | path_tokens
+    if t_name and (t_name in path_types or any(registry.is_subtype(t_name, tok) for tok in path_tokens) or registry.is_subtype(t_name, "path")):
         return True
     abstract_t = str(
         getattr(port, "abstract_type", "") or getattr(sig, "abstract_type", "") or ""
     ).lower()
-    if abstract_t and (abstract_t in path_tokens or abstract_t in ("path", "filepath", "pathlike")):
+    if abstract_t and (abstract_t in path_tokens or abstract_t in path_types):
         return True
-    # String-typed ports whose declared state descends from a declared source-asset state or dest_identifier.
     state = str(getattr(sig, "state", "") or "").lower()
-    if state in ("dest_identifier", "source_identifier"):
+    dest_states = set(registry.get_verification_semantics("materialization_states")) | set(registry.get_verification_semantics("source_states"))
+    if state and state in dest_states:
         return True
     source_ancestors = registry.get_state_role_ancestors().get("source_data")
     if state and source_ancestors and registry.state_ancestry_reaches(state, source_ancestors):
@@ -1920,7 +1922,12 @@ class AlgebraicSignature:
 
         # State compatibility check
         registry = TypeRegistry.get_instance()
-        if not registry.is_state_compatible(
+        is_both_path = is_path_port(self) and is_path_port(other_sig)
+        if is_both_path:
+            p_st = str(self.state or "").strip().lower()
+            if p_st in {"invalid", "deleted", "destroyed", "closed", "nonexistent"}:
+                return False
+        elif not registry.is_state_compatible(
             producer_state=self.state,
             consumer_state=other_sig.state,
             producer_accepted=self.accepted_states,
@@ -2137,7 +2144,7 @@ class PortSignature:
         "rejected_qualifiers",
         "accepted_states", "parent_state", "port_role", "_cached_term", "_cached_col_proj",
         "_cached_derived_role", "_cached_is_path_port", "_cached_ndim", "binds",
-        "structure_kind", "rank", "element_type", "supported_formats"
+        "structure_kind", "rank", "element_type", "supported_formats", "owner_cell"
     ]
 
     def __init__(
@@ -2192,6 +2199,7 @@ class PortSignature:
 
         raw_parent = parent_state or kwargs.get("parent_state")
         self.parent_state = str(raw_parent).strip().lower() if raw_parent else None
+        self.owner_cell = kwargs.get("owner_cell", None)
 
         if isinstance(signature, AlgebraicSignature):
             acc_combined = self.accepted_states or signature.accepted_states
@@ -2540,38 +2548,30 @@ class Cell(ABC):
             slot_names_list = list(slots.keys())
 
         lhs_outs = {"output_var"}
-        lhs_matches = []
-        def _find_top_level_assign(tpl: str) -> Optional[int]:
-            depth = 0
-            in_quote = None
-            for i, ch in enumerate(tpl):
-                if ch in ("'", '"'):
-                    if in_quote == ch:
-                        in_quote = None
-                    elif in_quote is None:
-                        in_quote = ch
-                elif in_quote is None:
-                    if ch in ("(", "[", "{"):
-                        depth += 1
-                    elif ch in (")", "]", "}"):
-                        depth -= 1
-                    elif ch == "=" and depth == 0:
-                        prev_ch = tpl[i - 1] if i > 0 else ""
-                        next_ch = tpl[i + 1] if i + 1 < len(tpl) else ""
-                        if prev_ch not in ("=", "!", "<", ">") and next_ch != "=":
-                            return i
-            return None
+        all_placeholders = list(dict.fromkeys(extract_template_placeholders(code_template)))
+        if code_template:
+            import ast
+            try:
+                # Replace placeholders with valid python identifiers to parse AST
+                dummy_tpl = re.sub(r'\{([a-zA-Z_][a-zA-Z0-9_]*)\}', r'__ph_\1', code_template)
+                tree = ast.parse(dummy_tpl)
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.Assign):
+                        for target in node.targets:
+                            for n in ast.walk(target):
+                                if isinstance(n, ast.Name) and n.id.startswith('__ph_'):
+                                    lhs_outs.add(n.id[5:])
+                    elif hasattr(ast, "AnnAssign") and isinstance(node, ast.AnnAssign):
+                        if isinstance(node.target, ast.Name) and node.target.id.startswith('__ph_'):
+                            lhs_outs.add(node.target.id[5:])
+            except Exception:
+                eq_idx = code_template.rfind("=")
+                if eq_idx != -1:
+                    lhs = code_template[:eq_idx].split(";")[-1]
+                    lhs_outs.update(extract_template_placeholders(lhs))
 
-        eq_idx = _find_top_level_assign(code_template)
-        if eq_idx is not None:
-            lhs = code_template[:eq_idx]
-            rhs = code_template[eq_idx + 1:]
-            lhs_matches = extract_template_placeholders(lhs)
-            lhs_outs.update(lhs_matches)
-            rhs_placeholders = extract_template_placeholders(rhs)
-        else:
-            rhs_placeholders = extract_template_placeholders(code_template)
-
+        lhs_matches = [p for p in all_placeholders if p in lhs_outs]
+        rhs_placeholders = [p for p in all_placeholders if p not in lhs_outs]
         in_slots_derived = [s for s in slot_names_list if s not in lhs_outs]
         if not in_slots_derived and code_template:
             seen_m = set()
@@ -2724,8 +2724,10 @@ class Cell(ABC):
         # Register types automatically in TypeRegistry
         registry = TypeRegistry.get_instance()
         for p in self.inputs.values():
+            p.owner_cell = self
             registry.register_type(p.type_name)
         for p in self.outputs.values():
+            p.owner_cell = self
             registry.register_type(p.type_name)
 
         # Mathematical structural rank derivation for projections, setters, and paired morphisms
@@ -2735,9 +2737,10 @@ class Cell(ABC):
         val_port = None
         key_port = None
 
-        key_roles = set(registry.get_verification_semantics("key_roles")) | {"key", "column_key", "field_key"}
-        key_port_names = set(registry.get_verification_semantics("projection_port_names")) | {"column", "key", "columns", "keys", "field", "fields"}
-        val_roles = set(registry.get_verification_semantics("assigned_value_roles")) | {"assigned_value", "column_value", "field_value"}
+        key_roles = set(registry.get_verification_semantics("key_roles")) | set(registry.get_verification_semantics("key_binds"))
+        key_port_names = set(registry.get_verification_semantics("projection_port_names"))
+        val_roles = set(registry.get_verification_semantics("assigned_value_roles"))
+        val_port_names = set(registry.get_verification_semantics("assigned_value_port_names"))
 
         for p_name, p_sig in self.inputs.items():
             bind = str(getattr(p_sig, "binds", "") or "").lower()
@@ -2755,7 +2758,7 @@ class Cell(ABC):
                     key_input_is_collection = True
                 else:
                     key_input_is_scalar = True
-            elif bind in val_roles or role in val_roles or p_name in ("value", "assigned_value"):
+            elif bind in val_roles or role in val_roles or p_name in val_port_names:
                 val_port = p_sig
                 is_setter = True
 
@@ -2789,8 +2792,8 @@ class Cell(ABC):
                 val_port.canonical_rank = 1
 
         # Dual-input paired morphism (g: X x Y -> M where X in feature_roles and Y in target_roles)
-        feature_roles = set(registry.get_verification_semantics("feature_roles")) | {"feature_input", "feature", "features"}
-        target_roles = set(registry.get_verification_semantics("target_roles")) | {"target_input", "target", "targets"}
+        feature_roles = set(registry.get_verification_semantics("feature_roles"))
+        target_roles = set(registry.get_verification_semantics("target_roles"))
         feat_port = None
         tgt_port = None
         for p_name, p_sig in self.inputs.items():
@@ -3398,13 +3401,16 @@ class LatticeOrchestrator:
     An edge (u, v) exists iff u.primary_output unifies with v's accepting input port.
     """
     _active_instance: Optional["LatticeOrchestrator"] = None
+    _instance_lock = threading.RLock()
 
     @classmethod
     def get_active_instance(cls) -> Optional["LatticeOrchestrator"]:
-        return cls._active_instance
+        with cls._instance_lock:
+            return cls._active_instance
 
     def __init__(self, trees_directory: str = "trees", active_domain: str = "all", db_path: Optional[str] = None, auto_load: bool = True):
-        LatticeOrchestrator._active_instance = self
+        with LatticeOrchestrator._instance_lock:
+            LatticeOrchestrator._active_instance = self
         if not os.path.exists(trees_directory) and os.path.exists("new_trees"):
             trees_directory = "new_trees"
         self.trees_directory = trees_directory
@@ -4045,24 +4051,7 @@ class LatticeOrchestrator:
                                 self.loaded_cells[cell.cell_id] = cell
 
                 logger.info(f"[LATTICE] Loaded {len(self.loaded_cells)} nodes from database.")
-                # Fast topology indexing from precomputed dynamic edges and bridge identification (O(N) ~20ms)
-                self._adjacency.clear()
-                self._reverse_adjacency.clear()
-                self._bridge_cells.clear()
-                for cid, cell in self.loaded_cells.items():
-                    if (
-                        getattr(cell, "node_role", "") == "bridge"
-                        or getattr(cell, "node_type", "") == "tunnel"
-                        or self._is_valid_bridge_candidate(cell)
-                    ):
-                        self._bridge_cells.append(cell)
-                    targets = []
-                    for edge in getattr(cell, "edges", []):
-                        tgt = edge.get("target_cell_id") if isinstance(edge, dict) else edge
-                        if tgt and tgt in self.loaded_cells:
-                            targets.append(tgt)
-                            self._reverse_adjacency.setdefault(tgt, []).append(cid)
-                    self._adjacency[cid] = targets
+                self.build_topology()
             except Exception as e:
                 logger.error(f"[LATTICE] Failed loading database: {e}")
 
@@ -4296,9 +4285,14 @@ class LatticeOrchestrator:
             return True
         # 2. Semantic port unification check (including typestate qualifiers and states)
         try:
-            for out_sig in src.outputs.values():
-                if dst.can_accept(out_sig):
-                    return True
+            try:
+                from .unification import is_edge_valid
+            except (ImportError, ValueError):
+                from unification import is_edge_valid
+            for out_p in src.outputs.values():
+                for in_p in dst.inputs.values():
+                    if is_edge_valid(out_p, in_p, producer_cell=src, consumer_cell=dst):
+                        return True
         except Exception:
             pass
         return False
@@ -4317,18 +4311,30 @@ class LatticeOrchestrator:
         c_id = getattr(cand, "cell_id", "") or ""
         if c_id.startswith("CF_") or getattr(cand, "stage", None) in (1, 3):
             return False
-        req_inputs = []
-        for p_name, p_sig in (getattr(cand, "inputs", {}) or {}).items():
-            if getattr(p_sig, "required", False) and getattr(p_sig, "default_value", None) is None:
-                t_str = str(getattr(getattr(p_sig, "signature", p_sig), "type_name", ""))
-                if "Callable" in t_str or "function" in t_str.lower():
-                    return False
-                req_inputs.append(p_sig)
-        if len(req_inputs) != 1:
-            return False
 
         reg = TypeRegistry.get_instance()
-        in_port = req_inputs[0]
+        cfg_roles = (
+            set(reg.get_verification_semantics("config_roles") or ())
+            | set(reg.get_verification_semantics("configuration_roles") or ())
+            | set(reg.get_verification_semantics("parameter_roles") or ())
+            | {"configuration", "parameter", "literal_parameter"}
+        )
+
+        dataflow_inputs = []
+        for p_name, p_sig in (getattr(cand, "inputs", {}) or {}).items():
+            if getattr(p_sig, "default_value", None) is not None:
+                continue
+            p_role = str(getattr(p_sig, "port_role", None) or getattr(p_sig, "role", None) or getattr(p_sig, "derived_role", "") or "").lower()
+            if p_role in cfg_roles:
+                continue
+            t_str = str(getattr(getattr(p_sig, "signature", p_sig), "type_name", ""))
+            if "Callable" in t_str or "function" in t_str.lower():
+                return False
+            dataflow_inputs.append(p_sig)
+        if len(dataflow_inputs) != 1:
+            return False
+
+        in_port = dataflow_inputs[0]
         out_port = getattr(cand, "primary_output", None) or next(iter(cand.outputs.values()))
         tin = str(getattr(getattr(in_port, "signature", in_port), "type_name", "")).strip().lower()
         tout = str(getattr(getattr(out_port, "signature", out_port), "type_name", "")).strip().lower()

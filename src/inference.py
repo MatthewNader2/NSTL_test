@@ -142,6 +142,9 @@ class InferenceProfile(ABC):
     def has_translator_pass(self) -> bool:
         return False
 
+    def has_embedder(self) -> bool:
+        return self.embedding_dimension > 0
+
     @property
     @abstractmethod
     def embedding_dimension(self) -> int:
@@ -406,6 +409,9 @@ class BenchmarkProfile_0(InferenceProfile):
     def can_feedback_check(self) -> bool:
         return False
 
+    def has_embedder(self) -> bool:
+        return False
+
     def feedback_check(self, failing_code: str, traceback_error: str) -> str:
         return failing_code
 
@@ -462,6 +468,9 @@ class BenchmarkProfile_A(InferenceProfile):
 
     def can_feedback_check(self) -> bool:
         return False
+
+    def has_embedder(self) -> bool:
+        return True
 
     def feedback_check(self, failing_code: str, traceback_error: str) -> str:
         return failing_code
@@ -992,6 +1001,9 @@ class BenchmarkProfile_AE(InferenceProfile):
     def can_feedback_check(self) -> bool:
         return False
 
+    def has_embedder(self) -> bool:
+        return True
+
     def feedback_check(self, failing_code: str, traceback_error: str) -> str:
         return failing_code
 
@@ -1103,6 +1115,14 @@ class ModelManager:
     def can_synthesize(self) -> bool:
         with self._lock:
             return self.active_profile.can_synthesize() if self.active_profile else False
+
+    def has_embedder(self) -> bool:
+        with self._lock:
+            if not self.active_profile:
+                return False
+            if hasattr(self.active_profile, "has_embedder"):
+                return self.active_profile.has_embedder()
+            return getattr(self.active_profile, "embedding_dimension", 0) > 0
 
     def can_feedback_check(self) -> bool:
         with self._lock:

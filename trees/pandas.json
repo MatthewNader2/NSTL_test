@@ -56,7 +56,9 @@
       "key",
       "keys",
       "field",
-      "fields"
+      "fields",
+      "subset",
+      "features"
     ],
     "projection_port_roles": [
       "column_projection",
@@ -72,9 +74,27 @@
     "projection_port_states": [
       "column_projection",
       "columns",
+      "columns_list",
       "feature_names",
       "column_name",
-      "target_name"
+      "target_name",
+      "subset"
+    ],
+    "destructive_effects": [
+      "removes_columns",
+      "drops_columns"
+    ],
+    "assigned_value_roles": [
+      "assigned_value",
+      "column_value",
+      "field_value",
+      "value"
+    ],
+    "assigned_value_port_names": [
+      "value",
+      "val",
+      "values",
+      "new_column"
     ]
   },
   "asset_placeholders": {
@@ -92,16 +112,55 @@
     "domain": "pandas",
     "states": [
       {
-        "name": "raw",
+        "name": "adjust_flag",
         "parent_state": null,
+        "carrier_type": "bool",
+        "description": "Divide by decaying adjustment factor in beginning periods.",
+        "properties": {}
+      },
+      {
+        "name": "agg_function",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Function to use for aggregation.",
+        "properties": {}
+      },
+      {
+        "name": "agg_function_name",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Function name to transform groups.",
+        "properties": {}
+      },
+      {
+        "name": "agg_specification",
+        "parent_state": null,
+        "carrier_type": "dict",
+        "description": "Dictionary of column names to function names or lists of functions.",
+        "properties": {}
+      },
+      {
+        "name": "aggregated",
+        "parent_state": "raw",
         "carrier_type": "DataFrame",
-        "description": "Unvalidated ingestion state loaded directly from external source.",
+        "description": "Condensed summary DataFrame resulting from grouping or reduction operations.",
         "properties": {
-          "has_nans": true,
-          "is_deduped": false,
-          "is_indexed": false,
-          "numeric_only": false
+          "is_reduced": true
         }
+      },
+      {
+        "name": "axis_param",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "0 for rows, 1 for columns.",
+        "properties": {}
+      },
+      {
+        "name": "boolean_condition",
+        "parent_state": null,
+        "carrier_type": "Series",
+        "description": "Boolean Series of matching length.",
+        "properties": {}
       },
       {
         "name": "cleaned",
@@ -116,28 +175,105 @@
         }
       },
       {
-        "name": "deduped",
-        "parent_state": "cleaned",
+        "name": "col_index_key",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Column to make columns.",
+        "properties": {}
+      },
+      {
+        "name": "col_key",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Column to make new column headers.",
+        "properties": {}
+      },
+      {
+        "name": "col_to_explode",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Column to unpack.",
+        "properties": {}
+      },
+      {
+        "name": "column_assignments",
+        "parent_state": null,
+        "carrier_type": "dict",
+        "description": "Keyword arguments where names are column names and values are Series or callables.",
+        "properties": {}
+      },
+      {
+        "name": "column_dict",
+        "parent_state": null,
+        "carrier_type": "Dict[str, str]",
+        "description": "Dictionary mapping old column names to new names.",
+        "properties": {}
+      },
+      {
+        "name": "column_identifier",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Declared column identifier.",
+        "properties": {}
+      },
+      {
+        "name": "column_labels",
+        "parent_state": null,
+        "carrier_type": "List[str]",
+        "description": "Single label or list of labels to drop.",
+        "properties": {}
+      },
+      {
+        "name": "column_list",
+        "parent_state": null,
+        "carrier_type": "List[str]",
+        "description": "Column labels to consider for NA filtering.",
+        "properties": {}
+      },
+      {
+        "name": "column_name",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Column name string to select.",
+        "properties": {}
+      },
+      {
+        "name": "column_projection",
+        "parent_state": null,
+        "carrier_type": "List[str]",
+        "description": "Declared by data migration (formerly engine bootstrap state 'column_projection')."
+      },
+      {
+        "name": "column_subset",
+        "parent_state": null,
+        "carrier_type": "List[str]",
+        "description": "Column labels to consider for identifying duplicates.",
+        "properties": {}
+      },
+      {
+        "name": "columns_to_encode",
+        "parent_state": null,
+        "carrier_type": "List[str]",
+        "description": "Column names in the DataFrame to be encoded.",
+        "properties": {}
+      },
+      {
+        "name": "dataframe_2d_generic",
+        "parent_state": "numeric_only",
         "carrier_type": "DataFrame",
-        "description": "DataFrame with redundant duplicate rows removed.",
+        "description": "a fully numeric, non-null 2D tabular object, ready for array-like consumption",
         "properties": {
           "has_nans": false,
-          "is_deduped": true,
-          "is_indexed": false,
-          "numeric_only": false
+          "numeric_only": true,
+          "array_ready": true
         }
       },
       {
-        "name": "indexed",
-        "parent_state": "raw",
-        "carrier_type": "DataFrame",
-        "description": "DataFrame indexed with custom single or primary key column.",
-        "properties": {
-          "has_nans": false,
-          "is_deduped": false,
-          "is_indexed": true,
-          "numeric_only": false
-        }
+        "name": "date_format",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Strftime format string.",
+        "properties": {}
       },
       {
         "name": "datetime_indexed",
@@ -152,6 +288,369 @@
         }
       },
       {
+        "name": "db_connection",
+        "parent_state": null,
+        "carrier_type": "Engine",
+        "description": "SQLAlchemy connectable engine or sqlite3 connection.",
+        "properties": {}
+      },
+      {
+        "name": "decay_span",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Specify decay in terms of span.",
+        "properties": {}
+      },
+      {
+        "name": "deduped",
+        "parent_state": "cleaned",
+        "carrier_type": "DataFrame",
+        "description": "DataFrame with redundant duplicate rows removed.",
+        "properties": {
+          "has_nans": false,
+          "is_deduped": true,
+          "is_indexed": false,
+          "numeric_only": false
+        }
+      },
+      {
+        "name": "default_fill",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Fill value for any residual NAs.",
+        "properties": {}
+      },
+      {
+        "name": "destination_path",
+        "parent_state": "source_identifier",
+        "carrier_type": "str",
+        "description": "Declared by data migration (formerly engine bootstrap state 'destination_path')."
+      },
+      {
+        "name": "dict_orient",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Determines the type of the values of the dictionary.",
+        "properties": {}
+      },
+      {
+        "name": "diff_period",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Periods to shift for calculating difference.",
+        "properties": {}
+      },
+      {
+        "name": "drop_first_flag",
+        "parent_state": null,
+        "carrier_type": "bool",
+        "description": "Whether to get k-1 dummies out of k categorical levels.",
+        "properties": {}
+      },
+      {
+        "name": "drop_flag",
+        "parent_state": null,
+        "carrier_type": "bool",
+        "description": "Drop column from table body after indexing.",
+        "properties": {}
+      },
+      {
+        "name": "dtype_mapping",
+        "parent_state": null,
+        "carrier_type": "Dict[str, str]",
+        "description": "Dictionary of column names to dtypes.",
+        "properties": {}
+      },
+      {
+        "name": "error_handling",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Error handling mode ('ignore', 'raise', 'coerce').",
+        "properties": {}
+      },
+      {
+        "name": "existence_strategy",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "How to behave if the table already exists ('fail', 'replace', 'append').",
+        "properties": {}
+      },
+      {
+        "name": "exported",
+        "parent_state": null,
+        "carrier_type": "DataFrame",
+        "description": "Sink state indicating extraction to native python data structure.",
+        "properties": {
+          "in_memory_python": true
+        }
+      },
+      {
+        "name": "filtered",
+        "parent_state": "raw",
+        "carrier_type": "DataFrame",
+        "description": "DataFrame subsetted via row conditions, boolean masks, or column selections.",
+        "properties": {
+          "is_filtered": true
+        }
+      },
+      {
+        "name": "freq_rule",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "The offset string representing target conversion frequency.",
+        "properties": {}
+      },
+      {
+        "name": "group_column",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Column name or list of columns to group by.",
+        "properties": {}
+      },
+      {
+        "name": "grouped",
+        "parent_state": null,
+        "carrier_type": "GroupBy",
+        "description": "Intermediate lazy GroupBy container partitioned by categorical or discrete keys.",
+        "properties": {
+          "is_partitioned": true
+        }
+      },
+      {
+        "name": "how_param",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Determine if row or column is removed when one or all elements are NA.",
+        "properties": {}
+      },
+      {
+        "name": "id_columns",
+        "parent_state": null,
+        "carrier_type": "List[str]",
+        "description": "Columns to use as identifier variables.",
+        "properties": {}
+      },
+      {
+        "name": "ignore_idx_flag",
+        "parent_state": null,
+        "carrier_type": "bool",
+        "description": "Do not use the index values along the concatenation axis.",
+        "properties": {}
+      },
+      {
+        "name": "in_memory_data",
+        "parent_state": null,
+        "carrier_type": "dict",
+        "description": "Dictionary of arrays, ndarray, or iterable mapping.",
+        "properties": {}
+      },
+      {
+        "name": "index_column",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Column name to become index.",
+        "properties": {}
+      },
+      {
+        "name": "index_generic",
+        "parent_state": null,
+        "carrier_type": "Index",
+        "description": "Pandas Index object representing axis labels or multi-level index.",
+        "properties": {
+          "is_axis_index": true
+        }
+      },
+      {
+        "name": "index_level_names",
+        "parent_state": null,
+        "carrier_type": "list",
+        "description": "Names for each of the index levels.",
+        "properties": {}
+      },
+      {
+        "name": "index_option",
+        "parent_state": null,
+        "carrier_type": "bool",
+        "description": "Return group keys as index of aggregated object.",
+        "properties": {}
+      },
+      {
+        "name": "index_persistence",
+        "parent_state": null,
+        "carrier_type": "bool",
+        "description": "Write DataFrame index as a column.",
+        "properties": {}
+      },
+      {
+        "name": "indexed",
+        "parent_state": "raw",
+        "carrier_type": "DataFrame",
+        "description": "DataFrame indexed with custom single or primary key column.",
+        "properties": {
+          "has_nans": false,
+          "is_deduped": false,
+          "is_indexed": true,
+          "numeric_only": false
+        }
+      },
+      {
+        "name": "integer_slice",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Slice notation e.g. ':10, 0:2'.",
+        "properties": {}
+      },
+      {
+        "name": "join_column",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Column or index level names to join on.",
+        "properties": {}
+      },
+      {
+        "name": "join_how",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "How to handle indexes ('left', 'right', 'outer', 'inner').",
+        "properties": {}
+      },
+      {
+        "name": "join_method",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Type of merge to be performed.",
+        "properties": {}
+      },
+      {
+        "name": "join_on_key",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Column in caller to join on index of other.",
+        "properties": {}
+      },
+      {
+        "name": "json_orient",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Format of JSON output string.",
+        "properties": {}
+      },
+      {
+        "name": "keep_strategy",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Determines which duplicates (if any) to keep.",
+        "properties": {}
+      },
+      {
+        "name": "label_slice",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Label expression, list of labels, or boolean slice.",
+        "properties": {}
+      },
+      {
+        "name": "lambda_expr",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Function to apply to each group returning True or False.",
+        "properties": {}
+      },
+      {
+        "name": "left_key_col",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Left column to join on.",
+        "properties": {}
+      },
+      {
+        "name": "left_suffix",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Suffix to use from left frame's overlapping columns.",
+        "properties": {}
+      },
+      {
+        "name": "level_arrays",
+        "parent_state": null,
+        "carrier_type": "list",
+        "description": "List of arrays.",
+        "properties": {}
+      },
+      {
+        "name": "level_index_1",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "First level to swap.",
+        "properties": {}
+      },
+      {
+        "name": "level_index_2",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Second level to swap.",
+        "properties": {}
+      },
+      {
+        "name": "level_order",
+        "parent_state": null,
+        "carrier_type": "List[str]",
+        "description": "Order of levels by name or position.",
+        "properties": {}
+      },
+      {
+        "name": "limit_count",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Declared by data migration (formerly engine bootstrap state 'limit_count')."
+      },
+      {
+        "name": "match_direction",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Direction of search ('backward', 'forward', or 'nearest').",
+        "properties": {}
+      },
+      {
+        "name": "melted",
+        "parent_state": "raw",
+        "carrier_type": "DataFrame",
+        "description": "Unpivoted long-format DataFrame with identifier and measurement columns.",
+        "properties": {
+          "is_long_format": true
+        }
+      },
+      {
+        "name": "merge_strategy",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Join type ('left', 'right', 'outer', 'inner').",
+        "properties": {}
+      },
+      {
+        "name": "merged",
+        "parent_state": "raw",
+        "carrier_type": "DataFrame",
+        "description": "Combined DataFrame resulting from relational join or concatenation.",
+        "properties": {
+          "is_composite": true
+        }
+      },
+      {
+        "name": "method_type",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Interpolation technique to use.",
+        "properties": {}
+      },
+      {
+        "name": "min_observations",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Minimum number of observations in window required to have a value.",
+        "properties": {}
+      },
+      {
         "name": "multi_indexed",
         "parent_state": "indexed",
         "carrier_type": "DataFrame",
@@ -162,6 +661,22 @@
           "is_indexed": true,
           "is_multiindex": true
         }
+      },
+      {
+        "name": "ndarray_generic",
+        "parent_state": null,
+        "carrier_type": "ndarray",
+        "description": "a plain numpy array, dimensionality/dtype unspecified",
+        "properties": {
+          "is_numpy": true
+        }
+      },
+      {
+        "name": "norm_flag",
+        "parent_state": null,
+        "carrier_type": "bool",
+        "description": "If True, return relative frequencies instead of raw counts.",
+        "properties": {}
       },
       {
         "name": "numeric_only",
@@ -176,42 +691,24 @@
         }
       },
       {
-        "name": "dataframe_2d_generic",
-        "parent_state": "numeric_only",
-        "carrier_type": "DataFrame",
-        "description": "a fully numeric, non-null 2D tabular object, ready for array-like consumption",
-        "properties": {
-          "has_nans": false,
-          "numeric_only": true,
-          "array_ready": true
-        }
-      },
-      {
-        "name": "filtered",
-        "parent_state": "raw",
-        "carrier_type": "DataFrame",
-        "description": "DataFrame subsetted via row conditions, boolean masks, or column selections.",
-        "properties": {
-          "is_filtered": true
-        }
-      },
-      {
-        "name": "grouped",
+        "name": "numeric_only_flag",
         "parent_state": null,
-        "carrier_type": "GroupBy",
-        "description": "Intermediate lazy GroupBy container partitioned by categorical or discrete keys.",
-        "properties": {
-          "is_partitioned": true
-        }
+        "carrier_type": "bool",
+        "description": "Include only float, int or boolean data",
+        "properties": {}
       },
       {
-        "name": "aggregated",
-        "parent_state": "raw",
-        "carrier_type": "DataFrame",
-        "description": "Condensed summary DataFrame resulting from grouping or reduction operations.",
-        "properties": {
-          "is_reduced": true
-        }
+        "name": "order_flag",
+        "parent_state": null,
+        "carrier_type": "bool",
+        "description": "Declared by data migration (formerly engine bootstrap state 'order_flag')."
+      },
+      {
+        "name": "period_step",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Periods to shift for calculating percent change.",
+        "properties": {}
       },
       {
         "name": "pivoted",
@@ -223,40 +720,136 @@
         }
       },
       {
-        "name": "melted",
-        "parent_state": "raw",
-        "carrier_type": "DataFrame",
-        "description": "Unpivoted long-format DataFrame with identifier and measurement columns.",
-        "properties": {
-          "is_long_format": true
-        }
-      },
-      {
-        "name": "merged",
-        "parent_state": "raw",
-        "carrier_type": "DataFrame",
-        "description": "Combined DataFrame resulting from relational join or concatenation.",
-        "properties": {
-          "is_composite": true
-        }
-      },
-      {
-        "name": "windowed",
-        "parent_state": "raw",
-        "carrier_type": "DataFrame",
-        "description": "Calculated rolling, expanding, or exponential weighted time-window DataFrame.",
-        "properties": {
-          "is_windowed": true
-        }
-      },
-      {
-        "name": "series_raw",
+        "name": "query_string",
         "parent_state": null,
-        "carrier_type": "Series",
-        "description": "1D labeled Series in unvalidated or unprocessed state.",
+        "carrier_type": "str",
+        "description": "Expression to evaluate against column names.",
+        "properties": {}
+      },
+      {
+        "name": "raw",
+        "parent_state": null,
+        "carrier_type": "DataFrame",
+        "description": "Unvalidated ingestion state loaded directly from external source.",
         "properties": {
           "has_nans": true,
-          "is_deduped": false
+          "is_deduped": false,
+          "is_indexed": false,
+          "numeric_only": false
+        }
+      },
+      {
+        "name": "raw_sequence",
+        "parent_state": null,
+        "carrier_type": "list",
+        "description": "Input iterable or scalar data.",
+        "properties": {}
+      },
+      {
+        "name": "reduction_fn",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Aggregation function to apply across resampled buckets.",
+        "properties": {}
+      },
+      {
+        "name": "regex_flag",
+        "parent_state": null,
+        "carrier_type": "bool",
+        "description": "Determines if pat is interpreted as regex.",
+        "properties": {}
+      },
+      {
+        "name": "regex_pattern",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Pattern to replace.",
+        "properties": {}
+      },
+      {
+        "name": "repl_text",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Replacement string.",
+        "properties": {}
+      },
+      {
+        "name": "replacement_val",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Value to replace any matched items with.",
+        "properties": {}
+      },
+      {
+        "name": "resampled",
+        "parent_state": null,
+        "carrier_type": "DataFrame",
+        "description": "Resampled and aggregated time-series DataFrame.",
+        "properties": {}
+      },
+      {
+        "name": "right_key_col",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Right column to join on.",
+        "properties": {}
+      },
+      {
+        "name": "right_suffix",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Suffix to use from right frame's overlapping columns.",
+        "properties": {}
+      },
+      {
+        "name": "row_index_key",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Column to make index.",
+        "properties": {}
+      },
+      {
+        "name": "row_key",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Column to make index keys.",
+        "properties": {}
+      },
+      {
+        "name": "sample_size",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Number of items to return.",
+        "properties": {}
+      },
+      {
+        "name": "scalar_fill",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Scalar or dictionary to replace NAs.",
+        "properties": {}
+      },
+      {
+        "name": "scalar_numeric",
+        "parent_state": null,
+        "carrier_type": "float",
+        "description": "Scalar arithmetic mean value.",
+        "properties": {}
+      },
+      {
+        "name": "seed",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Seed for random number generator.",
+        "properties": {}
+      },
+      {
+        "name": "serialized",
+        "parent_state": null,
+        "carrier_type": "DataFrame",
+        "description": "Sink state indicating byte stream or buffer serialization.",
+        "properties": {
+          "is_serialized": true
         }
       },
       {
@@ -279,73 +872,42 @@
         }
       },
       {
-        "name": "index_generic",
+        "name": "series_raw",
         "parent_state": null,
-        "carrier_type": "Index",
-        "description": "Pandas Index object representing axis labels or multi-level index.",
+        "carrier_type": "Series",
+        "description": "1D labeled Series in unvalidated or unprocessed state.",
         "properties": {
-          "is_axis_index": true
+          "has_nans": true,
+          "is_deduped": false
         }
       },
       {
-        "name": "ndarray_generic",
-        "parent_state": null,
-        "carrier_type": "ndarray",
-        "description": "a plain numpy array, dimensionality/dtype unspecified",
-        "properties": {
-          "is_numpy": true
-        }
-      },
-      {
-        "name": "written_to_disk",
-        "parent_state": null,
-        "carrier_type": "DataFrame",
-        "description": "Sink state indicating serialized persistence to physical or networked storage.",
-        "properties": {
-          "persisted": true
-        }
-      },
-      {
-        "name": "exported",
-        "parent_state": null,
-        "carrier_type": "DataFrame",
-        "description": "Sink state indicating extraction to native python data structure.",
-        "properties": {
-          "in_memory_python": true
-        }
-      },
-      {
-        "name": "serialized",
-        "parent_state": null,
-        "carrier_type": "DataFrame",
-        "description": "Sink state indicating byte stream or buffer serialization.",
-        "properties": {
-          "is_serialized": true
-        }
-      },
-      {
-        "name": "column_projection",
-        "parent_state": null,
-        "carrier_type": "List[str]",
-        "description": "Declared by data migration (formerly engine bootstrap state 'column_projection')."
-      },
-      {
-        "name": "destination_path",
-        "parent_state": "source_identifier",
-        "carrier_type": "str",
-        "description": "Declared by data migration (formerly engine bootstrap state 'destination_path')."
-      },
-      {
-        "name": "limit_count",
+        "name": "shift_periods",
         "parent_state": null,
         "carrier_type": "int",
-        "description": "Declared by data migration (formerly engine bootstrap state 'limit_count')."
+        "description": "Number of periods to shift (positive for lag, negative for lead).",
+        "properties": {}
       },
       {
-        "name": "order_flag",
+        "name": "slice_axis",
         "parent_state": null,
-        "carrier_type": "bool",
-        "description": "Declared by data migration (formerly engine bootstrap state 'order_flag')."
+        "carrier_type": "int",
+        "description": "Axis along which to retrieve cross-section.",
+        "properties": {}
+      },
+      {
+        "name": "slice_key",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Label contained in the index.",
+        "properties": {}
+      },
+      {
+        "name": "slice_level",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Level name or integer.",
+        "properties": {}
       },
       {
         "name": "sort_column",
@@ -354,10 +916,25 @@
         "description": "Declared by data migration (formerly engine bootstrap state 'sort_column')."
       },
       {
-        "name": "valid_path",
-        "parent_state": "source_identifier",
+        "name": "sql_query",
+        "parent_state": null,
         "carrier_type": "str",
-        "description": "Declared by data migration (formerly engine bootstrap state 'valid_path')."
+        "description": "SQL query string or table name.",
+        "properties": {}
+      },
+      {
+        "name": "swap_axis",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "The axis on which to swap the levels (0 for index, 1 for columns).",
+        "properties": {}
+      },
+      {
+        "name": "table_name",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Name of SQL table.",
+        "properties": {}
       },
       {
         "name": "tabular",
@@ -369,6 +946,128 @@
           "is_deduped": false,
           "is_indexed": false,
           "numeric_only": false
+        }
+      },
+      {
+        "name": "target_axis",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Axis on which to reorder levels.",
+        "properties": {}
+      },
+      {
+        "name": "target_level",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Index level to drop.",
+        "properties": {}
+      },
+      {
+        "name": "target_val",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Value or pattern to search for.",
+        "properties": {}
+      },
+      {
+        "name": "time_key",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Field name to join on (must be sorted).",
+        "properties": {}
+      },
+      {
+        "name": "tuple_level_names",
+        "parent_state": null,
+        "carrier_type": "list",
+        "description": "Names for index levels.",
+        "properties": {}
+      },
+      {
+        "name": "tuple_list",
+        "parent_state": null,
+        "carrier_type": "list",
+        "description": "Sequence of tuples.",
+        "properties": {}
+      },
+      {
+        "name": "unstack_level",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Level(s) of index to unstack.",
+        "properties": {}
+      },
+      {
+        "name": "val_col_name",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Name of value column.",
+        "properties": {}
+      },
+      {
+        "name": "val_column_key",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Column to populate values.",
+        "properties": {}
+      },
+      {
+        "name": "val_key",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Column to aggregate.",
+        "properties": {}
+      },
+      {
+        "name": "valid_path",
+        "parent_state": "source_identifier",
+        "carrier_type": "str",
+        "description": "Declared by data migration (formerly engine bootstrap state 'valid_path')."
+      },
+      {
+        "name": "value_columns",
+        "parent_state": null,
+        "carrier_type": "List[str]",
+        "description": "Columns to unpivot.",
+        "properties": {}
+      },
+      {
+        "name": "var_col_name",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Name of variable column.",
+        "properties": {}
+      },
+      {
+        "name": "window_size",
+        "parent_state": null,
+        "carrier_type": "int",
+        "description": "Size of the moving window.",
+        "properties": {}
+      },
+      {
+        "name": "windowed",
+        "parent_state": "raw",
+        "carrier_type": "DataFrame",
+        "description": "Calculated rolling, expanding, or exponential weighted time-window DataFrame.",
+        "properties": {
+          "is_windowed": true
+        }
+      },
+      {
+        "name": "write_index_flag",
+        "parent_state": null,
+        "carrier_type": "bool",
+        "description": "Write row names (index).",
+        "properties": {}
+      },
+      {
+        "name": "written_to_disk",
+        "parent_state": null,
+        "carrier_type": "DataFrame",
+        "description": "Sink state indicating serialized persistence to physical or networked storage.",
+        "properties": {
+          "persisted": true
         }
       }
     ],
@@ -1979,7 +2678,7 @@
           "type_name": "str",
           "state": "sql_query",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "SELECT * FROM data",
           "description": "SQL query string or table name.",
           "domain": "pandas",
           "required": true,
@@ -1991,7 +2690,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "port_1": {
           "type_name": "Engine",
@@ -2009,7 +2710,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "data_input",
+          "role": "data_input"
         }
       },
       "outputs": {
@@ -2172,8 +2875,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "structure_kind": "composite",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
           "rank": 1,
           "element_type": "composite_record",
           "supported_formats": []
@@ -2433,7 +3145,7 @@
           "type_name": "List[str]",
           "state": "column_list",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": [],
           "description": "Column labels to consider for NA filtering.",
           "domain": "pandas",
           "required": true,
@@ -2441,11 +3153,21 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null,
-          "structure_kind": "composite",
-          "rank": 0,
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection"
         }
       },
       "outputs": {
@@ -2551,7 +3273,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         }
       },
       "outputs": {
@@ -2954,9 +3678,18 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null,
-          "structure_kind": "composite",
-          "rank": 0,
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
           "supported_formats": []
         },
@@ -3084,7 +3817,7 @@
           "type_name": "str",
           "state": "target_val",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Value or pattern to search for.",
           "domain": "pandas",
           "required": true,
@@ -3096,13 +3829,14 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "literal_parameter"
         },
         "port_2": {
           "type_name": "str",
           "state": "replacement_val",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Value to replace any matched items with.",
           "domain": "pandas",
           "required": true,
@@ -3114,7 +3848,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "literal_parameter"
         }
       },
       "outputs": {
@@ -3210,7 +3945,7 @@
           "type_name": "Dict[str, str]",
           "state": "dtype_mapping",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": {},
           "description": "Dictionary of column names to dtypes.",
           "domain": "pandas",
           "required": true,
@@ -3222,7 +3957,8 @@
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration"
         }
       },
       "outputs": {
@@ -3712,7 +4448,7 @@
           "type_name": "str",
           "state": "regex_pattern",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Pattern to replace.",
           "domain": "pandas",
           "required": true,
@@ -3724,7 +4460,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "literal_parameter"
         },
         "port_2": {
           "type_name": "str",
@@ -3742,7 +4479,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "port_3": {
           "type_name": "bool",
@@ -3862,7 +4601,7 @@
           "type_name": "str",
           "state": "index_column",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Column name to become index.",
           "domain": "pandas",
           "required": true,
@@ -3874,7 +4613,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection"
         },
         "port_2": {
           "type_name": "bool",
@@ -4110,7 +4850,7 @@
           "type_name": "str",
           "state": "label_slice",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Label expression, list of labels, or boolean slice.",
           "domain": "pandas",
           "required": true,
@@ -4122,7 +4862,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "literal_parameter"
         }
       },
       "outputs": {
@@ -4230,7 +4971,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         }
       },
       "outputs": {
@@ -4327,7 +5070,7 @@
           "type_name": "str",
           "state": "query_string",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Expression to evaluate against column names.",
           "domain": "pandas",
           "required": true,
@@ -4339,7 +5082,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "literal_parameter"
         }
       },
       "outputs": {
@@ -4553,11 +5297,20 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "port_role": "literal_parameter",
           "binds": "column_key",
-          "structure_kind": "composite",
-          "rank": 0,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
           "supported_formats": []
         }
@@ -4654,7 +5407,7 @@
           "type_name": "List[str]",
           "state": "column_labels",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": [],
           "description": "Single label or list of labels to drop.",
           "domain": "pandas",
           "required": true,
@@ -4662,11 +5415,21 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null,
-          "structure_kind": "composite",
-          "rank": 0,
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection"
         }
       },
       "outputs": {
@@ -4759,7 +5522,7 @@
           "type_name": "Dict[str, str]",
           "state": "column_dict",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": {},
           "description": "Dictionary mapping old column names to new names.",
           "domain": "pandas",
           "required": true,
@@ -4771,7 +5534,8 @@
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration"
         }
       },
       "outputs": {
@@ -4869,7 +5633,7 @@
           "type_name": "str",
           "state": "sort_column",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Name or list of names to sort by.",
           "domain": "pandas",
           "required": true,
@@ -4881,7 +5645,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection"
         },
         "port_2": {
           "type_name": "bool",
@@ -5443,7 +6208,7 @@
           "type_name": "dict",
           "state": "column_assignments",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": {},
           "description": "Keyword arguments where names are column names and values are Series or callables.",
           "domain": "pandas",
           "required": true,
@@ -5455,7 +6220,8 @@
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration"
         }
       },
       "outputs": {
@@ -5552,7 +6318,7 @@
           "type_name": "str",
           "state": "group_column",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Column name or list of columns to group by.",
           "domain": "pandas",
           "required": true,
@@ -5564,7 +6330,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection"
         },
         "port_2": {
           "type_name": "bool",
@@ -5673,7 +6440,7 @@
           "type_name": "dict",
           "state": "agg_specification",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": {},
           "description": "Dictionary of column names to function names or lists of functions.",
           "domain": "pandas",
           "required": true,
@@ -5685,7 +6452,8 @@
           "structure_kind": "composite",
           "rank": 0,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration"
         }
       },
       "outputs": {
@@ -5785,7 +6553,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         }
       },
       "outputs": {
@@ -5871,7 +6641,7 @@
           "type_name": "str",
           "state": "lambda_expr",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Function to apply to each group returning True or False.",
           "domain": "pandas",
           "required": true,
@@ -5883,7 +6653,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "literal_parameter"
         }
       },
       "outputs": {
@@ -6498,7 +7269,7 @@
           "type_name": "str",
           "state": "row_key",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Column to make index keys.",
           "domain": "pandas",
           "required": true,
@@ -6510,13 +7281,14 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection"
         },
         "port_2": {
           "type_name": "str",
           "state": "col_key",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Column to make new column headers.",
           "domain": "pandas",
           "required": true,
@@ -6528,13 +7300,14 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection"
         },
         "port_3": {
           "type_name": "str",
           "state": "val_key",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Column to aggregate.",
           "domain": "pandas",
           "required": true,
@@ -6546,7 +7319,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection"
         },
         "port_4": {
           "type_name": "str",
@@ -6664,7 +7438,7 @@
           "type_name": "str",
           "state": "row_index_key",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Column to make index.",
           "domain": "pandas",
           "required": true,
@@ -6676,13 +7450,14 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection"
         },
         "port_2": {
           "type_name": "str",
           "state": "col_index_key",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Column to make columns.",
           "domain": "pandas",
           "required": true,
@@ -6694,13 +7469,14 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection"
         },
         "port_3": {
           "type_name": "str",
           "state": "val_column_key",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Column to populate values.",
           "domain": "pandas",
           "required": true,
@@ -6712,7 +7488,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection"
         }
       },
       "outputs": {
@@ -6810,7 +7587,7 @@
           "type_name": "List[str]",
           "state": "id_columns",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": [],
           "description": "Columns to use as identifier variables.",
           "domain": "pandas",
           "required": true,
@@ -6818,11 +7595,21 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null,
-          "structure_kind": "composite",
-          "rank": 0,
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection"
         },
         "port_2": {
           "type_name": "List[str]",
@@ -6836,9 +7623,18 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null,
-          "structure_kind": "composite",
-          "rank": 0,
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
           "supported_formats": []
         },
@@ -7165,7 +7961,7 @@
           "type_name": "str",
           "state": "col_to_explode",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Column to unpack.",
           "domain": "pandas",
           "required": true,
@@ -7177,7 +7973,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection"
         }
       },
       "outputs": {
@@ -7388,9 +8185,18 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null,
-          "structure_kind": "composite",
-          "rank": 0,
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
           "supported_formats": []
         },
@@ -7497,8 +8303,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "structure_kind": "composite",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
           "rank": 1,
           "element_type": "composite_record",
           "supported_formats": []
@@ -7515,8 +8330,17 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null,
-          "structure_kind": "composite",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
           "rank": 1,
           "element_type": "composite_record",
           "supported_formats": []
@@ -7596,8 +8420,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "structure_kind": "composite",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
           "rank": 1,
           "element_type": "composite_record",
           "supported_formats": []
@@ -7614,8 +8447,17 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null,
-          "structure_kind": "composite",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
           "rank": 1,
           "element_type": "composite_record",
           "supported_formats": []
@@ -7860,9 +8702,18 @@
           "enum_values": null,
           "param_kind": "keyword_only",
           "value_constraints": null,
-          "shape_contract": null,
-          "structure_kind": "composite",
-          "rank": 0,
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
           "supported_formats": []
         },
@@ -7989,7 +8840,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "port_2": {
           "type_name": "int",
@@ -8103,7 +8956,7 @@
           "type_name": "str",
           "state": "slice_key",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Label contained in the index.",
           "domain": "pandas",
           "required": true,
@@ -8115,7 +8968,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "literal_parameter"
         },
         "port_2": {
           "type_name": "str",
@@ -8279,7 +9133,7 @@
           "type_name": "str",
           "state": "join_column",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Column or index level names to join on.",
           "domain": "pandas",
           "required": true,
@@ -8291,7 +9145,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection"
         },
         "port_3": {
           "type_name": "str",
@@ -8436,7 +9291,7 @@
           "type_name": "str",
           "state": "left_key_col",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Left column to join on.",
           "domain": "pandas",
           "required": true,
@@ -8448,13 +9303,14 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection"
         },
         "port_3": {
           "type_name": "str",
           "state": "right_key_col",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Right column to join on.",
           "domain": "pandas",
           "required": true,
@@ -8466,7 +9322,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection"
         },
         "port_4": {
           "type_name": "str",
@@ -9066,7 +9923,7 @@
           "type_name": "str",
           "state": "time_key",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Field name to join on (must be sorted).",
           "domain": "pandas",
           "required": true,
@@ -9078,7 +9935,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection"
         },
         "port_3": {
           "type_name": "str",
@@ -9211,7 +10069,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "port_2": {
           "type_name": "int",
@@ -9338,7 +10198,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "port_2": {
           "type_name": "int",
@@ -9465,7 +10327,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "port_2": {
           "type_name": "int",
@@ -9592,7 +10456,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "port_2": {
           "type_name": "bool",
@@ -9729,7 +10595,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "port_2": {
           "type_name": "str",
@@ -11135,7 +12003,7 @@
           "type_name": "str",
           "state": "table_name",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Name of SQL table.",
           "domain": "pandas",
           "required": true,
@@ -11147,13 +12015,15 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "port_2": {
           "type_name": "Engine",
           "state": "db_connection",
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "SQLAlchemy connectable engine or sqlite3 connection.",
           "domain": "pandas",
           "required": true,
@@ -11165,7 +12035,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "configuration",
+          "role": "configuration"
         },
         "port_3": {
           "type_name": "str",
@@ -11575,13 +12447,22 @@
           "description": "Column names to project before array conversion.",
           "domain": "pandas",
           "required": true,
-          "abstract_type": null,
+          "abstract_type": "collection",
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
-          "structure_kind": "handle",
-          "rank": null,
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "opaque",
           "supported_formats": []
         }
@@ -11601,7 +12482,17 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "(n_samples, n_features)",
+          "shape_contract": {
+            "ndim": 2,
+            "shape": [
+              "n_samples",
+              "n_features"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "port_role": "data_output",
           "structure_kind": "tensor",
           "rank": 2,
@@ -12128,10 +13019,19 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": null,
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "port_role": "column_projection",
-          "structure_kind": "composite",
-          "rank": 0,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
           "supported_formats": []
         }
@@ -12252,7 +13152,7 @@
             "any"
           ],
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Column name string to select.",
           "domain": "pandas",
           "required": true,
@@ -12261,12 +13161,13 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "literal_parameter",
+          "port_role": "column_projection",
           "binds": "column_key",
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "column_projection"
         }
       },
       "outputs": {
@@ -12383,7 +13284,7 @@
             "any"
           ],
           "qualifiers": [],
-          "default_value": null,
+          "default_value": "",
           "description": "Column name string to write.",
           "domain": "pandas",
           "required": true,
@@ -12392,12 +13293,13 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": null,
-          "port_role": "literal_parameter",
+          "port_role": "column_projection",
           "binds": "column_key",
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "role": "column_projection"
         },
         "port_2": {
           "type_name": "array-like",
@@ -12416,7 +13318,16 @@
           "enum_values": null,
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
-          "shape_contract": "(n_samples,)",
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "n_samples"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          },
           "port_role": "data_input",
           "binds": "assigned_value",
           "structure_kind": "composite",
@@ -12826,7 +13737,9 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "port_role": "column_projection",
+          "default_value": ""
         }
       },
       "outputs": {

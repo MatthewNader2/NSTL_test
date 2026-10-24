@@ -200,8 +200,18 @@ class M6HybridAnchorsRouteMethod(RouteMethod):
         if bridged_path and len(bridged_path) >= 2:
             return bridged_path[:max_allowed]
 
-        # If waypoints failed to assemble, fallback to Trellis
-        if orch:
+        # If waypoints failed to assemble, fallback to Trellis only if allow_fallback is enabled
+        try:
+            from config import settings
+            allow_fb = getattr(settings, "allow_fallback", False)
+        except Exception:
+            try:
+                from ..config import settings
+                allow_fb = getattr(settings, "allow_fallback", False)
+            except Exception:
+                allow_fb = False
+
+        if allow_fb and orch:
             planner = LatticePlanner(orchestrator=orch)
             m0_path = planner.plan(
                 prompt=prompt,
@@ -214,4 +224,4 @@ class M6HybridAnchorsRouteMethod(RouteMethod):
             if m0_path:
                 return m0_path
 
-        return bridged_path[:max_allowed]
+        return []

@@ -140,7 +140,7 @@ class M7LLMPathfinderRouteMethod(RouteMethod):
             )
         ] or [tunnel[0]]
         mm = ModelManager.get_instance()
-        has_llm = mm.profile is not None and getattr(mm.profile, "llm", None) is not None
+        has_llm = mm.can_synthesize()
 
         def _fallback(reason):
             return self._delegate_to_m1(

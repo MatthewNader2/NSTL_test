@@ -81,45 +81,190 @@
     }
   ],
   "typestates": {
-    "connection": [
-      "uninitialized",
-      "open",
-      "in_transaction",
-      "committed",
-      "rolled_back",
-      "closed"
+    "domain": "sqlite3",
+    "states": [
+      {
+        "name": "active",
+        "parent_state": null,
+        "carrier_type": "cursor",
+        "description": "Instantiated cursor handle.",
+        "properties": {}
+      },
+      {
+        "name": "batch",
+        "parent_state": null,
+        "carrier_type": "record_list",
+        "description": "Batch list of result rows.",
+        "properties": {}
+      },
+      {
+        "name": "closed",
+        "parent_state": null,
+        "carrier_type": "bool",
+        "description": "True when cursor is successfully closed.",
+        "properties": {}
+      },
+      {
+        "name": "collection_state",
+        "description": "['records', 'batch', 'dump_stream']"
+      },
+      {
+        "name": "committed",
+        "parent_state": null,
+        "carrier_type": "connection",
+        "description": "Connection after transaction commit.",
+        "properties": {}
+      },
+      {
+        "name": "connection",
+        "description": "['uninitialized', 'open', 'in_transaction', 'committed', 'rolled_back', 'closed']"
+      },
+      {
+        "name": "cursor",
+        "description": "['uninitialized', 'active', 'executed', 'exhausted', 'closed']"
+      },
+      {
+        "name": "db_file",
+        "parent_state": null,
+        "carrier_type": "db_path",
+        "description": "Filesystem path to the SQLite database file.",
+        "properties": {}
+      },
+      {
+        "name": "db_path",
+        "description": "['db_file', 'filesystem_path', 'memory_identifier', 'uri_identifier']"
+      },
+      {
+        "name": "dict_record",
+        "parent_state": null,
+        "carrier_type": "List[Dict[str, Any]]",
+        "description": "List of dictionaries mapping column names to values.",
+        "properties": {}
+      },
+      {
+        "name": "dump_stream",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Full SQL text script reconstructing the database.",
+        "properties": {}
+      },
+      {
+        "name": "executed",
+        "parent_state": null,
+        "carrier_type": "cursor",
+        "description": "Cursor after table creation execution.",
+        "properties": {}
+      },
+      {
+        "name": "filesystem_path",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Filesystem path to the extension shared library.",
+        "properties": {}
+      },
+      {
+        "name": "in_transaction",
+        "parent_state": null,
+        "carrier_type": "connection",
+        "description": "Database connection with uncommitted changes.",
+        "properties": {}
+      },
+      {
+        "name": "named_row",
+        "parent_state": null,
+        "carrier_type": "record_list",
+        "description": "List of sqlite3.Row instances.",
+        "properties": {}
+      },
+      {
+        "name": "open",
+        "parent_state": null,
+        "carrier_type": "connection",
+        "description": "Database connection handle.",
+        "properties": {}
+      },
+      {
+        "name": "parameter_values",
+        "parent_state": null,
+        "carrier_type": "Tuple[Any, ...]",
+        "description": "Tuple of parameter values to bind safely.",
+        "properties": {}
+      },
+      {
+        "name": "parameterized",
+        "parent_state": null,
+        "carrier_type": "sql_query",
+        "description": "SQL statement string containing ? parameter placeholders.",
+        "properties": {}
+      },
+      {
+        "name": "raw_ddl",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Column definitions (e.g. 'id INTEGER PRIMARY KEY, title TEXT NOT NULL').",
+        "properties": {}
+      },
+      {
+        "name": "raw_query",
+        "parent_state": null,
+        "carrier_type": "sql_query",
+        "description": "SQL statement string to execute.",
+        "properties": {}
+      },
+      {
+        "name": "raw_tuple",
+        "parent_state": null,
+        "carrier_type": "Optional[row]",
+        "description": "Single row record tuple or None if no rows remaining.",
+        "properties": {}
+      },
+      {
+        "name": "records",
+        "parent_state": null,
+        "carrier_type": "List[str]",
+        "description": "List of user table names.",
+        "properties": {}
+      },
+      {
+        "name": "rolled_back",
+        "parent_state": null,
+        "carrier_type": "connection",
+        "description": "Connection after transaction rollback.",
+        "properties": {}
+      },
+      {
+        "name": "row_state",
+        "description": "['raw_tuple', 'named_row', 'dict_record']"
+      },
+      {
+        "name": "scalar",
+        "parent_state": null,
+        "carrier_type": "Optional[str]",
+        "description": "Isolation level string ('DEFERRED', 'IMMEDIATE', 'EXCLUSIVE') or None.",
+        "properties": {}
+      },
+      {
+        "name": "script",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Multi-statement SQL script string.",
+        "properties": {}
+      },
+      {
+        "name": "sql_statement",
+        "description": "['raw_ddl', 'raw_dml', 'raw_query', 'parameter_values', 'parameterized', 'script']"
+      },
+      {
+        "name": "uri_identifier",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "URI connection string (e.g. 'file:data.db?mode=ro').",
+        "properties": {}
+      }
     ],
-    "cursor": [
-      "uninitialized",
-      "active",
-      "executed",
-      "exhausted",
-      "closed"
-    ],
-    "db_path": [
-      "db_file",
-      "filesystem_path",
-      "memory_identifier",
-      "uri_identifier"
-    ],
-    "sql_statement": [
-      "raw_ddl",
-      "raw_dml",
-      "raw_query",
-      "parameter_values",
-      "parameterized",
-      "script"
-    ],
-    "row_state": [
-      "raw_tuple",
-      "named_row",
-      "dict_record"
-    ],
-    "collection_state": [
-      "records",
-      "batch",
-      "dump_stream"
-    ]
+    "transitions": [],
+    "initial_state": null,
+    "terminal_states": []
   },
   "cells": [
     {
@@ -341,7 +486,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "DEFERRED"
         }
       },
       "outputs": {
@@ -401,7 +547,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 5.0
         }
       },
       "outputs": {
@@ -550,7 +697,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "data"
         },
         "schema_ddl": {
           "type_name": "str",
@@ -562,7 +710,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "id INTEGER PRIMARY KEY, value TEXT"
         }
       },
       "outputs": {
@@ -621,7 +770,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "data"
         }
       },
       "outputs": {
@@ -681,7 +831,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "idx_data"
         },
         "table_name": {
           "type_name": "str",
@@ -693,7 +844,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "data"
         },
         "columns": {
           "type_name": "str",
@@ -705,7 +857,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "id"
         }
       },
       "outputs": {
@@ -765,7 +918,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "data"
         },
         "column_def": {
           "type_name": "str",
@@ -777,7 +931,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "col TEXT"
         }
       },
       "outputs": {
@@ -835,10 +990,20 @@
           "abstract_type": "collection",
           "port_role": "data_output",
           "description": "List of user table names.",
-          "structure_kind": "composite",
-          "rank": 0,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "code_template": "{cursor}.execute(\"SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'\")\n{table_names} = [row[0] for row in {cursor}.fetchall()]",
@@ -885,7 +1050,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "data"
         }
       },
       "outputs": {
@@ -945,7 +1111,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "SELECT 1"
         }
       },
       "outputs": {
@@ -1006,7 +1173,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "SELECT 1"
         },
         "parameters": {
           "type_name": "Tuple[Any, ...]",
@@ -1078,7 +1246,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "float64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "SELECT 1"
         },
         "seq_of_parameters": {
           "type_name": "Iterable[Tuple[Any, ...]]",
@@ -1150,7 +1319,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "BEGIN; COMMIT;"
         }
       },
       "outputs": {
@@ -1210,7 +1380,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "data"
         },
         "columns": {
           "type_name": "str",
@@ -1222,7 +1393,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "id"
         },
         "values": {
           "type_name": "Tuple[Any, ...]",
@@ -1294,7 +1466,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "data"
         },
         "set_clause": {
           "type_name": "str",
@@ -1306,7 +1479,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "value = ?"
         },
         "where_clause": {
           "type_name": "str",
@@ -1318,7 +1492,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "id = ?"
         },
         "parameters": {
           "type_name": "Tuple[Any, ...]",
@@ -1390,7 +1565,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "data"
         },
         "where_clause": {
           "type_name": "str",
@@ -1402,7 +1578,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "id = ?"
         },
         "parameters": {
           "type_name": "Tuple[Any, ...]",
@@ -1570,7 +1747,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 10
         }
       },
       "outputs": {
@@ -1724,10 +1902,20 @@
           "abstract_type": "collection",
           "port_role": "data_output",
           "description": "List of dictionaries mapping column names to values.",
-          "structure_kind": "composite",
-          "rank": 0,
+          "structure_kind": "collection",
+          "rank": 1,
           "element_type": "composite_record",
-          "supported_formats": []
+          "supported_formats": [],
+          "shape_contract": {
+            "ndim": 1,
+            "shape": [
+              "N"
+            ],
+            "rank_polymorphic": false,
+            "channel_count": null,
+            "channel_axis": null,
+            "len": null
+          }
         }
       },
       "code_template": "{dict_records} = [dict(r) for r in {rows}]",
@@ -1921,7 +2109,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "foreign_keys"
         },
         "pragma_value": {
           "type_name": "str",
@@ -1933,7 +2122,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "ON"
         }
       },
       "outputs": {
@@ -1992,7 +2182,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "foreign_keys"
         }
       },
       "outputs": {
@@ -2052,7 +2243,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "custom_fn"
         },
         "num_params": {
           "type_name": "int",
@@ -2064,7 +2256,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 1
         },
         "func": {
           "type_name": "Callable[..., Any]",
@@ -2136,7 +2329,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "custom_agg"
         },
         "num_params": {
           "type_name": "int",
@@ -2148,7 +2342,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 1
         },
         "aggregate_class": {
           "type_name": "Type[Any]",
@@ -2220,7 +2415,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "string",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": "nocase"
         },
         "callable_func": {
           "type_name": "Callable[[str, str], int]",
@@ -2364,7 +2560,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "int64",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": 100
         }
       },
       "outputs": {
@@ -2484,7 +2681,8 @@
           "structure_kind": "scalar",
           "rank": 0,
           "element_type": "bool",
-          "supported_formats": []
+          "supported_formats": [],
+          "default_value": true
         }
       },
       "outputs": {

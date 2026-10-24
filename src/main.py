@@ -333,10 +333,10 @@ def run_prompt(request: Union[RunRequest, Dict[str, Any], str]) -> RunResponse:
 
     req_ctx = ExecutionContext(prompt=effective_prompt)
     if intent_data and isinstance(intent_data, dict):
-        tgt = intent_data.get("target_sink") or intent_data.get("target_column") or intent_data.get("target_col")
+        tgt = intent_data.get("target_sink") or intent_data.get("target_key")
         if tgt:
-            req_ctx.target_col = str(tgt).strip()
-            req_ctx.target_literals.add(req_ctx.target_col)
+            req_ctx.target_key = str(tgt).strip()
+            req_ctx.target_literals.add(req_ctx.target_key)
         if intent_data.get("columns") and isinstance(intent_data["columns"], list):
             req_ctx.columns = [str(c).strip() for c in intent_data["columns"]]
         if intent_data.get("hyperparameters") and isinstance(intent_data["hyperparameters"], dict):
@@ -427,8 +427,8 @@ def run_prompt(request: Union[RunRequest, Dict[str, Any], str]) -> RunResponse:
         except Exception as _bridge_err:
             logger.debug(f"Deterministic bridge insertion failed: {_bridge_err}")
 
-    # Layer 5 Self-Repair for Pre-Flight Lint Violations (Profile C/E)
-    if lint_violations and _active_profile in ("C", "E"):
+    # Layer 5 Self-Repair for Pre-Flight Lint Violations
+    if lint_violations and ModelManager.get_instance().can_feedback_check():
         mm = ModelManager.get_instance()
         if mm.profile and mm.can_feedback_check():
             err_msg = "Pre-flight lint validation failed:\n" + "\n".join(f"- {v}" for v in lint_violations)

@@ -846,8 +846,8 @@ class PipelineDebugger:
             l0_table.add_row(f"Translator Output ({t_trans:.1f}ms)", f"[italic magenta]{effective_prompt}[/italic magenta]")
         elif prof == "S" and intent_data:
             task_str = intent_data.get("task", "generic")
-            tgt_col = intent_data.get("target_column", "")
-            tgt_info = f" | Target: {tgt_col}" if tgt_col else ""
+            tgt_sink = intent_data.get("target_sink", "")
+            tgt_info = f" | Target: {tgt_sink}" if tgt_sink else ""
             l0_table.add_row(f"Profile S Compiler ({t_trans:.1f}ms)", f"[italic magenta]Task: {task_str}{tgt_info}[/italic magenta]")
         else:
             l0_table.add_row("Translator Pass", "[dim]Bypassed (Active in Profile E/S)[/dim]")
@@ -1075,9 +1075,10 @@ class PipelineDebugger:
 
         dbg_ctx = ExecutionContext(prompt=effective_prompt)
         if intent_data and isinstance(intent_data, dict):
-            tgt = intent_data.get("target_column") or intent_data.get("target_col")
+            tgt = intent_data.get("target_sink") or intent_data.get("target_key")
             if tgt:
-                dbg_ctx.target_col = str(tgt).strip()
+                dbg_ctx.target_key = str(tgt).strip()
+                dbg_ctx.target_literals.add(dbg_ctx.target_key)
             if intent_data.get("columns") and isinstance(intent_data["columns"], list):
                 dbg_ctx.columns = [str(c).strip() for c in intent_data["columns"]]
             if intent_data.get("hyperparameters") and isinstance(intent_data["hyperparameters"], dict):
@@ -1270,8 +1271,8 @@ class PipelineDebugger:
             c.print(diag_table)
             c.print("")
 
-            # Layer 5 Feedback Check for Planning Refusal (Profile C/E or --llm-feedback)
-            llm_feedback = getattr(self, "llm_feedback", False) or (prof in ("C", "E"))
+            # Layer 5 Feedback Check for Planning Refusal (Profile B/C/D/E/S/U or --llm-feedback)
+            llm_feedback = getattr(self, "llm_feedback", False) or (prof in ("B", "C", "D", "E", "S", "U") and ModelManager.get_instance().can_feedback_check())
             if not cells and refusal and llm_feedback:
                 mm = ModelManager.get_instance()
                 if mm.profile and mm.can_feedback_check():
@@ -1609,8 +1610,8 @@ class PipelineDebugger:
                             )
                             c.print(f"  [dim yellow]Deterministic bridge insertion attempt encountered: {type(e).__name__}: {e}[/dim yellow]")
 
-                # Layer 5 Self-Repair for Pre-Flight Lint Violations (Profile C/E or --llm-feedback)
-                llm_feedback = getattr(self, "llm_feedback", False) or (prof in ("C", "E"))
+                # Layer 5 Self-Repair for Pre-Flight Lint Violations (Profile B/C/D/E/S/U or --llm-feedback)
+                llm_feedback = getattr(self, "llm_feedback", False) or (prof in ("B", "C", "D", "E", "S", "U") and ModelManager.get_instance().can_feedback_check())
                 rep_dt = 0.0
                 if not lint_valid and llm_feedback and final_code:
                     mm = ModelManager.get_instance()
@@ -1782,10 +1783,10 @@ class PipelineDebugger:
                     ))
             c.print("")
 
-        # LAYER 5: Self-Repair Cycle (Profile C/E)
+        # LAYER 5: Self-Repair Cycle (Profile B/C/D/E/S/U)
         rep_dt = 0.0
         repaired = False
-        if final_code and not sandbox_res.get("success", False) and prof in ("C", "E"):
+        if final_code and not sandbox_res.get("success", False) and (prof in ("B", "C", "D", "E", "S", "U") and ModelManager.get_instance().can_feedback_check()):
             mm = ModelManager.get_instance()
             if mm.profile and mm.can_feedback_check():
                 err_msg = sandbox_res.get("error", "")
@@ -2280,7 +2281,7 @@ class NSTLInteractiveShell(cmd.Cmd):
 
         if available_emb:
             for m in available_emb:
-                is_active = (m == self.embedder_name and self.active_profile != "0")
+                is_active = (m == self.embedder_name and ModelManager.get_instance().has_embedder())
                 status = "[bold green]ACTIVE[/bold green]" if is_active else "[dim]Available[/dim]"
                 table.add_row("Embedding Model", m, status)
         else:
@@ -2288,7 +2289,7 @@ class NSTLInteractiveShell(cmd.Cmd):
 
         if available_llm:
             for m in available_llm:
-                is_active = (m == self.llm_name and self.active_profile in ("C", "D", "E"))
+                is_active = (m == self.llm_name and ModelManager.get_instance().can_synthesize())
                 status = "[bold green]ACTIVE[/bold green]" if is_active else "[dim]Available[/dim]"
                 table.add_row("LLM (GGUF)", m, status)
         else:
@@ -2352,12 +2353,12 @@ class NSTLInteractiveShell(cmd.Cmd):
         if key in ("embedder", "emb"):
             self.embedder_name = val
             console.print(f"[green][*] Embedder set to '{val}'.[/green]")
-            if self.active_profile != "0":
+            if ModelManager.get_instance().has_embedder():
                 self._switch_profile(self.active_profile, embedder=val)
         elif key == "llm":
             self.llm_name = val
             console.print(f"[green][*] LLM set to '{val}'.[/green]")
-            if self.active_profile in ("C", "D", "E"):
+            if ModelManager.get_instance().can_synthesize():
                 self._switch_profile(self.active_profile, llm=val)
         elif key in ("reranker", "neural_reranker"):
             enabled = val.lower() in ("1", "true", "on", "yes", "enable", "enabled")
@@ -2387,7 +2388,7 @@ class NSTLInteractiveShell(cmd.Cmd):
         elif key == "device":
             self.device = val
             console.print(f"[green][*] Compute device set to '{val}'.[/green]")
-            if self.active_profile != "0":
+            if ModelManager.get_instance().has_embedder() or ModelManager.get_instance().can_synthesize():
                 self._switch_profile(self.active_profile, device=val)
         elif key in ("macros", "macro", "macro_goals"):
             enabled = val.lower() in ("1", "true", "on", "yes", "enable", "enabled")
@@ -2782,8 +2783,8 @@ class NSTLInteractiveShell(cmd.Cmd):
                 effective_prompt = ensure_comprehensive_prompt(prompt, intent_data.get("effective_prompt"))
                 t_trans = (time.perf_counter() - t0_trans) * 1000.0
                 task_str = intent_data.get("task", "generic")
-                tgt_col = intent_data.get("target_column", "")
-                tgt_info = f" | Target: {tgt_col}" if tgt_col else ""
+                tgt_sink = intent_data.get("target_sink", "")
+                tgt_info = f" | Target: {tgt_sink}" if tgt_sink else ""
                 console.print(f"[bold magenta][Profile S Compiler ({t_trans:.1f}ms)][/bold magenta] Task: {task_str}{tgt_info}")
                 if intent_data.get("hyperparameters"):
                     console.print(f"  [dim]Extracted Params: {intent_data['hyperparameters']}[/dim]")
@@ -2792,9 +2793,10 @@ class NSTLInteractiveShell(cmd.Cmd):
         t_route_start = time.perf_counter()
         plan_ctx = ExecutionContext(prompt=effective_prompt)
         if intent_data and isinstance(intent_data, dict):
-            tgt = intent_data.get("target_column") or intent_data.get("target_col")
+            tgt = intent_data.get("target_sink") or intent_data.get("target_key")
             if tgt:
-                plan_ctx.target_col = str(tgt).strip()
+                plan_ctx.target_key = str(tgt).strip()
+                plan_ctx.target_literals.add(plan_ctx.target_key)
             if intent_data.get("columns") and isinstance(intent_data["columns"], list):
                 plan_ctx.columns = [str(c).strip() for c in intent_data["columns"]]
             if intent_data.get("hyperparameters") and isinstance(intent_data["hyperparameters"], dict):
@@ -2853,8 +2855,8 @@ class NSTLInteractiveShell(cmd.Cmd):
                 for w in lint_res.warnings:
                     console.print(f"  [yellow]• {w}[/yellow]")
 
-            # Layer 5 Self-Repair for Pre-Flight Lint Violations (Profile C/E)
-            if not lint_valid and getattr(self, "active_profile", getattr(self, "profile", "")) in ("C", "E") and final_code:
+            # Layer 5 Self-Repair for Pre-Flight Lint Violations (Profile B/C/D/E/S/U)
+            if not lint_valid and (getattr(self, "active_profile", getattr(self, "profile", "")) in ("B", "C", "D", "E", "S", "U") and ModelManager.get_instance().can_feedback_check()) and final_code:
                 mm = ModelManager.get_instance()
                 if mm.profile and mm.can_feedback_check():
                     err_msg = "Pre-flight lint validation failed:\n" + "\n".join(f"- {v}" for v in lint_res.violations)
@@ -2897,7 +2899,7 @@ class NSTLInteractiveShell(cmd.Cmd):
             sandbox_dt = (time.perf_counter() - t_exec_start) * 1000.0
 
         repaired = False
-        if not sandbox_res.get("success", False) and prof in ("C", "E"):
+        if not sandbox_res.get("success", False) and (prof in ("B", "C", "D", "E", "S", "U") and ModelManager.get_instance().can_feedback_check()):
             mm = ModelManager.get_instance()
             if mm.profile and mm.can_feedback_check():
                 error_msg = sandbox_res.get("error", "")

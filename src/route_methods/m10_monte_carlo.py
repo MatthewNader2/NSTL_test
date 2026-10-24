@@ -297,7 +297,7 @@ class M10MonteCarloRouteMethod(RouteMethod):
         nviol, note = 0, None
         final_cells: List[Cell] = []
         if best_path and cur_reward > 0.0:
-            final_cells = self.insert_column_commits(materialize(best_path), trace=False)
+            final_cells = materialize(best_path)
             try:
                 gate = UnificationGate(orchestrator=orch)
                 run_ctx = ExecutionContext(prompt=prompt)
