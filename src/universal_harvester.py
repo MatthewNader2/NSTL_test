@@ -281,9 +281,9 @@ def _infer_port_role(
         for v in CONVENTIONAL_ESTIMATOR_VERBS
     )
     if is_estimator:
-        if pos_idx == 0 or p_lower in ("x", "x_", "data", "features", "input_data"):
+        if p_lower in ("features", "feature_data", "input_features"):
             return "feature_input"
-        if pos_idx == 1 or p_lower in ("y", "y_", "target", "targets", "labels", "label", "y_true", "y_pred"):
+        if p_lower in ("target", "targets", "labels", "label", "y_true", "y_pred"):
             return "target_input"
 
     # 2. Source Data (reading/loading files or data input)
@@ -297,7 +297,7 @@ def _infer_port_role(
             return "model_sink"
 
     # 4. Data / Structural Input
-    if t_lower in ("dataframe", "table", "dataset") or p_lower in ("df", "dataframe", "data", "graph", "dataset"):
+    if t_lower in ("dataframe", "table", "dataset", "ndarray", "matrix", "tensor") or p_lower in ("df", "dataframe", "data", "graph", "dataset", "x", "y"):
         return "data_input"
 
     # 5. Model Input

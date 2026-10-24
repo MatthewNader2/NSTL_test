@@ -1647,7 +1647,7 @@
           "value_constraints": null,
           "shape_contract": null,
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -1758,7 +1758,7 @@
           "value_constraints": null,
           "shape_contract": null,
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -1870,7 +1870,7 @@
           "value_constraints": null,
           "shape_contract": null,
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -1982,7 +1982,7 @@
           "value_constraints": null,
           "shape_contract": null,
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -7673,7 +7673,7 @@
           "value_constraints": null,
           "shape_contract": null,
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -8000,7 +8000,7 @@
           "value_constraints": null,
           "shape_contract": null,
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -8102,7 +8102,7 @@
           "value_constraints": null,
           "shape_contract": null,
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -8294,7 +8294,7 @@
           "value_constraints": null,
           "shape_contract": null,
           "structure_kind": "tensor",
-          "rank": 2,
+          "rank": null,
           "element_type": "float64",
           "supported_formats": []
         }
@@ -10930,17 +10930,6 @@
       "parent": "format"
     }
   },
-  "egress_intent_tokens": [
-    "save",
-    "export",
-    "write",
-    "dump",
-    "persist",
-    "store",
-    "plot",
-    "show",
-    "display"
-  ],
   "materialization_states": [
     "destination_written",
     "filepath_written",
@@ -10948,35 +10937,6 @@
     "exported",
     "written_to_disk"
   ],
-  "polarity_hints": {
-    "ascending": [
-      "bottom",
-      "lowest",
-      "smallest",
-      "minimum",
-      "min",
-      "worst",
-      "least",
-      "ascending",
-      "asc",
-      "fewest"
-    ],
-    "descending": [
-      "top",
-      "highest",
-      "largest",
-      "biggest",
-      "greatest",
-      "maximum",
-      "max",
-      "best",
-      "most",
-      "descending",
-      "desc",
-      "newest",
-      "latest"
-    ]
-  },
   "asset_placeholders": {
     "image": "input_image.png"
   },

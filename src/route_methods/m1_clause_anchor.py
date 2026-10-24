@@ -217,6 +217,7 @@ class M1ClauseAnchorRouteMethod(RouteMethod):
 
         # 4. Monadic pipeline validation check: if broken, fallback to LatticePlanner
         if orch and routed_path:
+            routed_path = self.insert_property_bridges(routed_path, prompt=prompt, ctx=ctx)
             is_broken = False
             try:
                 try:

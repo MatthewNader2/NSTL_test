@@ -39,14 +39,6 @@ class SemanticBlackboard:
     cell_slot_locks: Dict[str, Dict[str, Any]] = field(default_factory=dict)
 
     @property
-    def feature_columns(self) -> List[str]:
-        return self.projected_keys
-
-    @feature_columns.setter
-    def feature_columns(self, val: List[str]) -> None:
-        self.projected_keys = list(val)
-
-    @property
     def hyperparameters(self) -> Dict[str, Any]:
         return self.parameters
 
@@ -60,18 +52,13 @@ class SemanticBlackboard:
         self.locked_by_neural = True
         tgt = (
             intent_data.get("target_sink")
-            or intent_data.get("target")
             or intent_data.get("sink")
-            or intent_data.get("target_column")
-            or intent_data.get("target_col")
         )
         if tgt:
             self.target_sink = str(tgt).strip()
         keys = (
             intent_data.get("projected_keys")
             or intent_data.get("keys")
-            or intent_data.get("columns")
-            or intent_data.get("features")
         )
         if isinstance(keys, list) and keys:
             self.projected_keys = [str(c).strip() for c in keys if str(c).strip()]

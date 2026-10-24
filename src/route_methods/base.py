@@ -987,130 +987,9 @@ class RouteMethod(ABC):
                 return False
         return True
 
-    def _find_lens_commit_cell(self, cell: Cell, reg: Any) -> Optional[Cell]:
-        if self.orchestrator is None:
-            return None
-        loaded = getattr(self.orchestrator, "loaded_cells", {}) or {}
-        target_domain = getattr(cell, "domain_name", "") or ""
-        carrier_bind_tags = {"data_carrier", "receiver", "carrier"}
-        key_bind_tags = {"key", "column_key", "field_key", "attr_key"}
-        candidates = []
-        for c in loaded.values():
-            if target_domain and getattr(c, "domain_name", "") != target_domain:
-                continue
-            inputs = getattr(c, "inputs", {}) or {}
-            has_carrier = any(getattr(p, "binds", None) in carrier_bind_tags or getattr(p, "port_role", None) in ("receiver", "carrier") for p in inputs.values())
-            has_key = any(getattr(p, "binds", None) in key_bind_tags for p in inputs.values())
-            has_val = any(getattr(p, "binds", None) == "assigned_value" for p in inputs.values())
-            if has_carrier and has_key and has_val:
-                candidates.append(c)
-        if candidates:
-            return candidates[0]
-        for c in loaded.values():
-            inputs = getattr(c, "inputs", {}) or {}
-            has_carrier = any(getattr(p, "binds", None) in carrier_bind_tags or getattr(p, "port_role", None) in ("receiver", "carrier") for p in inputs.values())
-            has_key = any(getattr(p, "binds", None) in key_bind_tags for p in inputs.values())
-            has_val = any(getattr(p, "binds", None) == "assigned_value" for p in inputs.values())
-            if has_carrier and has_key and has_val:
-                return c
-        return None
-
-    def _get_setter_carrier_type(self, setter: Cell) -> Optional[str]:
-        carrier_bind_tags = {"data_carrier", "receiver", "carrier", "data_output", "output"}
-        for p in (getattr(setter, "inputs", {}) or {}).values():
-            if getattr(p, "binds", None) in carrier_bind_tags or getattr(p, "port_role", None) in ("receiver", "carrier"):
-                return str(getattr(getattr(p, "signature", p), "type_name", "") or "").lower()
-        for p in (getattr(setter, "outputs", {}) or {}).values():
-            if getattr(p, "binds", None) in carrier_bind_tags or getattr(p, "port_role", None) in ("data_output", "receiver", "carrier"):
-                return str(getattr(getattr(p, "signature", p), "type_name", "") or "").lower()
-        if getattr(setter, "primary_output", None) is not None:
-            return str(getattr(getattr(setter.primary_output, "signature", setter.primary_output), "type_name", "") or "").lower()
-        return None
-
-    def _consumes_carrier(self, cell: Cell, carrier_type: Optional[str], reg: Any) -> bool:
-        if not carrier_type:
-            return False
-        for p in (getattr(cell, "inputs", {}) or {}).values():
-            tn = str(getattr(getattr(p, "signature", p), "type_name", "") or "").lower()
-            if tn and (tn == carrier_type or reg.is_subtype(tn, carrier_type) or reg.is_subtype(carrier_type, tn)):
-                return True
-            ab = str(getattr(getattr(p, "signature", p), "abstract_type", "") or "").lower()
-            if ab and reg.is_subtype(carrier_type, ab):
-                return True
-        return False
-
     def insert_column_commits(self, path: List[Cell], trace: bool = True) -> List[Cell]:
-        """
-        Universal Lens Commit Lifting:
-        Commits projected component transformations back into their parent composite carrier.
-
-        Any morphism that transforms a projected component of a composite carrier
-        (cell.effects intersecting verification_semantics component_transform_effects / column_transform_effects)
-        produces a new component value. When a downstream morphism consumes the parent
-        composite carrier C, inserts the domain's declared setter morphism μ: C x K x V -> C
-        right after it, scoped to the same clause and literal.
-        """
-        try:
-            from lattice import TypeRegistry
-            reg = TypeRegistry.get_instance()
-            effects = {
-                str(e).lower()
-                for key in ("component_transform_effects", "column_transform_effects")
-                for e in (reg.get_verification_semantics(key) or ())
-            }
-        except Exception:
-            return path
-        if not effects or self.orchestrator is None:
-            return path
-
-        out = list(path)
-        i = 0
-        while i < len(out):
-            c = out[i]
-            lits = getattr(c, "clause_literals", None)
-            c_fx = {str(e).lower() for e in (getattr(c, "effect_names", lambda: [])() or getattr(c, "effects", None) or [])}
-            if (c_fx & effects) and lits:
-                proto = self._find_lens_commit_cell(c, reg)
-                if proto is not None:
-                    nxt_is_commit = i + 1 < len(out) and out[i + 1].cell_id == proto.cell_id
-                    carrier_tn = self._get_setter_carrier_type(proto)
-                    if carrier_tn and not nxt_is_commit and any(self._consumes_carrier(x, carrier_tn, reg) for x in out[i + 1:]):
-                        downstream_misplaced_idx = None
-                        for dj, dcell in enumerate(out[i + 1:], start=i + 1):
-                            if dcell.cell_id == proto.cell_id:
-                                pw = getattr(dcell, "planned_port_wires", {}) or {}
-                                val_src = pw.get("value", (None, None))[0]
-                                if val_src is not None and getattr(val_src, "cell_id", None) == c.cell_id:
-                                    downstream_misplaced_idx = dj
-                                    break
-                                elif getattr(dcell, "clause_literals", None) == list(lits):
-                                    downstream_misplaced_idx = dj
-                                    break
-
-                        commit = proto.clone() if hasattr(proto, "clone") else proto
-                        commit.matched_clause_idx = getattr(c, "matched_clause_idx", None)
-                        commit.clause_literals = list(lits)
-
-                        if downstream_misplaced_idx is not None:
-                            trial = out[:i + 1] + [commit] + out[i + 1:downstream_misplaced_idx] + out[downstream_misplaced_idx + 1:]
-                        else:
-                            trial = out[: i + 1] + [commit] + out[i + 1:]
-
-                        if self.chain_is_valid(trial, prompt=getattr(self, "prompt", None)):
-                            if trace:
-                                self._trace("lens_commit_inserted", after=c.cell_id, commit=commit.cell_id, key=list(lits),
-                                            carrier=carrier_tn, reason="component transform is followed by carrier-consuming cell")
-                            out = trial
-                            i += 1
-                        else:
-                            if trace:
-                                self._trace("lens_commit_blocked", after=c.cell_id, commit=proto.cell_id,
-                                            reason="chain would not unify with the lens commit cell inserted")
-            i += 1
-        try:
-            return OpenPortFrontier.build_dag_plan(out)
-        except Exception:
-            return out
+        """No-op pass-through: Universal morphism graphs do not perform tabular lens commit surgery."""
+        return path
 
     def insert_property_bridges(
         self,
@@ -1126,6 +1005,20 @@ class RouteMethod(ABC):
         """
         if not path or self.orchestrator is None:
             return path
+
+        # Step 1: Precondition & Typestate Bridge Closure via find_shortest_bridge_path
+        bridged_path: List[Cell] = []
+        for c in path:
+            if not bridged_path:
+                bridged_path.append(c)
+            else:
+                prev_c = bridged_path[-1]
+                if not self.orchestrator.cells_directly_unify(prev_c, c):
+                    bridges = self.orchestrator.find_shortest_bridge_path(prev_c, c)
+                    bridged_path.extend(bridges)
+                bridged_path.append(c)
+        path = bridged_path
+
         try:
             try:
                 from ..unification import analyze_property_contracts as _prop_analyze

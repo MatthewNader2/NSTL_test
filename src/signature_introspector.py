@@ -799,7 +799,7 @@ def extract_shape_contract(text: str) -> Optional[Dict[str, Any]]:
         }
         array_context_words = tensor_types | rank_tokens
     except Exception:
-        array_context_words = {"tensor", "array", "matrix", "vector", "ndim", "dimension", "dims", "dim"}
+        array_context_words = set()
     for i, tok in enumerate(tokens):
         rank = None
         if tok.endswith("d") and tok[:-1].isdigit():
@@ -812,7 +812,7 @@ def extract_shape_contract(text: str) -> Optional[Dict[str, Any]]:
                 idx = i + offset
                 if 0 <= idx < len(tokens):
                     t = tokens[idx].strip(",.()")
-                    if t in array_context_words or t.startswith(("array", "tensor", "matrix", "ndim")):
+                    if t in array_context_words:
                         has_context = True
                         break
             if has_context:

@@ -335,22 +335,7 @@ class LatticeRouter:
     ) -> Dict[Cell, float]:
         """Computes length-normalized, IDF-weighted lexical scores for a query clause."""
         q_tokens = CellTokenizer.tokenize_prompt(text)
-        reg = TypeRegistry.get_instance()
-        try:
-            from .config import settings as _settings
-            is_p0 = getattr(_settings, "profile", "0") == "0"
-        except Exception:
-            try:
-                from config import settings as _settings
-                is_p0 = getattr(_settings, "profile", "0") == "0"
-            except Exception:
-                is_p0 = False
-        if is_p0:
-            eval_tokens = q_tokens
-        else:
-            stop = set(reg.get_function_words()) | set(reg.get_sentence_connectives())
-            content_tokens = {t for t in q_tokens if t not in stop and reg.is_informative_token(t)}
-            eval_tokens = content_tokens if content_tokens else q_tokens
+        eval_tokens = q_tokens
         q_len = max(len(text.split()), len(eval_tokens), 1)
         inv_q_len = 1.0 / q_len
         clause_scores: Dict[Cell, float] = {}
@@ -1386,6 +1371,15 @@ class LatticeRouter:
                 goal_sig=goal_sig
             )
 
+        # Universal Precondition & Typestate Bridge Closure
+        if path:
+            try:
+                from route_methods.base import get_route_method
+                _base_rm = get_route_method("m0", orchestrator=self.orchestrator)
+                path = _base_rm.insert_property_bridges(path, prompt=prompt, ctx=ctx)
+            except Exception as _b_err:
+                logger.debug(f"[ROUTER] Initial precondition bridge closure failed: {_b_err}")
+
         # ------------------------------------------------------------------ #
         # Recursive Coalgebraic Goal Unfolding (Unified Fixpoint Rule)
         # ------------------------------------------------------------------ #
@@ -1427,21 +1421,21 @@ class LatticeRouter:
                     from .inference import ModelManager
                 mm = ModelManager.get_instance()
                 has_generative = (
-                    mm.active_profile is not None
-                    and getattr(mm, "current_profile_name", "") not in ("0", "A")
-                    and (mm.can_synthesize() or hasattr(mm.active_profile, "decompose_goal") or getattr(mm.active_profile, "llm", None) is not None)
+                    mm is not None
+                    and mm.active_profile is not None
+                    and mm.can_synthesize()
                 )
             except Exception:
                 has_generative = False
                 mm = None
 
             if not has_generative:
-                # Profile 0 & Profile A: psi(g) is a null operator (empty set)
-                # Preserves scientific negative-control integrity
+                # When generative synthesis is disabled, psi(g) is a null operator (empty set).
+                # Preserves scientific negative-control integrity.
                 route_trace.append({
                     "event": "coalgebraic_unfolding_null",
                     "residual": residual,
-                    "reason": "Profile 0/A null decomposition operator (scientific baseline)",
+                    "reason": "Generative synthesis disabled (null decomposition operator)",
                 })
             else:
                 subgoals = self._decompose_goal_coalgebraic(prompt, self.orchestrator, mm)
@@ -1501,7 +1495,6 @@ class LatticeRouter:
                 from route_methods.m1_clause_anchor import M1ClauseAnchorRouteMethod as _Util2
                 _util2 = _Util2(orchestrator=self.orchestrator)
                 _util2.prompt = prompt
-                path = _util2.insert_column_commits(path)
                 path = _util2.insert_property_bridges(path, prompt=prompt, ctx=ctx)
                 route_trace = list(route_trace) + list(_util2.trace_events)
             except Exception as _tc_err:

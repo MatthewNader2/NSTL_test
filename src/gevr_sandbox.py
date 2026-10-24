@@ -44,6 +44,15 @@ except (ImportError, ValueError):
     except Exception:
         settings = None
 
+try:
+    from .utils import extract_template_placeholders
+except (ImportError, ValueError):
+    try:
+        from utils import extract_template_placeholders
+    except Exception:
+        def extract_template_placeholders(template: str) -> List[str]:
+            return []
+
 logger = logging.getLogger(__name__)
 
 
@@ -828,8 +837,10 @@ def _derive_io_call_signatures() -> Tuple[Set[str], Set[str], Set[str], Set[str]
             if not path_ports:
                 continue
 
-            # Replace {ph} with _nstl_ph_ph so ast.parse succeeds on code templates
-            parsed_tpl_code = re.sub(r'\{([a-zA-Z_][a-zA-Z0-9_]*)\}', r'_nstl_ph_\1', tpl)
+            # Replace {ph} with _nstl_ph_ph so ast.parse succeeds on code templates without regex
+            parsed_tpl_code = tpl
+            for ph in extract_template_placeholders(tpl):
+                parsed_tpl_code = parsed_tpl_code.replace(f"{{{ph}}}", f"_nstl_ph_{ph}")
             try:
                 c_ast = ast.parse(parsed_tpl_code)
             except Exception:

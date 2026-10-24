@@ -16,47 +16,6 @@
   "top_level_carriers": [
     "path"
   ],
-  "path_port_tokens": [
-    "path",
-    "filepath",
-    "filename",
-    "pathlike",
-    "uri",
-    "url",
-    "file",
-    "source_path",
-    "file_path",
-    "image_path",
-    "dest_path",
-    "savepath",
-    "output_path",
-    "target_path"
-  ],
-  "source_port_tokens": [
-    "source",
-    "source_path",
-    "source_file",
-    "filepath",
-    "filename",
-    "input_file",
-    "image_path",
-    "file_path",
-    "file"
-  ],
-  "dest_port_tokens": [
-    "called",
-    "named",
-    "as",
-    "labeled",
-    "titled",
-    "new",
-    "dest_path",
-    "savepath",
-    "output_path",
-    "dest_identifier",
-    "target_path",
-    "output_file"
-  ],
   "carrier_roles": {
     "source_data": [
       "path",

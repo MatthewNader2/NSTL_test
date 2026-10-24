@@ -22,183 +22,19 @@ from typing import Set, FrozenSet, List
 
 
 # --------------------------------------------------------------------------- #
-# Opt-in English morphological normalizer
+# Universal token normalizer
 # --------------------------------------------------------------------------- #
 
-#: Set to False to disable English Porter-class stemming entirely. When
-#: disabled, tokens are emitted verbatim (lowercased) with no suffix stripping.
-ENABLE_ENGLISH_STEMMING: bool = True
-
-
-_VOWELS = frozenset("aeiou")
-
-
-def _is_vowel(ch: str) -> bool:
-    return ch.lower() in _VOWELS
-
-
-def _is_ascii_alpha_token(s: str) -> bool:
-    """True iff every character of `s` is an ASCII letter (a-z / A-Z)."""
-    if not s:
-        return False
-    for c in s:
-        if not (c.isascii() and c.isalpha()):
-            return False
-    return True
-
-
-def _measure(stem: str) -> int:
-    """
-    Porter measure m: the number of VC sequences in <C?(VC){m}V?{0,2}>...
-    Computed as the count of vowel-to-consonant transitions over the sequence
-    of vowel/consonant classes of the word.
-    """
-    m = 0
-    prev_vowel = False
-    for ch in stem.lower():
-        if ch.isalpha():
-            v = _is_vowel(ch)
-            if prev_vowel and not v:
-                m += 1
-            prev_vowel = v
-    return m
-
-
-def _contains_vowel(stem: str) -> bool:
-    return any(_is_vowel(c) for c in stem)
-
-
-def _ends_double_consonant(stem: str) -> bool:
-    return (
-        len(stem) >= 2
-        and stem[-1] == stem[-2]
-        and not _is_vowel(stem[-1])
-        and stem[-1].isalpha()
-    )
-
-
-def _ends_cvc(stem: str) -> bool:
-    if len(stem) < 3:
-        return False
-    a, b, c = stem[-3], stem[-2], stem[-1]
-    if not (a.isalpha() and b.isalpha() and c.isalpha()):
-        return False
-    if _is_vowel(c):
-        return False
-    if b not in ("a", "e", "i", "o", "u") and b != "w" and b != "x" and b != "y":
-        return False
-    return not _is_vowel(a)
+ENABLE_ENGLISH_STEMMING: bool = False
 
 
 @functools.lru_cache(maxsize=32768)
 def normalize_token(token: str) -> str:
     """
-    Opt-in English Porter-class stem. Applied ONLY to ASCII-alphabetic tokens
-    when `ENABLE_ENGLISH_STEMMING` is True. All other tokens (non-Latin scripts,
-    digits, symbols, mixed identifiers) are returned lowercased but unchanged.
-
-    Deterministic state machine over suffix transitions; zero regex, zero
-    lexicons. Tokens of length <= 2 are returned unchanged.
+    Pure universal token normalizer: case-folding and whitespace stripping.
+    Zero English stemming or morphological heuristics.
     """
-    w = token.strip().lower()
-    if len(w) <= 2:
-        return w
-
-    # Gate 1: global opt-in.
-    if not ENABLE_ENGLISH_STEMMING:
-        return w
-
-    # Gate 2: English suffix rules only apply to ASCII-alphabetic tokens.
-    if not _is_ascii_alpha_token(w):
-        return w
-
-    # ---------- Step 1a: plurals ----------
-    if w.endswith("sses") or w.endswith("ies"):
-        w = w[:-2]
-    elif w.endswith("ss"):
-        pass
-    elif w.endswith("s") and len(w) > 3 and not w.endswith("us") and not w.endswith("is"):
-        w = w[:-1]
-
-    # ---------- Step 1b: -ed / -ing ----------
-    flag_1b = False
-    if w.endswith("eed"):
-        if _measure(w[:-3]) > 0:
-            w = w[:-1]
-    elif w.endswith("ed"):
-        if _contains_vowel(w[:-2]):
-            w = w[:-2]
-            flag_1b = True
-    elif w.endswith("ing"):
-        if _contains_vowel(w[:-3]):
-            w = w[:-3]
-            flag_1b = True
-
-    if flag_1b:
-        if w.endswith(("at", "bl", "iz")):
-            w += "e"
-        elif _ends_double_consonant(w) and w[-1] not in ("l", "s", "z"):
-            w = w[:-1]
-        elif _measure(w) == 1 and _ends_cvc(w):
-            w += "e"
-
-    # ---------- Step 1c: final y ----------
-    if w.endswith("y") and _contains_vowel(w[:-1]):
-        w = w[:-1] + "i"
-
-    # ---------- Step 2: double suffix reductions (m > 0 on the stem) ----------
-    step2 = (
-        ("ational", "ate"), ("tional", "tion"), ("enci", "ence"), ("anci", "ance"),
-        ("izer", "ize"), ("abli", "able"), ("alli", "al"), ("entli", "ent"),
-        ("eli", "e"), ("ousli", "ous"), ("ization", "ize"), ("ation", "ate"),
-        ("ator", "ate"), ("alism", "al"), ("iveness", "ive"), ("fulness", "ful"),
-        ("ousness", "ous"), ("aliti", "al"), ("iviti", "ive"), ("biliti", "ble"),
-    )
-    for suffix, repl in step2:
-        if w.endswith(suffix):
-            stem = w[: -len(suffix)]
-            if _measure(stem) > 0:
-                w = stem + repl
-            break
-
-    # ---------- Step 3: -ic/-full/-ness etc. ----------
-    step3 = (
-        ("icate", "ic"), ("ative", ""), ("alize", "al"), ("iciti", "ic"),
-        ("ical", "ic"), ("ful", ""), ("ness", ""),
-    )
-    for suffix, repl in step3:
-        if w.endswith(suffix):
-            stem = w[: -len(suffix)]
-            if _measure(stem) > 0:
-                w = stem + repl
-            break
-
-    # ---------- Step 4: residual suffixes (m > 1) ----------
-    step4 = (
-        "al", "ance", "ence", "er", "or", "ic", "able", "ible", "ant", "ement",
-        "ment", "ent", "ion", "ou", "ism", "ate", "iti", "ous", "ive", "ize",
-    )
-    for suffix in step4:
-        if w.endswith(suffix):
-            stem = w[: -len(suffix)]
-            if _measure(stem) > 1:
-                if suffix == "ion" and stem and stem[-1] not in ("s", "t"):
-                    break  # ion only after s/t
-                w = stem
-            break
-
-    # ---------- Step 5a: final silent e ----------
-    if w.endswith("e"):
-        stem = w[:-1]
-        m = _measure(stem)
-        if m > 1 or (m == 1 and not _ends_cvc(stem)):
-            w = stem
-
-    # ---------- Step 5b: double l ----------
-    if w.endswith("ll") and _measure(w) > 1:
-        w = w[:-1]
-
-    return w
+    return token.strip().lower()
 
 
 # (apply_fixes_v7) Alias expansion. Tree JSON declares aliases; tokenizer
@@ -365,14 +201,9 @@ class CellTokenizer:
     @classmethod
     def split_prompt_clauses(cls, prompt: str) -> List[str]:
         """
-        Splits a prompt into logical action clauses without breaking inside quotes,
-        brackets, filter expressions (e.g. 'x > 10 and y < 20'), or compound nouns.
-        Deterministic, syntax-aware, zero external dependencies.
-
-        Verb-anchored splits are driven EXCLUSIVELY by the TypeRegistry operation
-        token pools; the sequencing / coordinating / filter-context word classes are
-        DECLARED vocabulary harvested from the domain trees (never engine literals).
-        When the TypeRegistry is unavailable, only punctuation-based splits apply.
+        Splits a prompt into logical action clauses strictly on universal punctuation
+        ('.', ';', ',', '\n', '->', '➔') without breaking inside quotes or brackets.
+        Zero English connective lists, zero grammar heuristics, zero word-window lookbacks.
         """
         if not prompt or not prompt.strip():
             return []
@@ -429,40 +260,12 @@ class CellTokenizer:
         if cur and w_start is not None:
             raw_words.append((w_start, len(text), "".join(cur)))
 
-        # Resolve target operation verbs dynamically from TypeRegistry.
-        try:
-            from .lattice import TypeRegistry
-        except (ImportError, ValueError):
-            try:
-                from lattice import TypeRegistry
-            except (ImportError, ValueError):
-                TypeRegistry = None
-
-        reg = TypeRegistry.get_instance() if TypeRegistry is not None else None
-        if reg is not None:
-            target_verbs = (
-                reg.get_operation_tokens()
-                | reg.get_estimator_verbs()
-                | reg.get_egress_tokens()
-            )
-            sequencing_words = set(reg.get_sequencing_connectives())
-            if not sequencing_words:
-                sequencing_words = set(reg.get_sentence_connectives())
-            coordinating_words = set(reg.get_coordinating_conjunctions())
-            filter_context_words = set(reg.get_filter_context_tokens())
-        else:
-            target_verbs = set()
-            sequencing_words = set()
-            coordinating_words = set()
-            filter_context_words = set()
-
-        # 3. Detect clause boundaries
+        # 3. Detect clause boundaries strictly on universal punctuation
         split_positions = set()
         for idx, (s, e, w) in enumerate(raw_words):
             if _is_inside_protected(s) and _is_inside_protected(e - 1):
                 continue
             clean = w.strip(".,;:!?")
-            clean_lower = clean.lower()
 
             if "->" in w or "➔" in w:
                 split_positions.add(s)
@@ -473,81 +276,32 @@ class CellTokenizer:
                 split_positions.add(e)
                 continue
 
+            if "\n" in w:
+                split_positions.add(e)
+                continue
+
             if w.endswith(".") and idx + 1 < len(raw_words) and not (_is_inside_protected(s) and _is_inside_protected(e - 1)):
                 if not (clean and clean.replace(".", "").isdigit()):
                     split_positions.add(e)
                     continue
 
-            if clean_lower and clean_lower in sequencing_words:
-                split_positions.add(s)
+            if w.endswith(",") and idx + 1 < len(raw_words) and not (_is_inside_protected(s) and _is_inside_protected(e - 1)):
+                split_positions.add(e)
                 continue
 
-            if clean_lower and clean_lower in coordinating_words:
-                in_filter = False
-                for back in range(max(0, idx - 4), idx):
-                    bw = raw_words[back][2].lower()
-                    if any(op in bw for op in (">", "<", "==", "!=", ">=", "<=")):
-                        in_filter = True
-                        break
-                    if bw and bw in filter_context_words:
-                        in_filter = True
-                        break
-                if not in_filter:
-                    prev_ends_comma = idx > 0 and raw_words[idx - 1][2].endswith(",")
-                    next_word = (
-                        raw_words[idx + 1][2].lower().strip(".,;:")
-                        if idx + 1 < len(raw_words) else ""
-                    )
-                    if prev_ends_comma or next_word in target_verbs:
-                        split_positions.add(s)
-                        continue
-
-            if w.endswith(",") and idx + 1 < len(raw_words):
-                next_word = raw_words[idx + 1][2].lower().strip(".,;:")
-                if next_word in target_verbs or (next_word and next_word in sequencing_words):
-                    split_positions.add(e)
-                    continue
-
         if not split_positions:
-            if not coordinating_words and not sequencing_words:
-                try:
-                    from experiments import corpus_idf_split_clauses
-                    idf_clauses = corpus_idf_split_clauses(text)
-                    if len(idf_clauses) > 1:
-                        return idf_clauses
-                except Exception:
-                    pass
             return [text]
-
-        strip_words = set(coordinating_words) | set(sequencing_words)
-        if not strip_words and reg is not None:
-            strip_words = set(reg.get_sentence_connectives())
-        if not strip_words:
-            strip_words = set()
-
-        def _strip_leading_connectives(chunk_text: str) -> str:
-            chunk_text = chunk_text.strip(" ,;:\n\t->➔")
-            changed = True
-            while changed:
-                changed = False
-                parts = chunk_text.split(None, 1)
-                if parts:
-                    first_w = parts[0].lower().strip(" ,;:\n\t->➔")
-                    if first_w in strip_words or first_w in ("->", "➔"):
-                        chunk_text = parts[1].strip(" ,;:\n\t->➔") if len(parts) > 1 else ""
-                        changed = True
-            return chunk_text
 
         sorted_splits = sorted(list(split_positions))
         clauses = []
         last_pos = 0
         for pos in sorted_splits:
-            chunk = _strip_leading_connectives(text[last_pos:pos])
+            chunk = text[last_pos:pos].strip(" ,;:\n\t->➔")
             if chunk:
                 clauses.append(chunk)
             last_pos = pos
 
-        tail = _strip_leading_connectives(text[last_pos:])
+        tail = text[last_pos:].strip(" ,;:\n\t->➔")
         if tail:
             clauses.append(tail)
 

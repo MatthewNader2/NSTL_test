@@ -4,15 +4,6 @@
   "aliases": {
     "pd": "pandas"
   },
-  "column_projection_tokens": [
-    "column",
-    "columns",
-    "col",
-    "feature",
-    "features",
-    "projection",
-    "fields"
-  ],
   "abstract_carriers": [
     "table"
   ],
@@ -25,7 +16,7 @@
     "table"
   ],
   "carrier_roles": {
-    "feature_input": [
+    "data_input": [
       "table",
       "DataFrame"
     ]
@@ -11611,7 +11602,7 @@
           "param_kind": "positional_or_keyword",
           "value_constraints": null,
           "shape_contract": "(n_samples, n_features)",
-          "port_role": "feature_input",
+          "port_role": "data_output",
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -12888,17 +12879,6 @@
       "parent": "object"
     }
   },
-  "egress_intent_tokens": [
-    "save",
-    "export",
-    "write",
-    "dump",
-    "persist",
-    "store",
-    "plot",
-    "show",
-    "display"
-  ],
   "materialization_states": [
     "destination_written",
     "filepath_written",
@@ -12906,35 +12886,6 @@
     "exported",
     "written_to_disk"
   ],
-  "polarity_hints": {
-    "ascending": [
-      "bottom",
-      "lowest",
-      "smallest",
-      "minimum",
-      "min",
-      "worst",
-      "least",
-      "ascending",
-      "asc",
-      "fewest"
-    ],
-    "descending": [
-      "top",
-      "highest",
-      "largest",
-      "biggest",
-      "greatest",
-      "maximum",
-      "max",
-      "best",
-      "most",
-      "descending",
-      "desc",
-      "newest",
-      "latest"
-    ]
-  },
   "mock_fixtures": [
     {
       "match_type_tokens": [

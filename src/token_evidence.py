@@ -74,10 +74,25 @@ class TokenEvidence:
 
     def clause_tokens(self, clause: str) -> Set[str]:
         skip = self._non_evidence()
-        return {
+        toks = {
             t for t in CellTokenizer.tokenize_prompt(clause)
             if len(t) > 2 and self.idf(t) > 0.0 and self._identity_df.get(t, 0) > 0 and t not in skip
         }
+        try:
+            from unification import ExecutionContext
+            lits = ExecutionContext._extract_universal_literals(clause)
+            lit_toks = set()
+            for _, kind, val in lits:
+                if kind in ("file_asset", "quoted_str", "numeric"):
+                    for t in CellTokenizer.tokenize_identifier(str(val)):
+                        lit_toks.add(t.lower())
+            if lit_toks:
+                rem = toks - lit_toks
+                if rem:
+                    return rem
+        except Exception:
+            pass
+        return toks
 
     def identity_overlap(self, clause_toks: Set[str], cell: Any) -> Dict[str, float]:
         """Evidence a clause gives for a cell.

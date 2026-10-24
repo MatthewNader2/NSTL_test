@@ -139,12 +139,7 @@ def _get_symbol_stopwords() -> Set[str]:
                 return set(sw)
     except Exception:
         pass
-    return {
-        "the", "a", "an", "and", "or", "not", "for", "in", "to", "of", "by", "with",
-        "from", "at", "on", "as", "is", "be", "see", "one", "all", "any", "each",
-        "none", "true", "false", "list", "set", "dict", "tuple", "optional", "default",
-        "either", "valid", "values", "value", "type", "types", "more", "details"
-    }
+    return set()
 
 
 def _is_python_source_module(module: Any) -> bool:

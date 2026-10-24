@@ -977,25 +977,7 @@ def _resolve_direction_is_max(cell: Any, bindings: Dict[str, Any]) -> bool:
     if raw is None:
         return True
     s = str(raw).strip().strip("'\"").lower()
-    try:
-        try:
-            from .lattice import TypeRegistry
-        except (ImportError, ValueError):
-            from lattice import TypeRegistry
-        reg = TypeRegistry.get_instance()
-        desc_hints = {str(h).lower() for h in reg.get_polarity_hints("descending")} | {
-            "true", "max", "maximum", "argmax", "gt", ">", "1", "desc", "descending"
-        }
-        asc_hints = {str(h).lower() for h in reg.get_polarity_hints("ascending")} | {
-            "false", "min", "minimum", "argmin", "lt", "<", "0", "asc", "ascending"
-        }
-    except Exception:
-        desc_hints = {"true", "max", "maximum", "argmax", "gt", ">", "1", "desc", "descending"}
-        asc_hints = {"false", "min", "minimum", "argmin", "lt", "<", "0", "asc", "ascending"}
-
-    if s in desc_hints:
-        return True
-    if s in asc_hints:
+    if s in ("false", "0"):
         return False
     return True
 

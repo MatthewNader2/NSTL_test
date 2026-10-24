@@ -69,34 +69,7 @@ MATERIALIZATION_OUTPUT_STATES = DynamicMaterializationStates()
 
 
 def _is_col_projection_port(p_sig: Any) -> bool:
-    """Structural column-projection port test: declared state or declared
-    list-carrier with projection vocabulary in the DECLARED state tokens.
-    No cell-id substrings."""
-    cached = getattr(p_sig, "_cached_col_proj", None)
-    if cached is not None:
-        return cached
-    st = str(getattr(getattr(p_sig, "signature", p_sig), "state", "")).lower()
-    if st == "column_projection":
-        try:
-            p_sig._cached_col_proj = True
-        except (AttributeError, TypeError):
-            pass
-        return True
-    tname = str(getattr(getattr(p_sig, "signature", p_sig), "type_name", "")).lower()
-    arr_types = registry.get_verification_semantics("array_types") or ("ndarray", "tensor", "matrix", "array")
-    if (registry.is_subtype(tname, "list") or registry.is_subtype(tname, "sequence")) and not any(registry.is_subtype(tname, a) for a in arr_types):
-        st_tokens = set(CellTokenizer.tokenize_identifier(st))
-        proj_tokens = TypeRegistry.get_instance().get_column_projection_tokens()
-        if st_tokens & proj_tokens:
-            try:
-                p_sig._cached_col_proj = True
-            except (AttributeError, TypeError):
-                pass
-            return True
-    try:
-        p_sig._cached_col_proj = False
-    except (AttributeError, TypeError):
-        pass
+    """Universal morphism graphs do not special-case column projections."""
     return False
 
 
@@ -106,27 +79,7 @@ def _is_carrier_projectable_port(
     quoted_str_literals: Sequence[Any] = (),
     identifier_literals: Sequence[Any] = ()
 ) -> bool:
-    p_role = getattr(p_sig, "port_role", None) or getattr(p_sig, "derived_role", "")
-    if not p_role and hasattr(p_sig, "derive_port_role"):
-        p_role = p_sig.derive_port_role()
-    projective_roles = {"target_input", "feature_input", "projection"}
-    reg = TypeRegistry.get_instance()
-    try:
-        projective_roles |= set(reg.get_verification_semantics("projective_roles"))
-        projective_roles |= set(reg.get_verification_semantics("feature_roles"))
-        projective_roles |= set(reg.get_verification_semantics("target_roles"))
-    except Exception as _exc:
-        logger.debug("[PLANNER DIAGNOSTIC] Suppressed exception: %s", _exc, exc_info=True)
-    if p_role not in projective_roles:
-        return False
-    if not (quoted_str_literals or identifier_literals):
-        return False
-    return any(
-        reg.is_composite_carrier(str(getattr(out_s.signature, "type_name", "")).lower())
-        or reg.is_abstract_carrier(str(getattr(out_s.signature, "type_name", "")).lower())
-        for prev_c in prev_path
-        for out_s in prev_c.outputs.values()
-    )
+    return False
 
 
 _is_table_groundable_target_port = _is_carrier_projectable_port
@@ -1162,7 +1115,7 @@ class LatticePlanner:
                     or reg.is_subtype(tn, "list")
                     or reg.is_subtype(tn, "array-like")
                 )
-                if r in ("column_projection", "columns") or is_coll:
+                if is_coll:
                     has_col_proj = True
                 if reg is not None and reg.is_subtype(tn, "numeric"):
                     has_numeric_port = True
@@ -1270,7 +1223,7 @@ class LatticePlanner:
         return keep, (0 if best_lit >= 1.0 else 1)
 
     def _cells_connect(self, c1: Cell, c2: Cell) -> bool:
-        """Evaluates whether any output of c1 can unify with any input of c2."""
+        """Evaluates whether any output of c1 can unify with any input of c2, or if a bridge connects them."""
         pair = (c1.cell_id, c2.cell_id)
         can_feed = self._cells_connect_cache.get(pair)
         if can_feed is None:
@@ -1282,6 +1235,9 @@ class LatticePlanner:
                 for out_sig in c1.outputs.values()
                 for p_sig in c2.inputs.values()
             )
+            if not can_feed and self.orchestrator and hasattr(self.orchestrator, "find_shortest_bridge_path"):
+                bridge_chain = self.orchestrator.find_shortest_bridge_path(c1, c2, max_hops=3)
+                can_feed = bool(bridge_chain)
             self._cells_connect_cache[pair] = can_feed
         return can_feed
 
@@ -3924,6 +3880,13 @@ class LatticePlanner:
                         break
                 if sub is not None:
                     break
+
+        # 2c. Bridge Fallback: if direct transition fails, check if a valid bridge chain connects prev_cell to cand
+        if sub is None and self.orchestrator and hasattr(self.orchestrator, "find_shortest_bridge_path"):
+            bridges = self.orchestrator.find_shortest_bridge_path(prev_cell, cand, max_hops=3)
+            if bridges:
+                sub = prev_sigma
+                bound_in = cand.primary_input.name
 
         if sub is None:
             return None

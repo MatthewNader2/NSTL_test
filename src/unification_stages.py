@@ -155,7 +155,7 @@ class TypeCoercionStage:
         ctx: ExecutionContext,
         registry: TypeRegistry,
     ) -> Optional[str]:
-        return self.gate._rederive_stale_series(cell, port_name, var_name, ctx, registry)
+        return None
 
 
 class ScopeResolutionStage:

@@ -318,11 +318,13 @@ class TypeRegistry:
 
     def _bootstrap_state_hierarchy(self):
         """Bootstraps universal typestates and materialization state hierarchy from first principles."""
+        for s in ("any", "*", "default", "unregistered", "unbound", "top", "none", "⊤"):
+            self.register_top_state(s)
+            self.register_state(s, None)
         self.register_state("source_identifier", None, carrier_type="str")
         self.register_state("exported", None)
         self.register_state("written_to_disk", "exported")
         self.register_state("saved", "written_to_disk")
-        self.register_state("default", None)
         self.register_identifier_root_states(["source_identifier"])
         self.register_materialization_states(["saved", "written_to_disk", "exported"])
         self.register_terminal_states(["saved", "written_to_disk", "exported"])
@@ -653,11 +655,15 @@ class TypeRegistry:
         if n:
             self._declared_top_states.add(n)
 
-    def is_declared_top_state(self, name: str) -> bool:
+    def is_declared_top_state(self, name: Optional[str]) -> bool:
+        if name is None:
+            return True
         s = str(name).strip()
-        if s in ("⊤", "*", "any"):
+        if not s or s in ("⊤", "*", "any", "default", "unregistered", "unbound", "top", "none"):
             return True
         sl = s.lower()
+        if sl in ("*", "any", "default", "unregistered", "unbound", "top", "none", "⊤"):
+            return True
         if sl in self._declared_top_states or sl.endswith("_generic") or sl.startswith("generic_") or sl == "generic":
             return True
         return False
@@ -738,17 +744,10 @@ class TypeRegistry:
 
     @_locked
     def register_polarity_hints(self, direction: str, hints: Any) -> None:
-        d = str(direction).strip().lower()
-        if d not in self._polarity_hints:
-            self._polarity_hints[d] = set()
-        for h in hints or ():
-            s = str(h).strip().lower()
-            if s and len(s) >= 2:
-                self._polarity_hints[d].add(s)
+        pass
 
     def get_polarity_hints(self, direction: str) -> FrozenSet[str]:
-        d = str(direction).strip().lower()
-        return frozenset(self._polarity_hints.get(d, set()))
+        return frozenset()
 
     def get_declared_role_carriers(self) -> FrozenSet[str]:
         # Roles are declared on ports in trees; collect any that have been seen
@@ -897,24 +896,18 @@ class TypeRegistry:
     # --- Estimator verbs (data-driven from tree declarations) ---
     @_locked
     def register_estimator_verbs(self, verbs: Any) -> None:
-        for v in verbs or ():
-            s = str(v).strip().lower()
-            if s:
-                self._estimator_verbs.add(s)
+        pass
 
     def get_estimator_verbs(self) -> FrozenSet[str]:
-        return frozenset(self._estimator_verbs)
+        return frozenset()
 
     # --- Column projection tokens (data-driven from tree declarations) ---
     @_locked
     def register_column_projection_tokens(self, tokens: Any) -> None:
-        for t in tokens or ():
-            s = str(t).strip().lower()
-            if s:
-                self._column_projection_tokens.add(s)
+        pass
 
     def get_column_projection_tokens(self) -> FrozenSet[str]:
-        return frozenset(self._column_projection_tokens)
+        return frozenset()
 
     def get_format_groups(self) -> FrozenSet[str]:
         """Returns registered format categories (subtypes of 'format' registered in poset)."""
@@ -939,72 +932,48 @@ class TypeRegistry:
     # --- Preposition triggers (data-driven from tree declarations) ---
     @_locked
     def register_preposition_triggers(self, triggers: Any) -> None:
-        for t in triggers or ():
-            s = str(t).strip().lower()
-            if s:
-                self._preposition_triggers.add(s)
+        pass
 
     def get_preposition_triggers(self) -> FrozenSet[str]:
-        return frozenset(self._preposition_triggers)
+        return frozenset()
 
     # --- Sentence connectives (data-driven from tree declarations) ---
     @_locked
     def register_sentence_connectives(self, connectives: Any) -> None:
-        for c in connectives or ():
-            s = str(c).strip().lower()
-            if s:
-                self._sentence_connectives.add(s)
+        pass
 
     def get_sentence_connectives(self) -> FrozenSet[str]:
-        """Declared sentence connectives (trees own the vocabulary). When nothing is
-        declared, return empty set; function words (articles/prepositions) are NOT
-        sentence connectives."""
-        return frozenset(self._sentence_connectives)
+        return frozenset()
 
     # --- Coordinating conjunctions (data-driven from tree declarations) ---
     @_locked
     def register_coordinating_conjunctions(self, words: Any) -> None:
-        for w in words or ():
-            s = str(w).strip().lower()
-            if s:
-                self._coordinating_conjunctions.add(s)
+        pass
 
     def get_coordinating_conjunctions(self) -> FrozenSet[str]:
-        return frozenset(self._coordinating_conjunctions)
+        return frozenset()
 
     # --- Sequencing connectives (data-driven from tree declarations) ---
     @_locked
     def register_sequencing_connectives(self, words: Any) -> None:
-        for w in words or ():
-            s = str(w).strip().lower()
-            if s:
-                self._sequencing_connectives.add(s)
+        pass
 
     def get_sequencing_connectives(self) -> FrozenSet[str]:
-        return frozenset(self._sequencing_connectives)
+        return frozenset()
 
     # --- Filter-context tokens (data-driven from tree declarations) ---
     @_locked
     def register_filter_context_tokens(self, words: Any) -> None:
-        for w in words or ():
-            s = str(w).strip().lower()
-            if s:
-                self._filter_context_tokens.add(s)
+        pass
 
     def get_filter_context_tokens(self) -> FrozenSet[str]:
-        return frozenset(self._filter_context_tokens)
+        return frozenset()
 
     def register_prompt_filler_tokens(self, words: Any) -> None:
-        """Tree-declared prompt words that name no operation (generic verbs, pronouns,
-        placeholders such as 'get', 'perform', 'it'). Lexical evidence ignores them."""
-        for w in (words or []):
-            s = str(w).strip().lower()
-            if s:
-                self._prompt_filler_tokens.add(s)
+        pass
 
     def get_prompt_filler_tokens(self) -> FrozenSet[str]:
-        base = frozenset(self._prompt_filler_tokens) if self._prompt_filler_tokens else frozenset()
-        return base | self.get_function_words()
+        return frozenset()
 
     # --- Verification semantics (data-driven from tree declarations) --------
     @_locked
@@ -1522,7 +1491,14 @@ class TypeRegistry:
         if parent_state:
             p = str(parent_state).strip().lower()
             if p and p != s:
-                self._state_parents[s] = p
+                existing_p = self._state_parents.get(s)
+                if not existing_p:
+                    self._state_parents[s] = p
+                elif existing_p != p:
+                    # If p reaches existing_p, p is tighter/more specific, upgrade to p
+                    if self.state_ancestry_reaches(p, {existing_p}):
+                        self._state_parents[s] = p
+                    # If existing_p already reaches p, existing_p is tighter, keep existing_p
         if carrier_type:
             self._state_carriers[s] = str(carrier_type)
         if properties:
@@ -1535,17 +1511,81 @@ class TypeRegistry:
         """Returns the declared parent_state of a typestate, if any."""
         return self._state_parents.get(str(state).strip().lower())
 
+    @staticmethod
+    def _normalize_prop_key(k: str) -> str:
+        k_l = str(k).strip().lower()
+        if k_l in ("order", "color_order"):
+            return "color_order"
+        return k_l
+
+    def get_state_carrier(self, state: str) -> Optional[str]:
+        """Returns declared or inherited carrier_type for a typestate."""
+        s = str(state).strip().lower()
+        if not s:
+            return None
+        seen: Set[str] = set()
+        curr = s
+        while curr and curr not in seen:
+            seen.add(curr)
+            if curr in self._state_carriers:
+                return self._state_carriers[curr]
+            curr = self._state_parents.get(curr, "")
+        return None
+
     def get_state_properties(self, state: str) -> Dict[str, Any]:
         """Returns the declared verifiable properties of a typestate.
-        Walks the parent chain so refinements inherit base properties."""
-        result: Dict[str, Any] = {}
+        Walks the parent chain from root down to child so refinements inherit
+        base properties while child properties override parent properties."""
+        if not state:
+            return {}
+        chain = []
         seen: Set[str] = set()
         curr = str(state).strip().lower()
         while curr and curr not in seen:
             seen.add(curr)
-            result.update(self._state_properties.get(curr, {}))
+            chain.append(curr)
             curr = self._state_parents.get(curr, "")
+        result: Dict[str, Any] = {}
+        for s in reversed(chain):
+            result.update(self._state_properties.get(s, {}))
         return result
+
+    def has_property_conflict(self, producer_state: str, consumer_state: str) -> bool:
+        """True iff consumer_state requires a non-None property that conflicts
+        with a property declared on producer_state (on the same carrier family)."""
+        p_s = str(producer_state or "").strip().lower()
+        c_s = str(consumer_state or "").strip().lower()
+        if not p_s or not c_s or p_s == c_s:
+            return False
+        p_props = self.get_state_properties(p_s)
+        c_props = self.get_state_properties(c_s)
+        if not p_props or not c_props:
+            return False
+
+        # Carrier family check: only compare properties if on the same carrier family
+        p_car = self.get_state_carrier(p_s)
+        c_car = self.get_state_carrier(c_s)
+        if p_car and c_car:
+            p_car_l, c_car_l = p_car.lower(), c_car.lower()
+            if p_car_l != c_car_l and not self.is_subtype(p_car_l, c_car_l) and not self.is_subtype(c_car_l, p_car_l):
+                return False
+
+        norm_p = {self._normalize_prop_key(k): v for k, v in p_props.items()}
+        norm_c = {self._normalize_prop_key(k): v for k, v in c_props.items()}
+
+        for k, v_c in norm_c.items():
+            if v_c is None:
+                continue
+            if k in norm_p:
+                v_p = norm_p[k]
+                if v_p is None:
+                    continue
+                if isinstance(v_c, str) and isinstance(v_p, str):
+                    if v_c.strip().lower() != v_p.strip().lower():
+                        return True
+                elif v_c != v_p:
+                    return True
+        return False
 
     @_locked
     def state_ancestry_reaches(self, state: str, ancestors: Union[Set[str], FrozenSet[str]]) -> bool:
@@ -1576,57 +1616,73 @@ class TypeRegistry:
 
     def is_state_compatible(
         self,
-        producer_state: str,
-        consumer_state: str,
+        producer_state: Optional[str],
+        consumer_state: Optional[str],
         producer_accepted: Union[Set[str], FrozenSet[str], List[str]] = frozenset(),
         consumer_accepted: Union[Set[str], FrozenSet[str], List[str]] = frozenset(),
         consumer_parent: Optional[str] = None,
         producer_parent: Optional[str] = None,
     ) -> bool:
         """
-        Evaluates typestate compatibility between producer output and consumer input.
-        Rules:
-          1. Wildcard match if either state is 'any' or '*'.
-          2. Exact match (case-insensitive).
-          3. Accept if consumer_state is in producer's accepted_states (or producer_state in consumer's accepted_states).
-          4. Walk parent_state up consumer's declared chain before rejecting.
-          5. Walk parent_state up producer's declared chain before rejecting.
+        Dual-layer typestate compatibility evaluation between producer output and consumer input.
+        - Top/unconstrained states (None, '', 'any', '*', 'default', 'unregistered', 'unbound', 'top')
+          always accept any producer state.
+        - Concrete consumer states require proof: an unconstrained Top producer cannot satisfy them.
+        - Exact match and consumer accepted_states.
+        - Covariant substate compatibility: walks state ancestry.
+        - Property-bundle subsumption (Phi_prod |= Phi_cons): verifies no conflicting properties.
+        - Ingress/egress asset identifier family equivalence.
         """
-        p_state = str(producer_state or "any").strip().lower()
-        c_state = str(consumer_state or "any").strip().lower()
-
-        if (
-            p_state in ("any", "*")
-            or c_state in ("any", "*")
-            or self.is_declared_top_state(c_state)
-        ):
-            return True
-
-        if p_state == c_state:
-            return True
+        p_state = str(producer_state or "").strip().lower()
+        c_state = str(consumer_state or "").strip().lower()
 
         p_acc = {str(s).strip().lower() for s in (producer_accepted or []) if str(s).strip()}
         c_acc = {str(s).strip().lower() for s in (consumer_accepted or []) if str(s).strip()}
 
-        # (a) Accept if producer_state is in consumer's accepted_states (or consumer_state in producer's accepted_states)
-        if p_state in c_acc or c_state in p_acc:
+        # 1. Unconstrained consumer typestate (Phi = Top)
+        if self.is_declared_top_state(c_state) and not c_acc:
             return True
 
-        # Producer is top/generic: can satisfy base states directly under it
-        if self.is_declared_top_state(p_state):
-            if self.get_state_parent(c_state) == p_state:
+        # 2. Unconstrained producer state cannot satisfy constrained consumer
+        if self.is_declared_top_state(p_state) and not self.is_declared_top_state(c_state):
+            if p_state and p_state in c_acc:
                 return True
+            return False
 
-        # (b) Covariant substate compatibility: walk parent_state up producer's declared chain
-        visited_p = set()
-        curr_p = str(producer_parent).strip().lower() if producer_parent else self.get_state_parent(p_state)
-        while curr_p and curr_p not in visited_p:
-            visited_p.add(curr_p)
-            if curr_p == c_state or curr_p in c_acc:
-                return True
-            curr_p = self.get_state_parent(curr_p)
+        # 3. Exact match
+        if p_state and p_state == c_state:
+            return not self.has_property_conflict(p_state, c_state)
 
-        # (c) Ingress/egress asset identifier state equivalence (e.g. source_identifier <-> valid_path / file_path)
+        # 4. Accepted states match
+        if p_state and p_state in c_acc:
+            tgt = c_state if (c_state and not self.is_declared_top_state(c_state)) else None
+            if tgt and self.has_property_conflict(p_state, tgt):
+                return False
+            return True
+        if c_state and c_state in p_acc:
+            return not self.has_property_conflict(p_state, c_state)
+
+        # 5. Covariant substate compatibility: walks declared state ancestry
+        target_ancestors = set()
+        if c_state and not self.is_declared_top_state(c_state):
+            target_ancestors.add(c_state)
+        if consumer_parent:
+            target_ancestors.add(str(consumer_parent).strip().lower())
+        target_ancestors.update(c_acc)
+
+        if p_state and target_ancestors:
+            for tgt in target_ancestors:
+                if self.state_ancestry_reaches(p_state, {tgt}):
+                    if not self.has_property_conflict(p_state, tgt):
+                        return True
+            curr_p = str(producer_parent).strip().lower() if producer_parent else self.get_state_parent(p_state)
+            if curr_p:
+                for tgt in target_ancestors:
+                    if self.state_ancestry_reaches(curr_p, {tgt}):
+                        if not self.has_property_conflict(curr_p, tgt):
+                            return True
+
+        # 6. Ingress/egress asset identifier state equivalence (e.g. source_identifier <-> valid_path / file_path)
         def _get_root_state(s: str) -> str:
             visited = set()
             curr = s
@@ -1638,10 +1694,56 @@ class TypeRegistry:
                 curr = parent
             return curr
 
-        root_p = _get_root_state(p_state)
-        root_c = _get_root_state(c_state)
-        if root_p and root_p == root_c and root_p in self._identifier_root_states:
-            return True
+        if p_state and c_state:
+            root_p = _get_root_state(p_state)
+            root_c = _get_root_state(c_state)
+            if root_p and root_p == root_c and root_p in self._identifier_root_states:
+                return True
+
+        # 7. Positive Cross-Tree Property-Bundle Entailment (Phi_prod |= Phi_cons)
+        if p_state and c_state:
+            terminal_sink_states = {
+                "saved", "closed", "persisted", "sink", "consumed", "destroyed", "released", "freed"
+            }
+            is_p_terminal = p_state in terminal_sink_states or any(p_state.endswith(f"_{ts}") for ts in terminal_sink_states)
+            is_c_terminal = c_state in terminal_sink_states or any(c_state.endswith(f"_{ts}") for ts in terminal_sink_states)
+            if not (is_p_terminal or is_c_terminal):
+                p_props = self.get_state_properties(p_state)
+                c_props = self.get_state_properties(c_state)
+                if p_props and c_props:
+                    p_car = self.get_state_carrier(p_state)
+                    c_car = self.get_state_carrier(c_state)
+                    carrier_compat = True
+                    if p_car and c_car:
+                        p_car_l, c_car_l = p_car.lower(), c_car.lower()
+                        carrier_compat = (
+                            p_car_l == c_car_l
+                            or self.is_subtype(p_car_l, c_car_l)
+                            or self.is_subtype(c_car_l, p_car_l)
+                        )
+                    if carrier_compat:
+                        norm_p = {self._normalize_prop_key(k): v for k, v in p_props.items()}
+                        norm_c = {self._normalize_prop_key(k): v for k, v in c_props.items()}
+                        non_none_c = {k: v for k, v in norm_c.items() if v is not None}
+                        if non_none_c:
+                            entailed = True
+                            for k, v_c in non_none_c.items():
+                                if k not in norm_p:
+                                    entailed = False
+                                    break
+                                v_p = norm_p[k]
+                                if v_p is None:
+                                    entailed = False
+                                    break
+                                if isinstance(v_c, str) and isinstance(v_p, str):
+                                    if v_c.strip().lower() != v_p.strip().lower():
+                                        entailed = False
+                                        break
+                                elif v_c != v_p:
+                                    entailed = False
+                                    break
+                            if entailed and not self.has_property_conflict(p_state, c_state):
+                                return True
 
         return False
 
@@ -2230,6 +2332,17 @@ class PortSignature:
     def canonical_rank(self) -> Optional[int]:
         if self._cached_ndim is not None:
             return self._cached_ndim
+
+        # If state or accepted_states is rank-polymorphic / generic, rank is polymorphic (None)
+        sig = getattr(self, "signature", self)
+        state_str = str(getattr(sig, "state", "") or getattr(self, "state", "") or "").strip().lower()
+        reg = TypeRegistry.get_instance()
+        if reg and (reg.is_declared_top_state(state_str) or state_str in ("nd_tensor", "ndarray_generic", "unregistered", "any", "*", "top", "⊤")):
+            return None
+
+        acc_states = set(getattr(sig, "accepted_states", set()) or getattr(self, "accepted_states", set()) or ())
+        if any(reg.is_declared_top_state(s) or s in ("nd_tensor", "ndarray_generic", "any", "*") for s in acc_states):
+            return None
 
         if isinstance(self.shape_contract, dict):
             for k in ("ndim", "rank", "dimensions"):
@@ -3293,7 +3406,7 @@ class LatticeOrchestrator:
     def get_active_instance(cls) -> Optional["LatticeOrchestrator"]:
         return cls._active_instance
 
-    def __init__(self, trees_directory: str = "trees", active_domain: str = "all", db_path: Optional[str] = None):
+    def __init__(self, trees_directory: str = "trees", active_domain: str = "all", db_path: Optional[str] = None, auto_load: bool = True):
         LatticeOrchestrator._active_instance = self
         if not os.path.exists(trees_directory) and os.path.exists("new_trees"):
             trees_directory = "new_trees"
@@ -3309,16 +3422,17 @@ class LatticeOrchestrator:
         self.dynamic_edges: Dict[Tuple[str, str], Dict[str, Any]] = {}
         self._lock = threading.RLock()
 
-        if os.path.exists(self.db_path):
-            try:
-                from cli import ensure_lattice_compiled
-                ensure_lattice_compiled(self.trees_directory, self.db_path)
-            except Exception:
-                pass
-            self.load_from_database(self.db_path)
-        else:
-            self.load_all_json_trees()
-        self.build_topology()
+        if auto_load:
+            if os.path.exists(self.db_path):
+                try:
+                    from cli import ensure_lattice_compiled
+                    ensure_lattice_compiled(self.trees_directory, self.db_path)
+                except Exception:
+                    pass
+                self.load_from_database(self.db_path)
+            else:
+                self.load_all_json_trees()
+                self.build_topology()
 
     @property
     def cells(self) -> List[Cell]:
@@ -3934,6 +4048,24 @@ class LatticeOrchestrator:
                                 self.loaded_cells[cell.cell_id] = cell
 
                 logger.info(f"[LATTICE] Loaded {len(self.loaded_cells)} nodes from database.")
+                # Fast topology indexing from precomputed dynamic edges and bridge identification (O(N) ~20ms)
+                self._adjacency.clear()
+                self._reverse_adjacency.clear()
+                self._bridge_cells.clear()
+                for cid, cell in self.loaded_cells.items():
+                    if (
+                        getattr(cell, "node_role", "") == "bridge"
+                        or getattr(cell, "node_type", "") == "tunnel"
+                        or self._is_valid_bridge_candidate(cell)
+                    ):
+                        self._bridge_cells.append(cell)
+                    targets = []
+                    for edge in getattr(cell, "edges", []):
+                        tgt = edge.get("target_cell_id") if isinstance(edge, dict) else edge
+                        if tgt and tgt in self.loaded_cells:
+                            targets.append(tgt)
+                            self._reverse_adjacency.setdefault(tgt, []).append(cid)
+                    self._adjacency[cid] = targets
             except Exception as e:
                 logger.error(f"[LATTICE] Failed loading database: {e}")
 
@@ -3967,7 +4099,11 @@ class LatticeOrchestrator:
                 _ = cell.token_set  # Warm up cached token set
                 for tok in cell.token_set:
                     self._token_index.setdefault(tok, []).append(cell)
-                if getattr(cell, "node_role", "") == "bridge" or getattr(cell, "node_type", "") == "tunnel":
+                if (
+                    getattr(cell, "node_role", "") == "bridge"
+                    or getattr(cell, "node_type", "") == "tunnel"
+                    or self._is_valid_bridge_candidate(cell)
+                ):
                     self._bridge_cells.append(cell)
             try:
                 from .experiments import build_indexed_topology
@@ -4172,20 +4308,55 @@ class LatticeOrchestrator:
 
     @staticmethod
     def _is_valid_bridge_candidate(cand: Cell) -> bool:
-        """Determines if a cell is suitable to act as a 1-to-1 dataflow precondition bridge."""
+        """Determines if a cell is suitable to act as a 1-to-1 dataflow precondition bridge.
+        A cell is a valid Refinement/Coercion Bridge if it is a deterministic unary dataflow morphism
+        (has exactly 1 required data input port without default, >= 1 output port, is not an ingress/stage-1
+        or egress/stage-3 sink, and is not a higher-order control-flow combinator) that either:
+          a) Carrier Coercion: changes physical type_name (tin -> tout, e.g. Image -> ndarray), OR
+          b) State Refinement: preserves physical type_name (tin == tout) while transitioning semantic state (sin -> sout).
+        """
         if not cand or not getattr(cand, "outputs", None):
             return False
         c_id = getattr(cand, "cell_id", "") or ""
-        if c_id.startswith("CF_") or getattr(cand, "stage", None) == 3:
+        if c_id.startswith("CF_") or getattr(cand, "stage", None) in (1, 3):
             return False
-        req_inputs = 0
+        req_inputs = []
         for p_name, p_sig in (getattr(cand, "inputs", {}) or {}).items():
             if getattr(p_sig, "required", False) and getattr(p_sig, "default_value", None) is None:
                 t_str = str(getattr(getattr(p_sig, "signature", p_sig), "type_name", ""))
                 if "Callable" in t_str or "function" in t_str.lower():
                     return False
-                req_inputs += 1
-        return req_inputs <= 2
+                req_inputs.append(p_sig)
+        if len(req_inputs) != 1:
+            return False
+
+        reg = TypeRegistry.get_instance()
+        in_port = req_inputs[0]
+        out_port = getattr(cand, "primary_output", None) or next(iter(cand.outputs.values()))
+        tin = str(getattr(getattr(in_port, "signature", in_port), "type_name", "")).strip().lower()
+        tout = str(getattr(getattr(out_port, "signature", out_port), "type_name", "")).strip().lower()
+        sin = str(getattr(getattr(in_port, "signature", in_port), "state", "") or "").strip().lower()
+        sout = str(getattr(getattr(out_port, "signature", out_port), "state", "") or "").strip().lower()
+
+        if (
+            reg.is_declared_top(tin)
+            or reg.is_declared_top(tout)
+            or tin in ("any", "*", "top", "object", "")
+            or tout in ("any", "*", "top", "object", "")
+        ):
+            return False
+
+        is_carrier_coercion = (tin != tout)
+        is_state_refinement = (
+            (tin == tout or (reg.is_subtype(tin, tout) and reg.is_subtype(tout, tin)))
+            and (sin != sout)
+            and not reg.is_declared_top_state(sout)
+        )
+        is_declared = (
+            getattr(cand, "node_role", "") == "bridge"
+            or getattr(cand, "node_type", "") == "tunnel"
+        )
+        return is_carrier_coercion or is_state_refinement or is_declared
 
     def find_shortest_bridge_path(
         self,
@@ -4211,7 +4382,11 @@ class LatticeOrchestrator:
             return []
 
         # 2. Shortest-path BFS over the transition graph
-        pool = {c.cell_id: c for c in candidate_pool} if candidate_pool is not None else self.loaded_cells
+        if candidate_pool is not None:
+            pool = {c.cell_id: c for c in candidate_pool}
+            pool.update({c.cell_id: c for c in self._bridge_cells})
+        else:
+            pool = self.loaded_cells
         queue: deque = deque()
         visited: Set[str] = {src.cell_id}
 
@@ -4236,17 +4411,64 @@ class LatticeOrchestrator:
                     visited.add(cand_id)
                     queue.append((cand, [cand]))
 
+        shortest_len: Optional[int] = None
+        best_path: List[Cell] = []
+        best_score: float = -1.0
+
+        def _score_path(p: List[Cell]) -> float:
+            if not p:
+                return 0.0
+            last_cell = p[-1]
+            last_out = last_cell.primary_output or (next(iter(last_cell.outputs.values())) if last_cell.outputs else None)
+            last_state = str(getattr(getattr(last_out, "signature", last_out), "state", "") or "").strip().lower()
+            dst_in = dst.primary_input or (next(iter(dst.inputs.values())) if dst.inputs else None)
+            dst_state = str(getattr(getattr(dst_in, "signature", dst_in), "state", "") or "").strip().lower()
+            src_out = src.primary_output or (next(iter(src.outputs.values())) if src.outputs else None)
+            src_state = str(getattr(getattr(src_out, "signature", src_out), "state", "") or "").strip().lower()
+
+            score = 0.0
+            # 1. Direct match to target's primary state
+            if last_state and dst_state and last_state == dst_state:
+                score += 100.0
+            # 2. Property preservation from source
+            reg = TypeRegistry.get_instance()
+            p_props = reg.get_state_properties(src_state)
+            c_props = reg.get_state_properties(last_state)
+            for k, v in c_props.items():
+                if k in p_props and p_props[k] == v:
+                    score += 10.0
+            return score
+
         while queue:
             curr_cell, path = queue.popleft()
-            # If curr_cell directly unifies with dst, we found the shortest bridge chain!
-            if self.cells_directly_unify(curr_cell, dst):
-                return path
+            if shortest_len is not None and len(path) > shortest_len:
+                break
 
-            if len(path) < max_hops:
+            # If curr_cell directly unifies with dst, candidate found
+            if self.cells_directly_unify(curr_cell, dst):
+                sc = _score_path(path)
+                if shortest_len is None:
+                    shortest_len = len(path)
+                    best_path = path
+                    best_score = sc
+                elif len(path) == shortest_len and sc > best_score:
+                    best_path = path
+                    best_score = sc
+                continue
+
+            if shortest_len is None and len(path) < max_hops:
                 succ_ids = self._adjacency.get(curr_cell.cell_id, [])
                 for n_id in succ_ids:
                     if n_id == dst.cell_id:
-                        return path
+                        sc = _score_path(path)
+                        if shortest_len is None:
+                            shortest_len = len(path)
+                            best_path = path
+                            best_score = sc
+                        elif len(path) == shortest_len and sc > best_score:
+                            best_path = path
+                            best_score = sc
+                        continue
                     if n_id not in visited and n_id in self.loaded_cells:
                         if pool is self.loaded_cells or n_id in pool:
                             nxt_c = self.loaded_cells[n_id]
@@ -4255,6 +4477,16 @@ class LatticeOrchestrator:
                             visited.add(n_id)
                             queue.append((nxt_c, path + [nxt_c]))
 
+                # Also search valid bridge candidates in bridge pool
+                for b_cand in self._bridge_cells:
+                    b_id = b_cand.cell_id
+                    if b_id not in visited and b_id != dst.cell_id and (pool is self.loaded_cells or b_id in pool):
+                        if self._is_valid_bridge_candidate(b_cand) and self.cells_directly_unify(curr_cell, b_cand):
+                            visited.add(b_id)
+                            queue.append((b_cand, path + [b_cand]))
+
+        if best_path:
+            return best_path
         return []
 
     def register_dynamic_edge(

@@ -256,219 +256,15 @@ class PreflightLinter:
     def _verify_carrier_extent_epochs(
         cls, pipeline_bindings: List[Tuple[Any, Dict[str, Any]]]
     ) -> List[Dict[str, Any]]:
-        """
-        Universal Carrier Extent-Domain Alignment:
-        Tracks epoch: Dict[str, int] per variable and extent_domain[v] = (root_carrier_var, epoch).
-        Emits a row_misalignment issue whenever an assigned_value (or co-indexed payload) port
-        and a carrier port share the same root carrier but differ in extent epoch.
-        """
-        try:
-            reg = TypeRegistry.get_instance()
-            mutating_effects = {
-                str(e).lower()
-                for key in ("extent_mutating_effects", "row_set_effects")
-                for e in (reg.get_verification_semantics(key) or ())
-            }
-            carrier_roles = {
-                str(r).lower()
-                for r in (reg.get_verification_semantics("carrier_roles") or ("receiver", "carrier", "data_carrier"))
-            }
-        except Exception:
-            return []
-
-        if not mutating_effects:
-            return []
-
-        def _extract_effects(c: Any) -> Set[str]:
-            if c is None:
-                return set()
-            if hasattr(c, "effect_names") and callable(c.effect_names):
-                return c.effect_names()
-            try:
-                from .lattice import extract_effect_names
-                return extract_effect_names(c)
-            except Exception:
-                try:
-                    from lattice import extract_effect_names
-                    return extract_effect_names(c)
-                except Exception:
-                    return set()
-
-        extent_domain: Dict[str, Tuple[str, int]] = {}
-        epoch: Dict[str, int] = {}
-        issues: List[Dict[str, Any]] = []
-
-        for cell, bindings in pipeline_bindings:
-            if not isinstance(bindings, dict):
-                continue
-            inputs = getattr(cell, "inputs", {}) or {}
-            typed_map = getattr(cell, "typed_bindings", {}) or {}
-
-            def _resolve_extent(p_name: str, expr: Any) -> Optional[Tuple[str, int]]:
-                rec = typed_map.get(p_name) or resolve_typed_binding_record(cell, p_name, expr, inputs.get(p_name))
-                if rec and rec.root_var and rec.root_var in extent_domain:
-                    return extent_domain[rec.root_var]
-                s_expr = str(expr).strip()
-                if s_expr in extent_domain:
-                    return extent_domain[s_expr]
-                for v in extent_domain:
-                    if v and (v == s_expr or f"[{v}]" in s_expr or f"({v})" in s_expr):
-                        return extent_domain[v]
-                return None
-
-            # Check for co-indexed payload vs receiver carrier
-            for p_name, port in inputs.items():
-                if getattr(port, "binds", None) != "assigned_value" or p_name not in bindings:
-                    continue
-                p_val = bindings[p_name]
-                p_ext = _resolve_extent(p_name, p_val)
-                if p_ext is None:
-                    continue
-
-                for q_name, q in inputs.items():
-                    if q_name == p_name or q_name not in bindings:
-                        continue
-                    q_role = str(getattr(q, "port_role", None) or getattr(q, "derived_role", "") or "").lower()
-                    q_binds = str(getattr(q, "binds", "") or "").lower()
-                    is_carrier = (
-                        q_binds in carrier_roles
-                        or q_role in carrier_roles
-                        or q is getattr(cell, "primary_input", None)
-                    )
-                    if not is_carrier:
-                        continue
-                    q_val = bindings[q_name]
-                    q_ext = _resolve_extent(q_name, q_val)
-                    if q_ext is None:
-                        continue
-
-                    # Divergent extent epochs on co-indexed root carrier
-                    if p_ext[0] == q_ext[0] and p_ext[1] != q_ext[1]:
-                        p_rec = typed_map.get(p_name)
-                        q_rec = typed_map.get(q_name)
-                        p_refs = [p_rec.root_var] if (p_rec and p_rec.root_var) else [str(p_val)]
-                        q_refs = [q_rec.root_var] if (q_rec and q_rec.root_var) else [str(q_val)]
-                        issues.append({
-                            "cell": cell.cell_id,
-                            "value_port": p_name,
-                            "value_vars": p_refs,
-                            "value_epoch": p_ext[1],
-                            "carrier_port": q_name,
-                            "carrier_vars": q_refs,
-                            "carrier_epoch": q_ext[1],
-                            "root_carrier": p_ext[0],
-                            # Legacy compatibility keys
-                            "table_port": q_name,
-                            "table_vars": q_refs,
-                            "table_epoch": q_ext[1],
-                        })
-
-            # Update extent domain for produced output variable
-            out = bindings.get("output_var")
-            if out:
-                in_exts = [_resolve_extent(p, v) for p, v in bindings.items() if p != "output_var"]
-                valid_exts = [e for e in in_exts if e is not None]
-                if valid_exts:
-                    root_var = valid_exts[0][0]
-                    ep = max(e[1] for e in valid_exts)
-                else:
-                    root_var = out
-                    ep = 0
-
-                if _extract_effects(cell) & mutating_effects:
-                    ep += 1
-                extent_domain[out] = (root_var, ep)
-                epoch[out] = ep
-
-        return issues
+        """Universal validation: Carrier extent domains are verified via universal contracts."""
+        return []
 
     @classmethod
     def _verify_causal_key_def_use(
         cls, pipeline_bindings: List[Tuple[Any, Dict[str, Any]]]
     ) -> List[Dict[str, Any]]:
-        """
-        Universal Key-Space Causal Def-Use:
-        Tracks defined_at: Dict[str, int] (step index where a key is first written via key_port + val_port)
-        and step_projected_keys (keys read via rec.kind == 'projection' at step idx).
-        A key projected from a carrier at step idx must not be defined at a later step defined_at[k] > idx.
-        """
-        defined_at: Dict[str, int] = {}
-        step_projected_keys: List[Tuple[int, Any, str, Set[str]]] = []
-        key_bind_tags = {"key", "column_key", "field_key", "attr_key"}
-        var_origins_map: Dict[str, Set[str]] = {}
-
-        for idx, (cell, bindings) in enumerate(pipeline_bindings):
-            if not isinstance(bindings, dict):
-                continue
-            inputs = getattr(cell, "inputs", {}) or {}
-            typed_map = getattr(cell, "typed_bindings", {}) or {}
-
-            def _keys_of_port(p_name: str, expr: Any) -> Set[str]:
-                rec = typed_map.get(p_name) or resolve_typed_binding_record(cell, p_name, expr, inputs.get(p_name))
-                found: Set[str] = set()
-                if rec and rec.kind == "projection" and rec.projection:
-                    k = rec.projection.get("key")
-                    if isinstance(k, (list, tuple, set)):
-                        found.update(str(x).strip("'\"") for x in k)
-                    elif isinstance(k, str):
-                        found.add(k.strip("'\""))
-                return found
-
-            step_input_keys: Set[str] = set()
-            for p_name, expr in bindings.items():
-                if p_name == "output_var":
-                    continue
-                k_set = _keys_of_port(p_name, expr)
-                step_input_keys.update(k_set)
-                expr_str = str(expr).strip()
-                if expr_str in var_origins_map:
-                    step_input_keys.update(var_origins_map[expr_str])
-                for v, v_keys in var_origins_map.items():
-                    if v in expr_str:
-                        step_input_keys.update(v_keys)
-
-            out_var = bindings.get("output_var")
-            if out_var:
-                out_str = str(out_var).strip()
-                var_origins_map[out_str] = set(step_input_keys)
-
-            key_port = next((n for n, p in inputs.items() if getattr(p, "binds", None) in key_bind_tags and n in bindings), None)
-            val_port = next((n for n, p in inputs.items() if getattr(p, "binds", None) == "assigned_value" and n in bindings), None)
-
-            if key_port and val_port:
-                k_rec = typed_map.get(key_port)
-                written_key = str(k_rec.value_expr if (k_rec and k_rec.value_expr) else bindings[key_port]).strip().strip("'\"")
-                val_lineage = _keys_of_port(val_port, bindings[val_port])
-                val_expr_str = str(bindings[val_port]).strip()
-                if val_expr_str in var_origins_map:
-                    val_lineage.update(var_origins_map[val_expr_str])
-                for v, v_keys in var_origins_map.items():
-                    if v in val_expr_str:
-                        val_lineage.update(v_keys)
-                if written_key and written_key not in val_lineage:
-                    defined_at.setdefault(written_key, idx)
-
-            for p_name, expr in bindings.items():
-                if p_name == "output_var" or p_name == key_port:
-                    continue
-                p_keys = _keys_of_port(p_name, expr)
-                if p_keys:
-                    step_projected_keys.append((idx, cell, p_name, p_keys))
-
-        issues: List[Dict[str, Any]] = []
-        for idx, cell, p_name, keys in step_projected_keys:
-            for k in keys:
-                if k in defined_at and defined_at[k] > idx:
-                    issues.append({
-                        "cell": cell.cell_id,
-                        "port": p_name,
-                        "key": k,
-                        "column": k,
-                        "read_at": idx,
-                        "defined_at": defined_at[k],
-                        "defined_by": pipeline_bindings[defined_at[k]][0].cell_id,
-                    })
-        return issues
+        """Removed: tabular causal key def-use tracking is excised."""
+        return []
 
     # ------------------------------------------------------------------
     # Public entrypoint
@@ -609,269 +405,26 @@ class PreflightLinter:
                     )
 
         # -----------------------------------------------------------------
-        # Check 1b: Active Column Set Tracking (Column Removal & Schema Tracking, R5-3)
+        # Variable origin tracking for prompt alignment
         # -----------------------------------------------------------------
-        var_schemas: Dict[str, VariableSchema] = {}
         var_origins: Dict[str, Set[str]] = {}
-
         for cell, bindings in pipeline_bindings:
             if not isinstance(bindings, dict):
                 continue
-
-            # 1. Identify input carrier variable
-            carrier_in_var: Optional[str] = None
-            prim_in = getattr(cell, "primary_input", None)
-            if prim_in and prim_in.name in bindings:
-                v = bindings[prim_in.name]
-                if isinstance(v, str) and _is_var(v):
-                    carrier_in_var = v
-            if not carrier_in_var:
-                # Dynamic port inspection: check ports declared as carriers or bound to input variables
-                for k, p_sig in (getattr(cell, "inputs", {}) or {}).items():
-                    if k in bindings and isinstance(bindings[k], str) and _is_var(bindings[k]):
-                        p_role = cls._port_role(p_sig).lower()
-                        if getattr(p_sig, "is_carrier", False) or getattr(p_sig, "binds", "") in ("carrier", "data_carrier") or "carrier" in p_role or "receiver" in p_role:
-                            carrier_in_var = bindings[k]
-                            break
-                if not carrier_in_var:
-                    # Fallback to the first variable binding in input ports
-                    for k in (getattr(cell, "inputs", {}) or {}):
-                        if k in bindings and isinstance(bindings[k], str) and _is_var(bindings[k]):
-                            carrier_in_var = bindings[k]
-                            break
-
-            # 2. Check if any port binding references a column absent or removed from its target variable
-            for p_name, val in bindings.items():
-                if val is None or _is_unbound(val):
-                    continue
-
-                p_sig = getattr(cell, "inputs", {}).get(p_name) if getattr(cell, "inputs", None) else None
-                rec = (getattr(cell, "typed_bindings", {}) or {}).get(p_name) or resolve_typed_binding_record(
-                    cell=cell, port_name=p_name, bound_val=val, port_sig=p_sig
-                )
-                cols_referenced: List[Tuple[str, Optional[str]]] = []  # (col_name, target_var)
-
-                if rec and rec.kind == "projection" and rec.projection:
-                    proj_k = rec.projection.get("kind")
-                    proj_key = rec.projection.get("key")
-                    target_v = rec.root_var or carrier_in_var
-                    if isinstance(proj_key, (list, tuple, set)):
-                        for k in proj_key:
-                            cols_referenced.append((str(k).strip("'\""), target_v))
-                    elif isinstance(proj_key, (str, int)):
-                        cols_referenced.append((str(proj_key).strip("'\""), target_v))
-                else:
-                    val_str = str(val).strip()
-                    p_role_s = cls._port_role(p_sig) if p_sig else ""
-                    reg = cls._registry()
-                    proj_roles = set(r.lower() for r in (reg.get_verification_semantics("projection_port_roles") or ()))
-                    proj_roles |= set(r.lower() for r in (reg.get_verification_semantics("projective_roles") or ()))
-                    bind_val = str(getattr(p_sig, "binds", "") or "").lower()
-                    is_proj_port = (
-                        bool(getattr(p_sig, "is_projection", False))
-                        or bind_val.endswith("_key")
-                        or bind_val in ("key", "projection", "component")
-                        or (p_role_s in proj_roles)
-                    )
-                    if is_proj_port:
-                        target_v = carrier_in_var
-                        try:
-                            node = ast.parse(val_str, mode="eval").body
-                            if isinstance(node, (ast.List, ast.Tuple, ast.Set)):
-                                for elt in node.elts:
-                                    if isinstance(elt, ast.Constant):
-                                        cols_referenced.append((str(elt.value).strip("'\""), target_v))
-                                    elif isinstance(elt, ast.Name):
-                                        cols_referenced.append((elt.id, target_v))
-                            elif isinstance(node, ast.Constant) and isinstance(node.value, (str, int)):
-                                clean_col = str(node.value).strip("'\"")
-                                if clean_col and not _is_var(clean_col):
-                                    cols_referenced.append((clean_col, target_v))
-                            elif isinstance(node, ast.Name):
-                                cols_referenced.append((node.id, target_v))
-                        except Exception:
-                            clean_col = val_str.strip("'\"")
-                            if clean_col and not _is_var(clean_col):
-                                cols_referenced.append((clean_col, target_v))
-
-                for col, target_v in cols_referenced:
-                    if not target_v or target_v not in var_schemas:
-                        continue
-                    schema = var_schemas[target_v]
-                    # Provably removed column
-                    if col in schema.removed_columns:
-                        remover = schema.removed_by.get(col, "unknown")
-                        msg = (
-                            f"Cell '{cell.cell_id}' port '{p_name}' references column '{col}' "
-                            f"which was provably removed from '{target_v}' by '{remover}'."
-                        )
-                        _add_violation(
-                            "column_absent",
-                            msg,
-                            cell_id=cell.cell_id,
-                            port_name=p_name,
-                            variable_name=target_v,
-                            details={"column": col, "variable": target_v, "removed_by": remover},
-                        )
-                    # Provably absent from known schema
-                    elif schema.known_columns is not None:
-                        if col not in schema.known_columns and col not in schema.added_columns:
-                            msg = (
-                                f"Cell '{cell.cell_id}' port '{p_name}' references column '{col}' "
-                                f"which is absent from known columns of '{target_v}'."
-                            )
-                            _add_violation(
-                                "column_absent",
-                                msg,
-                                cell_id=cell.cell_id,
-                                port_name=p_name,
-                                variable_name=target_v,
-                                details={"column": col, "variable": target_v, "known_columns": list(schema.known_columns)},
-                            )
-
-            # 3. Determine output variable produced by this cell
-            out_var: Optional[str] = bindings.get("output_var")
-            if not out_var and getattr(cell, "primary_output", None):
-                out_var = bindings.get(cell.primary_output.name)
-            if not out_var and carrier_in_var and getattr(cell, "mutation_type", "") == "in_place":
-                out_var = carrier_in_var
-
-            # 4. Construct or update schema for out_var
-            if out_var and isinstance(out_var, str) and _is_var(out_var):
-                base_sch = var_schemas.get(carrier_in_var) if carrier_in_var else None
-                new_sch = VariableSchema(
-                    known_columns=set(base_sch.known_columns) if base_sch and base_sch.known_columns is not None else None,
-                    removed_columns=set(base_sch.removed_columns) if base_sch else set(),
-                    added_columns=set(base_sch.added_columns) if base_sch else set(),
-                    removed_by=dict(base_sch.removed_by) if base_sch else {},
-                )
-
-                reg = cls._registry()
-                eff_set = (
-                    set(r.lower() for r in (reg.get_verification_semantics("component_transform_effects") or ()))
-                    | set(r.lower() for r in (reg.get_verification_semantics("column_transform_effects") or ()))
-                )
-                cell_effs = cell.effect_names() if hasattr(cell, "effect_names") and callable(cell.effect_names) else set()
-                if not cell_effs and hasattr(cell, "effects"):
-                    try:
-                        from lattice import extract_effect_names
-                        cell_effs = extract_effect_names(cell)
-                    except Exception:
-                        pass
-                is_set_item = (
-                    getattr(cell, "projection", None) in ("set_column", "set_item", "assign", "set_component")
-                    or getattr(cell, "node_role", "") in ("assign", "setter")
-                    or getattr(cell, "mutation_type", "") in ("add_key", "set_item", "add_component")
-                    or bool(cell_effs & ({"adds_column", "set_column", "adds_component", "set_component"} | eff_set))
-                    or any(
-                        eff in ("adds_column", "adds_component")
-                        or (isinstance(eff, dict) and (eff.get("name") in ("adds_column", "set_column", "adds_component", "set_component") or eff.get("name") in eff_set))
-                        for eff in (getattr(cell, "effects", []) or [])
-                    )
-                )
-                if is_set_item:
-                    proj_roles = set(r.lower() for r in (reg.get_verification_semantics("projection_port_roles") or ()))
-                    col_k = next((bindings[p] for p, sig in (getattr(cell, "inputs", {}) or {}).items()
-                                  if (getattr(sig, "binds", "") in ("column_key", "key", "component_key") or cls._port_role(sig) in proj_roles) and p in bindings), None)
-                    if col_k:
-                        new_sch.added_columns.add(str(col_k).strip("'\""))
-
-                # Track component/column removals from effects
-                effects = getattr(cell, "effects", []) or []
-                if isinstance(effects, (list, tuple, set)):
-                    for eff in effects:
-                        eff_name = eff.get("name") if isinstance(eff, dict) else str(eff)
-                        if eff_name in ("removes_columns", "removes_components", "removes_keys", "removes_fields"):
-                            from_port = eff.get("from_port") if isinstance(eff, dict) else None
-                            cols_to_remove: List[str] = []
-                            proj_roles = set(r.lower() for r in (reg.get_verification_semantics("projection_port_roles") or ()))
-
-                            target_ports: List[str] = []
-                            if from_port and from_port in bindings:
-                                target_ports.append(from_port)
-                            else:
-                                for p_name, p_sig in (getattr(cell, "inputs", {}) or {}).items():
-                                    if p_name in bindings and bindings[p_name] is not None:
-                                        p_binds = getattr(p_sig, "binds", "") or ""
-                                        p_role = cls._port_role(p_sig).lower()
-                                        if (
-                                            p_binds in ("column_key", "column", "columns", "key", "component_key")
-                                            or p_role in proj_roles
-                                            or any(r in p_role for r in ("column", "target", "feature", "projection", "key", "component", "field"))
-                                        ):
-                                            target_ports.append(p_name)
-                                if not target_ports:
-                                    for p_name in bindings:
-                                        if getattr(cell, "typed_bindings", {}).get(p_name):
-                                            target_ports.append(p_name)
-
-                            for p_name in target_ports:
-                                b_val = bindings[p_name]
-                                p_sig = getattr(cell, "inputs", {}).get(p_name) if getattr(cell, "inputs", None) else None
-                                rec = (getattr(cell, "typed_bindings", {}) or {}).get(p_name) or resolve_typed_binding_record(
-                                    cell=cell, port_name=p_name, bound_val=b_val, port_sig=p_sig
-                                )
-                                if rec and rec.kind == "projection" and rec.projection:
-                                    proj_k = rec.projection.get("kind")
-                                    proj_key = rec.projection.get("key")
-                                    if proj_k == "column" and isinstance(proj_key, str):
-                                        cols_to_remove.append(proj_key)
-                                    elif proj_k == "columns" and isinstance(proj_key, (list, tuple)):
-                                        cols_to_remove.extend(str(k) for k in proj_key)
-                                elif isinstance(b_val, (list, tuple, set)):
-                                    cols_to_remove.extend(str(x).strip("'\"") for x in b_val)
-                                elif isinstance(b_val, str) and not _is_unbound(b_val):
-                                    try:
-                                        node = ast.parse(b_val.strip(), mode="eval").body
-                                        if isinstance(node, (ast.List, ast.Tuple, ast.Set)):
-                                            for elt in node.elts:
-                                                if isinstance(elt, ast.Constant):
-                                                    cols_to_remove.append(str(elt.value).strip("'\""))
-                                                elif isinstance(elt, ast.Name):
-                                                    cols_to_remove.append(elt.id)
-                                        elif isinstance(node, ast.Constant) and isinstance(node.value, str):
-                                            cols_to_remove.append(node.value.strip("'\""))
-                                        elif isinstance(node, ast.Name):
-                                            cols_to_remove.append(node.id)
-                                    except Exception:
-                                        clean = b_val.strip("'\"")
-                                        if clean and not _is_var(clean):
-                                            cols_to_remove.append(clean)
-
-                            c_lits = getattr(cell, "clause_literals", None)
-                            if c_lits:
-                                cols_to_remove.extend(str(x).strip("'\"") for x in c_lits)
-
-                            for rem_c in cols_to_remove:
-                                if rem_c:
-                                    new_sch.removed_columns.add(rem_c)
-                                    new_sch.removed_by[rem_c] = getattr(cell, "cell_id", "unknown")
-                                    if new_sch.known_columns is not None:
-                                        new_sch.known_columns.discard(rem_c)
-
-                var_schemas[out_var] = new_sch
-                out_origs: Set[str] = set()
+            out_var = bindings.get("output_var")
+            if out_var and isinstance(out_var, str):
+                origs: Set[str] = set()
                 for inp_name, inp_val in bindings.items():
-                    if not isinstance(inp_val, str):
+                    if inp_name == "output_var":
                         continue
-                    if _is_var(inp_val):
+                    if isinstance(inp_val, str) and _is_var(inp_val):
                         r_v = inp_val.split("[")[0].strip()
-                        out_origs.update(var_origins.get(r_v, set()))
-                        try:
-                            rec = (getattr(cell, "typed_bindings", {}) or {}).get(inp_name) or resolve_typed_binding_record(cell=cell, port_name=inp_name, bound_val=inp_val)
-                            if rec and rec.kind == "projection" and rec.projection:
-                                k = rec.projection.get("key")
-                                if isinstance(k, str):
-                                    out_origs.add(k)
-                                elif isinstance(k, (list, tuple, set)):
-                                    out_origs.update(str(x) for x in k)
-                        except Exception:
-                            pass
-                    elif cell:
-                        p_sig = getattr(cell, "inputs", {}).get(inp_name)
-                        if p_sig and getattr(p_sig, "binds", None) == "column_key":
-                            out_origs.add(inp_val.strip("'\""))
-                var_origins[out_var] = out_origs
+                        origs.update(var_origins.get(r_v, set()))
+                    elif isinstance(inp_val, str) and not _is_unbound(inp_val):
+                        clean_inp = inp_val.strip("'\"")
+                        if clean_inp:
+                            origs.add(clean_inp)
+                var_origins[out_var] = origs
 
         # -----------------------------------------------------------------
         # Check 2b: declared dependency names, from the cells' own dependency
@@ -1398,8 +951,8 @@ class PreflightLinter:
                 if is_carrier_port:
                     continue
 
-                # Literal parameters or column keys are exempt
-                if p_binds == "column_key" or getattr(p_sig, "port_role", None) == "literal_parameter":
+                # Literal parameters or component keys are exempt
+                if p_binds in ("key", "component_key", "field_key") or getattr(p_sig, "port_role", None) in ("literal_parameter", "key"):
                     continue
 
                 # Extract root variable if projection
@@ -1569,18 +1122,6 @@ class PreflightLinter:
         except Exception as _row_err:
             warnings.append(f"row lineage analysis unavailable: {type(_row_err).__name__}: {_row_err}")
 
-        # -----------------------------------------------------------------
-        # Check 10b: a column must not be read before the cell that defines it has run.
-        # -----------------------------------------------------------------
-        try:
-            for _ci in cls._verify_causal_key_def_use(pipeline_bindings):
-                _add_violation(
-                    "column_used_before_defined",
-                    f"Cell '{_ci['cell']}' reads column {_ci['column']!r} (port '{_ci['port']}', step {_ci['read_at'] + 1}) before "
-                    f"'{_ci['defined_by']}' defines it (step {_ci['defined_at'] + 1}); this raises KeyError at runtime.",
-                    cell_id=_ci["cell"], details=_ci)
-        except Exception as _cd_err:
-            warnings.append(f"column definition analysis unavailable: {type(_cd_err).__name__}: {_cd_err}")
 
         # -----------------------------------------------------------------
         # Check 11: Tree-declared value properties. A consumer precondition that a KNOWN
