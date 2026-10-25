@@ -669,7 +669,7 @@ def _sandbox_worker_exec(
                 try:
                     from lattice import TypeRegistry
                     raw_bound = TypeRegistry.get_instance().get_verification_semantics("smoke_test_loop_bound")
-                    loop_limit = int(raw_bound[0]) if raw_bound else 5
+                    loop_limit = int(next(iter(raw_bound))) if raw_bound else 5
                 except Exception:
                     loop_limit = 5
                 bounder = ASTLoopBounder(max_iters=loop_limit)

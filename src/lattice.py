@@ -657,6 +657,14 @@ class TypeRegistry:
             return True
         return False
 
+    def is_declared_bottom(self, name: Optional[str]) -> bool:
+        if name is None:
+            return True
+        s = str(name).strip().lower()
+        if not s or s in ("⊥", "bottom", "none", "null", "undefined", "empty", "void", "unit", "nil"):
+            return True
+        return False
+
     @_locked
     def register_top_state(self, name: str) -> None:
         n = str(name).strip().lower()
@@ -1029,7 +1037,12 @@ class TypeRegistry:
             if not key:
                 continue
             if isinstance(v, (list, tuple, set)):
-                new_items = [str(x) for x in v]
+                new_items = []
+                for x in v:
+                    if isinstance(x, (list, tuple)):
+                        new_items.append(tuple(str(y).strip().lower() for y in x))
+                    else:
+                        new_items.append(str(x).strip().lower())
                 existing = self._verification_semantics.get(key, [])
                 self._verification_semantics[key] = list(dict.fromkeys(existing + new_items))
             elif isinstance(v, dict):
@@ -1038,18 +1051,18 @@ class TypeRegistry:
                 for sub_k, sub_v in v.items():
                     sub_key = f"{key}:{str(sub_k).strip().lower()}"
                     if isinstance(sub_v, (list, tuple, set)):
-                        new_sub = [str(x) for x in sub_v]
+                        new_sub = [str(x).strip().lower() for x in sub_v]
                     else:
-                        new_sub = [str(sub_v)]
+                        new_sub = [str(sub_v).strip().lower()]
                     existing = self._verification_semantics.get(sub_key, [])
                     self._verification_semantics[sub_key] = list(dict.fromkeys(existing + new_sub))
             else:
-                new_items = [str(v)]
+                new_items = [str(v).strip().lower()]
                 existing = self._verification_semantics.get(key, [])
                 self._verification_semantics[key] = list(dict.fromkeys(existing + new_items))
 
-    def get_verification_semantics(self, key: str) -> List[str]:
-        return list(self._verification_semantics.get(str(key).strip().lower(), []))
+    def get_verification_semantics(self, key: str) -> FrozenSet[Any]:
+        return frozenset(self._verification_semantics.get(str(key).strip().lower(), ()))
 
     def get_slot_aliases(self, role: str) -> List[str]:
         """Returns registered slot aliases for an operational role or placeholder."""

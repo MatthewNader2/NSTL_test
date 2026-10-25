@@ -95,6 +95,12 @@
       "val",
       "values",
       "new_column"
+    ],
+    "projection_roles": [
+      "column_projection"
+    ],
+    "string_like_types": [
+      "column_identifier"
     ]
   },
   "asset_placeholders": {

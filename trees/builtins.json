@@ -119,7 +119,12 @@
     "key_binds": [
       "column_key",
       "key",
-      "projection_key"
+      "projection_key",
+      "target_key",
+      "assignment_target"
+    ],
+    "assigned_value_binds": [
+      "assigned_value"
     ],
     "receiver_port_names": [
       "data",
@@ -157,6 +162,97 @@
       "adapter",
       "cast",
       "coercion"
+    ],
+    "config_roles": [
+      "parameter",
+      "hyperparameter",
+      "option",
+      "config",
+      "configuration",
+      "literal_parameter"
+    ],
+    "void_types": [
+      "none",
+      "void",
+      "unit",
+      "nil",
+      "empty",
+      "null"
+    ],
+    "string_like_types": [
+      "str",
+      "string",
+      "enum",
+      "filepath",
+      "path"
+    ],
+    "terminal_invalid_states": [
+      "invalid",
+      "deleted",
+      "destroyed",
+      "closed",
+      "nonexistent"
+    ],
+    "protocols": [
+      "http",
+      "https",
+      "ftp",
+      "ftps",
+      "ws",
+      "wss",
+      "file"
+    ],
+    "output_targets": [
+      "output_var",
+      "output",
+      "output_data",
+      "input_data",
+      "res",
+      "result"
+    ],
+    "projection_roles": [
+      "bridge",
+      "projection",
+      "selector",
+      "subscript"
+    ],
+    "condition_states": [
+      "expr",
+      "condition",
+      "filter_condition"
+    ],
+    "terminal_stages": [
+      "3"
+    ],
+    "ingress_stages": [
+      "1"
+    ],
+    "receiver_roles": [
+      "receiver",
+      "target_object",
+      "carrier"
+    ],
+    "antonym_flag_pairs": [
+      [
+        "ascending",
+        "descending"
+      ]
+    ],
+    "single_projection_kinds": [
+      "column",
+      "key",
+      "field",
+      "single",
+      "item",
+      "subscript"
+    ],
+    "multi_projection_kinds": [
+      "columns",
+      "keys",
+      "fields",
+      "multi",
+      "slice",
+      "subscripts"
     ]
   },
   "types": [

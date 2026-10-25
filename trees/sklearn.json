@@ -43,35 +43,58 @@
     ]
   },
   "verification_semantics": {
-    "model_roles": [
+    "strict_roles": [
+      "model_input",
+      "estimator",
+      "model",
+      "model_sink"
+    ],
+    "dataflow_roles": [
       "model_input",
       "model_sink",
       "model",
       "estimator",
-      "regressor",
-      "classifier",
-      "clusterer"
-    ],
-    "estimator_roles": [
-      "estimator",
-      "trainer",
-      "regressor",
-      "classifier",
-      "clusterer",
-      "model"
-    ],
-    "target_roles": [
+      "feature_input",
+      "features",
       "target_input",
       "target"
     ],
-    "feature_roles": [
+    "projective_roles": [
       "feature_input",
-      "features"
+      "target_input",
+      "features",
+      "target"
     ],
     "mutually_exclusive_roles": [
       "regressor",
       "classifier",
       "clusterer"
+    ],
+    "mutually_exclusive_role_pairs": [
+      [
+        "feature_input",
+        "target_input"
+      ],
+      [
+        "feature_input",
+        "model_input"
+      ],
+      [
+        "target_input",
+        "model_input"
+      ],
+      [
+        "features",
+        "target"
+      ],
+      [
+        "feature",
+        "target"
+      ],
+      [
+        "prediction_input",
+        "target_input"
+      ]
     ]
   },
   "typestates": {
