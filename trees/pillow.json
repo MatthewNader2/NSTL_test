@@ -155,7 +155,7 @@
         "description": "A 3-channel 8-bit numpy array in BGR channel order.",
         "properties": {
           "channels": 3,
-          "order": "BGR",
+          "color_order": "BGR",
           "dtype": "uint8"
         }
       },
@@ -166,7 +166,7 @@
         "description": "A 3-channel 8-bit numpy array in RGB channel order.",
         "properties": {
           "channels": 3,
-          "order": "RGB",
+          "color_order": "RGB",
           "dtype": "uint8"
         }
       },

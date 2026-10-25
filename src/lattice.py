@@ -221,6 +221,23 @@ class LatticeType:
             s += f"{{{', '.join(self.qualifiers)}}}"
         return s
 
+class SemanticsSet(frozenset):
+    """Immutable set representing verification semantics, with dictionary-like fallback lookup."""
+    def __new__(cls, iterable=(), mapping=None):
+        obj = super().__new__(cls, iterable)
+        obj._mapping = dict(mapping) if mapping else {}
+        return obj
+
+    def get(self, key: Any, default: Any = None) -> Any:
+        return self._mapping.get(key, default)
+
+    def __getitem__(self, key: Any) -> Any:
+        return self._mapping[key]
+
+    def __bool__(self) -> bool:
+        return len(self) > 0 or bool(self._mapping)
+
+
 _SUBTYPE_CACHE_MAX = 16384
 
 
@@ -258,7 +275,7 @@ class TypeRegistry:
         self._materialization_states: Set[str] = set()
         self._terminal_states: Set[str] = set()
         self._role_carriers: Set[str] = set()
-        self._polarity_hints: Dict[str, Set[str]] = {"ascending": set(), "descending": set()}
+        self._polarity_hints: Dict[str, Set[str]] = {}
         self._artifact_readers: Dict[str, List[Tuple[str, str]]] = {}
         self._advisory_qualifiers: Set[Tuple[str, ...]] = set()
         self._abstract_carriers: Set[str] = set()
@@ -267,7 +284,8 @@ class TypeRegistry:
         self._source_port_tokens: Set[str] = set()
         self._data_bearing_roles: Set[str] = set()
         self._estimator_verbs: Set[str] = set()
-        self._column_projection_tokens: Set[str] = set()
+        self._projection_tokens: Set[str] = set()
+        self._column_projection_tokens = self._projection_tokens
         self._stopwords: Set[str] = set()
         self._preposition_triggers: Set[str] = set()
         self._generic_prepositions: Set[str] = set()
@@ -277,6 +295,7 @@ class TypeRegistry:
         self._filter_context_tokens: Set[str] = set()
         self._prompt_filler_tokens: Set[str] = set()
         self._verification_semantics: Dict[str, List[str]] = {}
+        self._verification_semantics_maps: Dict[str, Dict[str, Any]] = {}
         self._asset_placeholders: Dict[str, str] = {}
         self._output_asset_placeholders: Dict[str, str] = {}
         self._operation_tokens: Set[str] = set()
@@ -323,22 +342,10 @@ class TypeRegistry:
         bootstrap_runtime_poset(self)
 
     def _bootstrap_state_hierarchy(self):
-        """Bootstraps universal typestates and materialization state hierarchy from first principles."""
+        """Bootstraps universal typestates from first principles."""
         for s in ("any", "*", "default", "unregistered", "unbound", "top", "none", "⊤"):
             self.register_top_state(s)
             self.register_state(s, None)
-        self.register_state("source_identifier", None, carrier_type="str")
-        self.register_state("exported", None)
-        self.register_state("written_to_disk", "exported")
-        self.register_state("saved", "written_to_disk")
-        self.register_identifier_root_states(["source_identifier"])
-        self.register_materialization_states(["saved", "written_to_disk", "exported"])
-        self.register_terminal_states(["saved", "written_to_disk", "exported"])
-        self.register_state_role_ancestors({
-            "saved": ["terminal"],
-            "written_to_disk": ["terminal"],
-            "exported": ["terminal"],
-        })
 
 
     @_locked
@@ -461,8 +468,6 @@ class TypeRegistry:
                                     s_carrier = s_entry.get("carrier_type")
                                     props = s_entry.get("properties") or {}
                                     self.register_state(s_name, s_parent, carrier_type=s_carrier, properties=props)
-                                    if isinstance(props, dict) and props.get("estimator_type"):
-                                        self.register_type(str(props["estimator_type"]).lower(), "model")
                         # --- New data-driven structural fields ---
                         if "advisory_qualifiers" in data and isinstance(data["advisory_qualifiers"], list):
                             self.register_advisory_qualifiers(data["advisory_qualifiers"])
@@ -478,8 +483,10 @@ class TypeRegistry:
                             self.register_data_bearing_roles(data["data_bearing_roles"])
                         if "estimator_verbs" in data and isinstance(data["estimator_verbs"], list):
                             self.register_estimator_verbs(data["estimator_verbs"])
-                        if "column_projection_tokens" in data and isinstance(data["column_projection_tokens"], list):
-                            self.register_column_projection_tokens(data["column_projection_tokens"])
+                        if "projection_tokens" in data and isinstance(data["projection_tokens"], list):
+                            self.register_projection_tokens(data["projection_tokens"])
+                        elif "column_projection_tokens" in data and isinstance(data["column_projection_tokens"], list):
+                            self.register_projection_tokens(data["column_projection_tokens"])
                         if "stopwords" in data and isinstance(data["stopwords"], list):
                             self.register_stopwords(data["stopwords"])
                         if "preposition_triggers" in data and isinstance(data["preposition_triggers"], list):
@@ -762,10 +769,15 @@ class TypeRegistry:
 
     @_locked
     def register_polarity_hints(self, direction: str, hints: Any) -> None:
-        pass
+        if hints:
+            d = str(direction).strip().lower()
+            if d not in self._polarity_hints:
+                self._polarity_hints[d] = set()
+            for h in hints:
+                self._polarity_hints[d].add(str(h).strip().lower())
 
     def get_polarity_hints(self, direction: str) -> FrozenSet[str]:
-        return frozenset()
+        return frozenset(self._polarity_hints.get(str(direction).strip().lower(), set()))
 
     def get_declared_role_carriers(self) -> FrozenSet[str]:
         # Roles are declared on ports in trees; collect any that have been seen
@@ -818,20 +830,19 @@ class TypeRegistry:
         if not name:
             return False
         s = str(name).strip().lower()
-        if self.is_subtype(s, "scalar"):
+        atomic_roots = self.get_verification_semantics("atomic_carrier_roots")
+        if any(self.is_subtype(s, root) for root in atomic_roots):
             return False
-        if s in ("scalar", "string", "path", "path_spec", "logical", "bool", "int", "float"):
-            return False
-        for cat in ("composite", "collection", "handle"):
-            if self.is_subtype(s, cat):
-                return True
+        composite_roots = self.get_verification_semantics("composite_carrier_roots")
+        if any(self.is_subtype(s, root) for root in composite_roots):
+            return True
         for ac in self.get_abstract_carriers():
-            if ac not in ("scalar", "path", "logical", "text", "string") and self.is_subtype(s, ac):
+            if not any(self.is_subtype(ac, root) for root in atomic_roots) and self.is_subtype(s, ac):
                 return True
         for tc in getattr(self, "_top_level_carriers", ()):
-            if tc not in ("scalar", "path", "logical", "text", "string") and self.is_subtype(s, tc):
+            if not any(self.is_subtype(tc, root) for root in atomic_roots) and self.is_subtype(s, tc):
                 return True
-        return not self.is_subtype(s, "scalar")
+        return not any(self.is_subtype(s, root) for root in atomic_roots)
 
     # --- Abstract carrier mapping (type name -> abstract category) ---
     @_locked
@@ -871,11 +882,9 @@ class TypeRegistry:
         if not type_name:
             return False
         t = str(type_name).strip().lower()
-        if t in ("*", "any", "top", "⊤") or has_enum:
+        if self.is_declared_top(t) or has_enum:
             return True
         literal_roots = self.get_verification_semantics("literal_types")
-        if not literal_roots:
-            literal_roots = ["scalar", "str", "text", "numeric", "bool", "logical", "path", "filepath", "uri", "list", "dict", "tuple"]
         return any(self.is_subtype(t, root) for root in literal_roots)
 
     # --- Destination port tokens (data-driven from tree declarations) ---
@@ -921,15 +930,18 @@ class TypeRegistry:
     def get_estimator_verbs(self) -> FrozenSet[str]:
         return frozenset(self._estimator_verbs)
 
-    # --- Column projection tokens (data-driven from tree declarations) ---
+    # --- Projection tokens (data-driven from tree declarations) ---
     @_locked
-    def register_column_projection_tokens(self, tokens: Any) -> None:
+    def register_projection_tokens(self, tokens: Any) -> None:
         if tokens:
             for t in tokens:
-                self._column_projection_tokens.add(str(t).strip().lower())
+                self._projection_tokens.add(str(t).strip().lower())
 
-    def get_column_projection_tokens(self) -> FrozenSet[str]:
-        return frozenset(self._column_projection_tokens) | frozenset(self.get_verification_semantics("projection_port_names"))
+    def get_projection_tokens(self) -> FrozenSet[str]:
+        return frozenset(self._projection_tokens) | frozenset(self.get_verification_semantics("projection_port_names"))
+
+    register_column_projection_tokens = register_projection_tokens
+    get_column_projection_tokens = get_projection_tokens
 
     def get_format_groups(self) -> FrozenSet[str]:
         """Returns registered format categories (subtypes of 'format' registered in poset)."""
@@ -1048,8 +1060,14 @@ class TypeRegistry:
             elif isinstance(v, dict):
                 # Nested groups (e.g. split states per side) flatten to
                 # "group:member" keys so lookups stay single-level.
+                existing_keys = self._verification_semantics.get(key, [])
+                self._verification_semantics[key] = list(dict.fromkeys(existing_keys + [str(sub_k).strip().lower() for sub_k in v.keys()]))
+                if key not in self._verification_semantics_maps:
+                    self._verification_semantics_maps[key] = {}
                 for sub_k, sub_v in v.items():
-                    sub_key = f"{key}:{str(sub_k).strip().lower()}"
+                    clean_sub_k = str(sub_k).strip().lower()
+                    self._verification_semantics_maps[key][clean_sub_k] = sub_v
+                    sub_key = f"{key}:{clean_sub_k}"
                     if isinstance(sub_v, (list, tuple, set)):
                         new_sub = [str(x).strip().lower() for x in sub_v]
                     else:
@@ -1061,8 +1079,12 @@ class TypeRegistry:
                 existing = self._verification_semantics.get(key, [])
                 self._verification_semantics[key] = list(dict.fromkeys(existing + new_items))
 
-    def get_verification_semantics(self, key: str) -> FrozenSet[Any]:
-        return frozenset(self._verification_semantics.get(str(key).strip().lower(), ()))
+    def get_verification_semantics(self, key: str) -> "SemanticsSet":
+        k = str(key).strip().lower()
+        return SemanticsSet(
+            self._verification_semantics.get(k, ()),
+            self._verification_semantics_maps.get(k, {})
+        )
 
     def get_slot_aliases(self, role: str) -> List[str]:
         """Returns registered slot aliases for an operational role or placeholder."""
@@ -1593,10 +1615,7 @@ class TypeRegistry:
 
     @staticmethod
     def _normalize_prop_key(k: str) -> str:
-        k_l = str(k).strip().lower()
-        if k_l in ("order", "color_order"):
-            return "color_order"
-        return k_l
+        return str(k).strip().lower()
 
     def get_state_carrier(self, state: str) -> Optional[str]:
         """Returns declared or inherited carrier_type for a typestate."""
@@ -1781,9 +1800,11 @@ class TypeRegistry:
 
         # 7. Positive Cross-Tree Property-Bundle Entailment (Phi_prod |= Phi_cons)
         if p_state and c_state:
-            terminal_sink_states = {
-                "saved", "closed", "persisted", "sink", "consumed", "destroyed", "released", "freed"
-            }
+            terminal_sink_states = (
+                set(self.get_terminal_states())
+                | set(self.get_verification_semantics("terminal_states"))
+                | set(self.get_verification_semantics("terminal_invalid_states"))
+            )
             is_p_terminal = p_state in terminal_sink_states or any(p_state.endswith(f"_{ts}") for ts in terminal_sink_states)
             is_c_terminal = c_state in terminal_sink_states or any(c_state.endswith(f"_{ts}") for ts in terminal_sink_states)
             if not (is_p_terminal or is_c_terminal):
@@ -1888,33 +1909,44 @@ def _compute_is_path_port(port: Any) -> bool:
     if state and source_ancestors and registry.state_ancestry_reaches(state, source_ancestors):
         return True
     aliases = registry.get_all_aliases()
-    if t_name in aliases and (str(aliases[t_name]).lower() in path_tokens or str(aliases[t_name]).lower() in ("path", "filepath")):
-        return True
+    if t_name in aliases:
+        aliased_t = str(aliases[t_name]).lower()
+        if aliased_t in path_tokens or aliased_t in path_types or registry.is_subtype(aliased_t, "path"):
+            return True
     c_type = str(getattr(sig, "carrier_type", "") or getattr(port, "carrier_type", "") or "").lower()
-    if c_type and (c_type in path_tokens or c_type in ("path", "filepath")):
+    if c_type and (c_type in path_tokens or c_type in path_types or registry.is_subtype(c_type, "path")):
         return True
-    # Naming fallback for unannotated string ports (declared `dest_port_tokens`).
+    # Naming fallback for unannotated string ports (dynamically declared tokens).
     name = str(getattr(port, "name", "") or "").lower()
     if not name:
         return False
     name_tokens = set(tokenize_alphanumeric(name, min_len=1))
-    if (name_tokens & PATH_PORT_NAME_TOKENS) or (name_tokens & {"path", "filepath", "dest", "filename"}):
+    if name_tokens & PATH_PORT_NAME_TOKENS:
         return True
     return False
 
 
 class _DynamicPathPortTokens(frozenset):
     """Dynamic naming-convention fallback tokens for path ports backed by TypeRegistry."""
+    def _tokens(self) -> Set[str]:
+        reg = TypeRegistry.get_instance()
+        return (
+            set(reg.get_dest_port_tokens())
+            | set(reg.get_source_port_tokens())
+            | set(reg.get_path_port_tokens())
+            | set(reg.get_verification_semantics("path_roles"))
+            | set(reg.get_verification_semantics("path_type_names"))
+        )
     def __contains__(self, item):
-        return str(item).lower() in TypeRegistry.get_instance().get_dest_port_tokens()
+        return str(item).lower() in self._tokens()
     def __iter__(self):
-        return iter(TypeRegistry.get_instance().get_dest_port_tokens())
+        return iter(self._tokens())
     def __len__(self):
-        return len(TypeRegistry.get_instance().get_dest_port_tokens())
+        return len(self._tokens())
     def __and__(self, other):
-        return (set(other) if not isinstance(other, set) else other) & TypeRegistry.get_instance().get_dest_port_tokens()
+        return (set(other) if not isinstance(other, set) else other) & self._tokens()
     def __rand__(self, other):
-        return (set(other) if not isinstance(other, set) else other) & TypeRegistry.get_instance().get_dest_port_tokens()
+        return (set(other) if not isinstance(other, set) else other) & self._tokens()
 
 PATH_PORT_NAME_TOKENS = _DynamicPathPortTokens()
 
@@ -2425,17 +2457,6 @@ class PortSignature:
         if self._cached_ndim is not None:
             return self._cached_ndim
 
-        # If state or accepted_states is rank-polymorphic / generic, rank is polymorphic (None)
-        sig = getattr(self, "signature", self)
-        state_str = str(getattr(sig, "state", "") or getattr(self, "state", "") or "").strip().lower()
-        reg = TypeRegistry.get_instance()
-        if reg and (reg.is_declared_top_state(state_str) or state_str in ("nd_tensor", "ndarray_generic", "unregistered", "any", "*", "top", "⊤")):
-            return None
-
-        acc_states = set(getattr(sig, "accepted_states", set()) or getattr(self, "accepted_states", set()) or ())
-        if any(reg.is_declared_top_state(s) or s in ("nd_tensor", "ndarray_generic", "any", "*") for s in acc_states):
-            return None
-
         if isinstance(self.shape_contract, dict):
             for k in ("ndim", "rank", "dimensions"):
                 if k in self.shape_contract:
@@ -2458,10 +2479,20 @@ class PortSignature:
         if reg:
             t_name = str(self.type_name).lower()
             # Atomic scalar: rank 0
-            for sc in ("scalar", "numeric", "logical"):
-                if t_name == sc or reg.is_subtype(t_name, sc):
-                    self._cached_ndim = 0
-                    return 0
+            if reg.is_subtype(t_name, "scalar"):
+                self._cached_ndim = 0
+                return 0
+
+        # If state or accepted_states is rank-polymorphic / generic, rank is polymorphic (None)
+        sig = getattr(self, "signature", self)
+        state_str = str(getattr(sig, "state", "") or getattr(self, "state", "") or "").strip().lower()
+        if reg:
+            if reg.is_declared_top_state(state_str) or bool(reg.get_state_properties(state_str).get("is_rank_polymorphic")):
+                return None
+
+        acc_states = set(getattr(sig, "accepted_states", set()) or getattr(self, "accepted_states", set()) or ())
+        if reg and any(reg.is_declared_top_state(s) or bool(reg.get_state_properties(s).get("is_rank_polymorphic")) for s in acc_states):
+            return None
 
         return None
 
@@ -2839,6 +2870,9 @@ class Cell(ABC):
         val_roles = set(registry.get_verification_semantics("assigned_value_roles"))
         val_port_names = set(registry.get_verification_semantics("assigned_value_port_names"))
 
+        single_proj_kinds = set(registry.get_verification_semantics("single_projection_kinds"))
+        multi_proj_kinds = set(registry.get_verification_semantics("multi_projection_kinds"))
+
         for p_name, p_sig in self.inputs.items():
             bind = str(getattr(p_sig, "binds", "") or "").lower()
             role = str(getattr(p_sig, "port_role", "") or getattr(p_sig, "role", "") or "").lower()
@@ -2848,10 +2882,10 @@ class Cell(ABC):
                 is_explicit_scalar = (
                     getattr(p_sig, "structure_kind", None) == "scalar"
                     or getattr(p_sig, "rank", None) == 0
-                    or p_tn in ("str", "string", "identifier", "key")
-                    or p_name in ("column", "key", "field")
+                    or registry.is_subtype(p_tn, "scalar")
+                    or p_name in single_proj_kinds
                 )
-                if not is_explicit_scalar and ("list" in p_tn or "collection" in p_tn or registry.is_subtype(p_tn, "collection") or p_name in ("columns", "keys", "fields")):
+                if not is_explicit_scalar and (registry.is_subtype(p_tn, "collection") or p_name in multi_proj_kinds):
                     key_input_is_collection = True
                 else:
                     key_input_is_scalar = True
@@ -2864,10 +2898,10 @@ class Cell(ABC):
 
         # Projections
         if self.projection:
-            if self.projection in ("columns", "keys", "fields") or (key_input_is_collection and self.projection not in ("column", "key", "field")):
+            if self.projection in multi_proj_kinds or (key_input_is_collection and self.projection not in single_proj_kinds):
                 if prim_out and prim_out.canonical_rank is None:
                     prim_out.canonical_rank = 2
-            elif self.projection in ("column", "key", "field") or key_input_is_scalar:
+            elif self.projection in single_proj_kinds or key_input_is_scalar:
                 if prim_out and prim_out.canonical_rank is None:
                     prim_out.canonical_rank = 1
         elif key_input_is_collection and not is_setter:
@@ -2888,24 +2922,28 @@ class Cell(ABC):
             if val_port.canonical_rank is None:
                 val_port.canonical_rank = 1
 
-        # Dual-input paired morphism (g: X x Y -> M where X in feature_roles and Y in target_roles)
-        feature_roles = set(registry.get_verification_semantics("feature_roles"))
-        target_roles = set(registry.get_verification_semantics("target_roles"))
-        feat_port = None
-        tgt_port = None
-        for p_name, p_sig in self.inputs.items():
-            bind = str(getattr(p_sig, "binds", "") or "").lower()
-            role = str(getattr(p_sig, "port_role", "") or getattr(p_sig, "role", "") or "").lower()
-            if role in feature_roles or bind in feature_roles:
-                feat_port = p_sig
-            elif role in target_roles or bind in target_roles:
-                tgt_port = p_sig
+        # Dual-input paired morphism (g: X x Y -> M)
+        paired_ranks = registry.get_verification_semantics("paired_morphism_ranks")
+        if paired_ranks and (isinstance(paired_ranks, dict) or hasattr(paired_ranks, "get")):
+            feature_roles = set(registry.get_verification_semantics("feature_roles"))
+            target_roles = set(registry.get_verification_semantics("target_roles"))
+            feat_port = None
+            tgt_port = None
+            for p_name, p_sig in self.inputs.items():
+                bind = str(getattr(p_sig, "binds", "") or "").lower()
+                role = str(getattr(p_sig, "port_role", "") or getattr(p_sig, "role", "") or "").lower()
+                if role in feature_roles or bind in feature_roles:
+                    feat_port = p_sig
+                elif role in target_roles or bind in target_roles:
+                    tgt_port = p_sig
 
-        if feat_port and tgt_port:
-            if feat_port.canonical_rank is None:
-                feat_port.canonical_rank = 2
-            if tgt_port.canonical_rank is None:
-                tgt_port.canonical_rank = 1
+            if feat_port and tgt_port:
+                f_r = paired_ranks.get("feature")
+                t_r = paired_ranks.get("target")
+                if f_r is not None and feat_port.canonical_rank is None:
+                    feat_port.canonical_rank = int(f_r)
+                if t_r is not None and tgt_port.canonical_rank is None:
+                    tgt_port.canonical_rank = int(t_r)
 
     @property
     def token_set(self) -> Set[str]:
@@ -3326,7 +3364,7 @@ class MacroCell(Cell):
         self._resolved_sub_cells: Dict[str, Cell] = {}
 
 
-def _apply_declared_estimator_identity(cell: Any) -> None:
+def _apply_method_owner_qualification(cell: Any) -> None:
     """
     Universal OOP Method-Owner Qualification.
 
@@ -3344,8 +3382,7 @@ def _apply_declared_estimator_identity(cell: Any) -> None:
          stamp (owner_qual,) onto that output port's signature.qualifiers AND
          register reg.register_type(owner_qual, out_type_name) in TypeRegistry.
       2. Consumer side: If an input port on Owner.method is the instance receiver
-         (port_role == "receiver" or port_role in model_roles or has a precondition
-         on that port or is named in ("self", "this", "model", "estimator")),
+         (port_role in consumer roles or has a precondition on that port),
          stamp (owner_qual,) onto that input port's signature.qualifiers.
 
     Idempotent; applied to every loaded cell on topology rebuild.
@@ -3383,17 +3420,22 @@ def _apply_declared_estimator_identity(cell: Any) -> None:
 
     reg = TypeRegistry.get_instance()
 
-    # 1. Producer side: stamp (owner_qual,) ONLY on output ports where port_role == "model_sink"
-    # or where type_name is a subtype of "model" in the poset (returning fitted self instance)
+    # 1. Producer side: stamp (owner_qual,) on output ports where port_role in instance_sink_roles
+    # or where type_name is a subtype of stateful_instance_roots in the poset (returning fitted/initialized self instance)
+    owner_sink_roles = (
+        set(reg.get_verification_semantics("instance_sink_roles"))
+        | set(reg.get_verification_semantics("owner_sink_roles"))
+    )
+    stateful_roots = set(reg.get_verification_semantics("stateful_instance_roots"))
     for out_p in (getattr(cell, "outputs", {}) or {}).values():
         port_role = str(getattr(out_p, "port_role", "") or "").lower()
         out_sig = getattr(out_p, "signature", None)
         out_tn = str(getattr(out_sig, "type_name", "") or getattr(out_p, "type_name", "") or "").lower()
-        is_model_output = (
-            port_role == "model_sink"
-            or (bool(out_tn) and bool(reg and reg.is_subtype(out_tn, "model")))
+        is_owner_output = (
+            port_role in owner_sink_roles
+            or (bool(out_tn) and any(reg.is_subtype(out_tn, root) for root in stateful_roots))
         )
-        if is_model_output:
+        if is_owner_output:
             _stamp(out_p, owner_qual)
             if out_tn:
                 try:
@@ -3401,24 +3443,32 @@ def _apply_declared_estimator_identity(cell: Any) -> None:
                 except Exception:
                     pass
 
-    # 2. Consumer side: stamp (owner_qual,) ONLY on input ports where port_role in
-    # ("model_input", "model", "estimator", "receiver") or a precondition on that port checks "is_fitted"
-    consumer_roles = {"model_input", "model", "estimator", "receiver"}
-    fitted_precondition_ports = set()
+    # 2. Consumer side: stamp (owner_qual,) on input ports where port_role in consumer_roles
+    # or a precondition on that port checks a declared state precondition property
+    consumer_roles = (
+        set(reg.get_verification_semantics("strict_roles"))
+        | set(reg.get_verification_semantics("receiver_roles"))
+        | set(reg.get_verification_semantics("instance_consumer_roles"))
+    )
+    state_precondition_props = set(reg.get_verification_semantics("state_precondition_properties"))
+    stateful_precondition_ports = set()
     for pre in getattr(cell, "preconditions", []) or []:
         prop = str(_cond_field(pre, "property", "") or "").strip().lower()
         target = str(_cond_field(pre, "target", "") or "").strip()
-        if prop == "is_fitted" and target:
-            fitted_precondition_ports.add(target)
+        if prop in state_precondition_props and target:
+            stateful_precondition_ports.add(target)
 
     for in_name, in_p in (getattr(cell, "inputs", {}) or {}).items():
         in_role = str(getattr(in_p, "port_role", "") or "").lower()
-        is_model_input = (
+        is_receiver_input = (
             in_role in consumer_roles
-            or in_name in fitted_precondition_ports
+            or in_name in stateful_precondition_ports
         )
-        if is_model_input:
+        if is_receiver_input:
             _stamp(in_p, owner_qual)
+
+
+_apply_declared_estimator_identity = _apply_method_owner_qualification
 
 
 
@@ -3656,8 +3706,10 @@ class LatticeOrchestrator:
                     reg.register_data_bearing_roles(data["data_bearing_roles"])
                 if "estimator_verbs" in data and isinstance(data["estimator_verbs"], list):
                     reg.register_estimator_verbs(data["estimator_verbs"])
-                if "column_projection_tokens" in data and isinstance(data["column_projection_tokens"], list):
-                    reg.register_column_projection_tokens(data["column_projection_tokens"])
+                if "projection_tokens" in data and isinstance(data["projection_tokens"], list):
+                    reg.register_projection_tokens(data["projection_tokens"])
+                elif "column_projection_tokens" in data and isinstance(data["column_projection_tokens"], list):
+                    reg.register_projection_tokens(data["column_projection_tokens"])
                 if "stopwords" in data and isinstance(data["stopwords"], list):
                     reg.register_stopwords(data["stopwords"])
                 if "preposition_triggers" in data and isinstance(data["preposition_triggers"], list):
@@ -3867,8 +3919,8 @@ class LatticeOrchestrator:
                                 reg.register_data_bearing_roles([item])
                             elif cat == 'estimator_verb':
                                 reg.register_estimator_verbs([item])
-                            elif cat == 'column_projection_token':
-                                reg.register_column_projection_tokens([item])
+                            elif cat in ('projection_token', 'column_projection_token'):
+                                reg.register_projection_tokens([item])
                             elif cat == 'type_var':
                                 reg.register_type_vars([item])
                             elif cat == 'top_type':
@@ -4452,16 +4504,31 @@ class LatticeOrchestrator:
         """
         if not cand or not getattr(cand, "outputs", None):
             return False
-        c_id = getattr(cand, "cell_id", "") or ""
-        if c_id.startswith("CF_") or getattr(cand, "stage", None) in (1, 3):
-            return False
 
         reg = TypeRegistry.get_instance()
+        cf_domains = set(reg.get_verification_semantics("control_flow_domains"))
+        cf_topologies = set(reg.get_verification_semantics("control_flow_topologies"))
+        if (
+            getattr(cand, "domain_name", "") in cf_domains
+            or getattr(cand, "node_type", "") in cf_topologies
+            or getattr(cand, "topology_type", "") in cf_topologies
+            or getattr(cand, "cell_type", "") == "macro"
+        ):
+            return False
+
+        cand_stage = getattr(cand, "stage", None)
+        ingress_stages = set(reg.get_verification_semantics("ingress_stages"))
+        terminal_stages = set(reg.get_verification_semantics("terminal_stages"))
+        if (
+            (cand_stage is not None and (cand_stage in ingress_stages or str(cand_stage) in ingress_stages))
+            or (cand_stage is not None and (cand_stage in terminal_stages or str(cand_stage) in terminal_stages))
+        ):
+            return False
+
         cfg_roles = (
             set(reg.get_verification_semantics("config_roles") or ())
             | set(reg.get_verification_semantics("configuration_roles") or ())
             | set(reg.get_verification_semantics("parameter_roles") or ())
-            | {"configuration", "parameter", "literal_parameter", "hyperparameter", "option", "config"}
         )
 
         dataflow_inputs = []
@@ -4577,29 +4644,35 @@ class LatticeOrchestrator:
             src_out = src.primary_output or (next(iter(src.outputs.values())) if src.outputs else None)
             src_state = str(getattr(getattr(src_out, "signature", src_out), "state", "") or "").strip().lower()
 
+            reg = TypeRegistry.get_instance()
+            bridge_weights = reg.get_verification_semantics("bridge_role_weights") or {}
+            target_match_w = float(bridge_weights.get("target_match", 100.0))
+            prop_match_w = float(bridge_weights.get("property_match", 10.0))
+            bridge_bonus = float(bridge_weights.get("bridge", 20.0))
+            reduction_penalty = float(bridge_weights.get("reduction", -20.0))
+
             score = 0.0
             # 1. Direct match to target's primary state
             if last_state and dst_state and last_state == dst_state:
-                score += 100.0
+                score += target_match_w
             # 2. Property preservation from source
-            reg = TypeRegistry.get_instance()
             p_props = reg.get_state_properties(src_state)
             c_props = reg.get_state_properties(last_state)
             for k, v in c_props.items():
                 if k in p_props and p_props[k] == v:
-                    score += 10.0
+                    score += prop_match_w
             # 3. Categorical morphism role preference: prioritize declared bridge morphisms
             reduction_tags = set(reg.get_verification_semantics("reduction_tags") or ())
             for b_c in p:
                 b_role = getattr(b_c, "node_role", "")
                 if b_role == "bridge":
-                    score += 20.0
+                    score += bridge_bonus
                 elif b_role == "reduction":
-                    score -= 20.0
+                    score += reduction_penalty
                 if reduction_tags:
                     tags = {str(t).lower() for t in (getattr(b_c, "semantic_tags", None) or [])}
                     if tags & reduction_tags:
-                        score -= 20.0
+                        score += reduction_penalty
             return score
 
         expansions = 0

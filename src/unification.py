@@ -479,7 +479,13 @@ def _wire_rejection(cell: Any, p_name: str, port: Any, v_name: str, ctx: Any, re
         if p_role in cfg_roles or str(getattr(port, "param_kind", "")).lower() in cfg_roles:
             str_kind = str(getattr(port, "structure_kind", "") or "").lower()
             c_rank = getattr(port, "canonical_rank", None) if getattr(port, "canonical_rank", None) is not None else getattr(port, "rank", None)
-            is_scalar = (c_rank == 0 or str_kind == "scalar")
+            t_name = str(getattr(getattr(port, "signature", port), "type_name", "") or getattr(port, "type_name", "") or "").strip().lower()
+            reg = registry if registry is not None else TypeRegistry.get_instance()
+            is_scalar = (
+                c_rank == 0
+                or str_kind == "scalar"
+                or (reg is not None and reg.is_subtype(t_name, "scalar"))
+            )
             if is_scalar:
                 return ("config_port_rejects_dataflow_wire", {"v_name": v_name, "port": p_name})
 
@@ -933,6 +939,9 @@ def is_edge_valid(
     is_pred_state = bool(props.get("is_prediction")) or out_state in set(reg.get_verification_semantics("prediction_states") or ())
 
     if in_role in pred_in and not (is_pred_state or out_role in pred_out):
+        return False
+
+    if is_pred_state and _roles_conflict(in_role, "prediction_output", reg=reg):
         return False
 
     if _roles_conflict(in_role, out_role, reg=reg):
@@ -2152,9 +2161,20 @@ def _is_valid_slot_value(val: Any, sig: Optional[PortSignature] = None) -> bool:
     if val_low in _declared_role_semantics("void_types"):
         return False
 
+    try:
+        from lattice import TypeRegistry
+        reg = TypeRegistry.get_instance()
+    except Exception:
+        reg = None
+
     c_rank = getattr(sig, "canonical_rank", None) if getattr(sig, "canonical_rank", None) is not None else getattr(sig, "rank", None)
     str_kind = str(getattr(sig, "structure_kind", "") or "").lower()
-    is_scalar = (c_rank == 0 or str_kind == "scalar")
+    t_name = str(getattr(sig, "type_name", "") or "").strip().lower()
+    is_scalar = (
+        c_rank == 0
+        or str_kind == "scalar"
+        or (reg is not None and reg.is_subtype(t_name, "scalar"))
+    )
     if is_scalar and isinstance(val, (list, tuple)):
         return False
 
@@ -2177,36 +2197,34 @@ def _is_valid_slot_value(val: Any, sig: Optional[PortSignature] = None) -> bool:
         return False
 
     # Tier 3: Poset Ontology Types from TypeRegistry (ndarray, DataFrame, Series, etc.)
-    try:
-        from lattice import TypeRegistry
-        reg = TypeRegistry.get_instance()
-        if reg.is_known_type_name(val_low) and val_low not in enum_set:
-            return False
-    except Exception as _exc:
-        logger.debug("[UNIFICATION DIAGNOSTIC] Suppressed exception: %s", _exc, exc_info=True)
+    if reg is not None:
+        try:
+            if reg.is_known_type_name(val_low) and val_low not in enum_set:
+                return False
+        except Exception as _exc:
+            logger.debug("[UNIFICATION DIAGNOSTIC] Suppressed exception: %s", _exc, exc_info=True)
 
     # If the port declares discrete enum_values, candidate MUST match one of them
     if declared_enums:
         return val_low in enum_set
 
     # Verify numeric convertibility using Poset subtyping if port is numeric
-    try:
-        from lattice import TypeRegistry
-        reg = TypeRegistry.get_instance()
-        if reg.is_subtype(t_sig, "int"):
-            try:
-                int(val_s)
-                return True
-            except ValueError:
-                return False
-        if reg.is_subtype(t_sig, "numeric"):
-            try:
-                float(val_s)
-                return True
-            except ValueError:
-                return False
-    except Exception as _exc:
-        logger.debug("[UNIFICATION DIAGNOSTIC] Suppressed exception: %s", _exc, exc_info=True)
+    if reg is not None:
+        try:
+            if reg.is_subtype(t_sig, "int"):
+                try:
+                    int(val_s)
+                    return True
+                except ValueError:
+                    return False
+            if reg.is_subtype(t_sig, "numeric"):
+                try:
+                    float(val_s)
+                    return True
+                except ValueError:
+                    return False
+        except Exception as _exc:
+            logger.debug("[UNIFICATION DIAGNOSTIC] Suppressed exception: %s", _exc, exc_info=True)
 
     return True
 
@@ -2218,7 +2236,13 @@ def _format_literal_value(val: Any, sig: Optional[PortSignature] = None) -> str:
     if sig is not None:
         c_rank = getattr(sig, "canonical_rank", None) if getattr(sig, "canonical_rank", None) is not None else getattr(sig, "rank", None)
         str_kind = str(getattr(sig, "structure_kind", "") or "").lower()
-        is_scalar = (c_rank == 0 or str_kind == "scalar")
+        t_name = str(getattr(sig, "type_name", "") or "").strip().lower()
+        reg = TypeRegistry.get_instance()
+        is_scalar = (
+            c_rank == 0
+            or str_kind == "scalar"
+            or (reg is not None and reg.is_subtype(t_name, "scalar"))
+        )
         if is_scalar and isinstance(val, (list, tuple)):
             if getattr(sig, "default_value", None) is not None:
                 return str(sig.default_value)
@@ -3473,8 +3497,7 @@ class ExecutionContext:
                 supp_fmts = getattr(port_sig, "supported_formats", None) or getattr(cell, "supported_formats", None) or ()
                 if supp_fmts:
                     fmt = str(supp_fmts[0]).lstrip(".")
-                    p_name = getattr(port_sig, "name", "asset")
-                    return json.dumps(f"{p_name}.{fmt}")
+                    return json.dumps(f"input.{fmt}")
                 t_str = str(getattr(port_sig, "type_name", "")).lower()
                 dom = str(getattr(port_sig, "domain", "")).lower()
                 registry = TypeRegistry.get_instance()
@@ -3591,6 +3614,7 @@ class ExecutionContext:
                 or (getattr(port_sig, "canonical_rank", None) is not None and getattr(port_sig, "canonical_rank", None) > 0)
                 or getattr(port_sig, "abstract_type", None) == "collection"
                 or str(getattr(port_sig, "state", "")).lower() in _declared_role_semantics("projection_port_states")
+                or (registry is not None and (registry.is_subtype(_tn, "collection") or registry.is_subtype(_tn, "sequence")))
             )
             _is_strict_str = (registry.is_subtype(_tn, "str") or registry.is_subtype(_tn, "scalar")) and _tn not in ("any", "*", "top", "") and not _is_collection
             _state_tokens: Set[str] = set()
@@ -3628,6 +3652,7 @@ class ExecutionContext:
         is_collection = (
             getattr(port_sig, "structure_kind", None) == "collection"
             or (getattr(port_sig, "canonical_rank", None) is not None and getattr(port_sig, "canonical_rank", None) > 0)
+            or (registry is not None and (registry.is_subtype(t_name, "collection") or registry.is_subtype(t_name, "sequence")))
             or (
                 not _t_name_concrete
                 and (
@@ -3911,6 +3936,7 @@ class UnificationGate:
                 getattr(k_port, "structure_kind", None) == "collection"
                 or (getattr(k_port, "canonical_rank", None) is not None and getattr(k_port, "canonical_rank", None) > 0)
                 or getattr(k_port, "abstract_type", None) == "collection"
+                or (registry is not None and (registry.is_subtype(k_tn, "collection") or registry.is_subtype(k_tn, "sequence")))
             )
             if is_multi_key and not k_is_collection:
                 continue
@@ -4570,7 +4596,12 @@ class UnificationGate:
                                 in_abs = getattr(dp_sig.signature, "abstract_type", None)
                                 if out_abs and in_abs and out_abs != in_abs:
                                     continue
-                                if getattr(dp_sig, "binds", None) == "assigned_value" or getattr(dp_sig, "port_role", None) in ("assigned_value", "column_value", "target_input"):
+                                val_roles = (
+                                    _declared_role_semantics("assigned_value_binds")
+                                    | _declared_role_semantics("assigned_value_roles")
+                                    | _declared_role_semantics("projective_roles")
+                                )
+                                if getattr(dp_sig, "binds", None) in val_roles or getattr(dp_sig, "port_role", None) in val_roles:
                                     req_rank = dp_r
                                     break
                                 elif down_cell.primary_input and down_cell.primary_input.name == dp_name:
@@ -4781,7 +4812,7 @@ class UnificationGate:
                         has_proj = any(
                             (
                                 getattr(p, "port_role", "") in projective_roles
-                                or getattr(p, "binds", "") in ("feature", "target", "projection")
+                                or getattr(p, "binds", "") in _declared_role_semantics("projective_binds")
                                 or (is_model_cell and getattr(p, "derived_role", "") in projective_roles)
                             )
                             for p in req_ports
@@ -4802,7 +4833,12 @@ class UnificationGate:
                 if role in cfg_roles or str(getattr(p_s, "param_kind", "")).lower() in cfg_roles:
                     str_kind = str(getattr(p_s, "structure_kind", "") or "").lower()
                     c_rank = getattr(p_s, "canonical_rank", None) if getattr(p_s, "canonical_rank", None) is not None else getattr(p_s, "rank", None)
-                    is_scalar = (c_rank == 0 or str_kind == "scalar")
+                    t_name = str(getattr(getattr(p_s, "signature", p_s), "type_name", "") or getattr(p_s, "type_name", "") or "").strip().lower()
+                    is_scalar = (
+                        c_rank == 0
+                        or str_kind == "scalar"
+                        or (reg is not None and reg.is_subtype(t_name, "scalar"))
+                    )
                     if is_scalar:
                         return False
 
@@ -7329,6 +7365,8 @@ class ExtractedSlots:
             "dest_uris": self.outputs,
             "input_files": self.inputs,
             "output_files": self.outputs,
+            "columns": self.named_identifiers,
+            "by_column": self.named_identifiers[0] if self.named_identifiers else None,
         }
 
 

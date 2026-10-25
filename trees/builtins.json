@@ -31,7 +31,37 @@
     "logical",
     "text"
   ],
+  "preposition_triggers": [
+    "by",
+    "with",
+    "from",
+    "to",
+    "in",
+    "on",
+    "using",
+    "as"
+  ],
+  "generic_prepositions": [
+    "by",
+    "with",
+    "from",
+    "to",
+    "in",
+    "on",
+    "using",
+    "as"
+  ],
   "verification_semantics": {
+    "generic_prepositions": [
+      "by",
+      "with",
+      "from",
+      "to",
+      "in",
+      "on",
+      "using",
+      "as"
+    ],
     "dataflow_roles": [
       "carrier",
       "data_input"
@@ -114,7 +144,13 @@
       "saved",
       "exported",
       "materialized",
-      "written"
+      "written",
+      "written_to_disk",
+      "persisted",
+      "sink",
+      "consumed",
+      "released",
+      "freed"
     ],
     "key_binds": [
       "column_key",
@@ -253,6 +289,62 @@
       "multi",
       "slice",
       "subscripts"
+    ],
+    "projective_binds": [
+      "feature",
+      "target",
+      "projection"
+    ],
+    "atomic_carrier_roots": [
+      "scalar",
+      "path"
+    ],
+    "composite_carrier_roots": [
+      "composite",
+      "collection",
+      "handle"
+    ],
+    "literal_types": [
+      "scalar",
+      "collection",
+      "path",
+      "text",
+      "numeric",
+      "logical"
+    ],
+    "control_flow_domains": [
+      "control_flow"
+    ],
+    "control_flow_topologies": [
+      "traced_loop",
+      "coproduct_branch",
+      "state_loop",
+      "context_manager"
+    ],
+    "state_precondition_properties": [
+      "is_open",
+      "is_connected",
+      "is_initialized",
+      "is_fitted"
+    ],
+    "instance_consumer_roles": [
+      "receiver",
+      "target_object"
+    ],
+    "instance_sink_roles": [
+      "receiver_sink",
+      "target_sink"
+    ],
+    "bridge_role_weights": {
+      "bridge": 20.0,
+      "reduction": -20.0,
+      "target_match": 100.0,
+      "property_match": 10.0
+    },
+    "generic_format_extensions": [
+      "dat",
+      "bin",
+      "raw"
     ]
   },
   "types": [
@@ -1282,6 +1374,34 @@
         "parent_state": null,
         "carrier_type": "scalar",
         "description": "Smallest element.",
+        "properties": {}
+      },
+      {
+        "name": "source_identifier",
+        "parent_state": null,
+        "carrier_type": "str",
+        "description": "Source identifier or path.",
+        "properties": {}
+      },
+      {
+        "name": "exported",
+        "parent_state": null,
+        "carrier_type": null,
+        "description": "Exported state.",
+        "properties": {}
+      },
+      {
+        "name": "written_to_disk",
+        "parent_state": "exported",
+        "carrier_type": null,
+        "description": "Written to disk.",
+        "properties": {}
+      },
+      {
+        "name": "saved",
+        "parent_state": "written_to_disk",
+        "carrier_type": null,
+        "description": "Saved state.",
         "properties": {}
       }
     ],

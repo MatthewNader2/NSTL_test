@@ -18,6 +18,10 @@
   "top_level_carriers": [
     "tensor"
   ],
+  "top_states": [
+    "ndarray_generic",
+    "nd_tensor"
+  ],
   "verification_semantics": {
     "tensor_context_tokens": [
       "array",
@@ -270,7 +274,8 @@
         "carrier_type": "ndarray",
         "description": "N-dimensional tensor array with rank greater than or equal to 1",
         "properties": {
-          "ndim_min": 1
+          "ndim_min": 1,
+          "is_rank_polymorphic": true
         }
       },
       {
@@ -280,7 +285,8 @@
         "description": "A plain numpy array, dimensionality and dtype unspecified (interchange typestate)",
         "properties": {
           "ndim": null,
-          "dtype": null
+          "dtype": null,
+          "is_rank_polymorphic": true
         }
       },
       {

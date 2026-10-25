@@ -22,7 +22,7 @@ try:
     from .unification import (
         unify, Substitution, verify_traced_loop_invariant, verify_coproduct_branch,
         substitute_generics, ExecutionContext, UnificationGate, Success,
-        is_edge_valid, _shape_compatible,
+        is_edge_valid, _shape_compatible, _roles_conflict,
     )
     from .tokenizer import CellTokenizer, normalize_token
     from .utils import tokenize_alphanumeric
@@ -31,7 +31,7 @@ except (ImportError, ValueError):
     from unification import (
         unify, Substitution, verify_traced_loop_invariant, verify_coproduct_branch,
         substitute_generics, ExecutionContext, UnificationGate, Success,
-        is_edge_valid, _shape_compatible,
+        is_edge_valid, _shape_compatible, _roles_conflict,
     )
     from tokenizer import CellTokenizer, normalize_token
     from utils import tokenize_alphanumeric
@@ -76,9 +76,19 @@ class DynamicMaterializationStates(frozenset):
 MATERIALIZATION_OUTPUT_STATES = DynamicMaterializationStates()
 
 
-def _is_col_projection_port(p_sig: Any) -> bool:
-    """Universal morphism graphs do not special-case column projections."""
-    return False
+def _is_projection_port(p_sig: Any) -> bool:
+    """True iff p_sig is a declared key/projection port."""
+    reg = TypeRegistry.get_instance()
+    proj_roles = (
+        set(reg.get_verification_semantics("projection_roles"))
+        | set(reg.get_verification_semantics("key_roles"))
+        | set(reg.get_verification_semantics("key_binds"))
+    )
+    role = getattr(p_sig, "port_role", None) or getattr(p_sig, "derived_role", "") or getattr(p_sig, "binds", "")
+    return role in proj_roles
+
+
+_is_col_projection_port = _is_projection_port
 
 
 def _is_carrier_projectable_port(
@@ -87,6 +97,23 @@ def _is_carrier_projectable_port(
     quoted_str_literals: Sequence[Any] = (),
     identifier_literals: Sequence[Any] = ()
 ) -> bool:
+    """True iff p_sig is a declared projective/key port and an upstream cell provides a composite carrier."""
+    reg = TypeRegistry.get_instance()
+    proj_roles = (
+        set(reg.get_verification_semantics("projective_roles"))
+        | set(reg.get_verification_semantics("projective_binds"))
+        | set(reg.get_verification_semantics("key_roles"))
+        | set(reg.get_verification_semantics("key_binds"))
+    )
+    role = getattr(p_sig, "port_role", None) or getattr(p_sig, "derived_role", "") or getattr(p_sig, "binds", "")
+    if role not in proj_roles:
+        return False
+    # Check if an upstream cell outputs a composite/product carrier
+    for c in prev_path:
+        for out_s in c.outputs.values():
+            o_tn = str(getattr(out_s.signature, "type_name", "")).lower()
+            if reg.is_composite_carrier(o_tn) or reg.is_abstract_carrier(o_tn):
+                return True
     return False
 
 
@@ -370,18 +397,18 @@ class LatticeVocabulary:
         return hit
 
     def _is_key_port_uncached(self, p: Any) -> bool:
-        """A key/selector port: a column-projection port, or a textual / list-of-text input
-        whose declared name or state carries the registry's column-projection vocabulary
-        (learned from the trees, e.g. sort_column, group_column, join_column)."""
-        if _is_col_projection_port(p):
+        """A key/selector port: a projection port, or a textual / list-of-text input
+        whose declared name or state carries the registry's projection vocabulary
+        (learned from the trees, e.g. sort_column, group_key, join_key)."""
+        if _is_projection_port(p):
             return True
         if _lattice_is_path_port(p):
             return False
         reg = TypeRegistry.get_instance()
         t = _port_type(p)
-        if not (reg.is_subtype(t, "str") or reg.is_subtype(t, "list") or reg.is_subtype(t, "sequence")):
+        if not (reg.is_subtype(t, "str") or reg.is_subtype(t, "list") or reg.is_subtype(t, "sequence") or reg.is_subtype(t, "collection")):
             return False
-        proj = {str(x).lower() for x in reg.get_column_projection_tokens()}
+        proj = {str(x).lower() for x in reg.get_projection_tokens()}
         proj |= {normalize_token(x) for x in proj}
         sig = getattr(p, "signature", p)
         toks = {x.lower() for x in CellTokenizer.tokenize_identifier(str(getattr(p, "name", "") or ""))}
@@ -770,7 +797,7 @@ def _literal_groundable(p_sig: Any, cand: Any, quoted_str_literals: Sequence[Any
             and role != ""
             and role in vocab.slot_roles
         )
-        or (_is_col_projection_port(p_sig) and has_text)
+        or (vocab.is_key_port(p_sig) and has_text)
         or (
             carrier_literal_capable
             and bool(getattr(cand, "slots", None))
@@ -830,31 +857,21 @@ def _is_transform_stage(cell: Any) -> bool:
 
 def _is_port_role_compatible(p_out: Any, p_in: Any) -> bool:
     """
-    Role-level semantic compatibility check (D2/D3):
-    Ensures prediction inputs are satisfied by prediction outputs, not ground-truth targets,
-    and ground-truth target inputs are not satisfied by predictions.
+    Universal role-level semantic compatibility check:
+    Enforces declared mutually exclusive role pairs and strict role gating.
     """
     in_role = getattr(p_in, "port_role", None) or getattr(p_in, "derived_role", "")
     out_role = getattr(p_out, "port_role", None) or getattr(p_out, "derived_role", "")
     registry = TypeRegistry.get_instance()
-    pred_in_roles = set(registry.get_verification_semantics("prediction_input_roles") or ["prediction_input"])
-    pred_out_roles = set(registry.get_verification_semantics("prediction_output_roles") or ["prediction_output"])
-    target_roles = set(registry.get_verification_semantics("target_roles") or ["target_input"])
+
+    if _roles_conflict(in_role, out_role, reg=registry):
+        return False
 
     out_state = str(getattr(getattr(p_out, "signature", None), "state", "")).lower()
-    props = registry.get_state_properties(out_state)
-    is_pred_state = bool(props.get("is_prediction")) or out_state in set(registry.get_verification_semantics("prediction_states"))
+    in_state = str(getattr(getattr(p_in, "signature", None), "state", "")).lower()
+    if registry.has_property_conflict(out_state, in_state):
+        return False
 
-    if in_role in pred_in_roles:
-        if out_role in target_roles:
-            return False
-        if not (is_pred_state or out_role in pred_out_roles):
-            return False
-    elif in_role in target_roles:
-        if out_role in pred_out_roles:
-            return False
-        if is_pred_state:
-            return False
     return True
 
 
@@ -898,19 +915,17 @@ def _segment_prompt_clauses(prompt: str) -> List[str]:
     _vocab = _active_vocab()
 
     def _is_sink_directive(text: str) -> bool:
-        """An egress verb (harvested from the lattice's sinks) whose remainder carries no
-        other operation vocabulary: 'store results in Z' is a directive, 'save the
-        plot' names a real operation and stays a clause of its own."""
+        """Determines if a clause expresses an egress directive without containing other distinct operation vocabulary."""
         toks = [t.lower() for t in tokenize_alphanumeric(text)]
-        if toks and toks[0] in _vocab.connectives:
-            toks = toks[1:]
-        if len(toks) < 2:
+        if not toks:
             return False
+        tok_set = set(toks)
         egress_words = _vocab.egress_tokens
-        if toks[0] not in egress_words:
+        has_egress = bool(tok_set & egress_words)
+        if not has_egress:
             return False
-        rest = {t for t in toks[1:] if t not in _vocab.function_words}
-        return not (rest & (_vocab.op_tokens - egress_words))
+        non_egress_ops = (tok_set - _vocab.function_words - _vocab.connectives) & (_vocab.op_tokens - egress_words)
+        return not non_egress_ops
 
     for p in parts:
         p_clean = p.strip()
@@ -1071,7 +1086,7 @@ class LatticePlanner:
         port_tokens = set()
         cell_id_tokens = set()
         domain_tokens = set()
-        has_col_proj = False
+        has_multi_key_slot = False
         has_numeric_port = False
 
         try:
@@ -1117,14 +1132,13 @@ class LatticePlanner:
                 if r:
                     port_tokens.add(r)
                 tn = str(getattr(ps.signature, "type_name", "")).lower()
-                is_coll = reg is not None and (
+                is_key_slot = self._vocab.is_key_port(ps)
+                multi_projs = set(reg.get_verification_semantics("multi_projection_kinds")) if reg else set()
+                if is_key_slot and reg is not None and (
                     reg.is_subtype(tn, "collection")
-                    or reg.is_subtype(tn, "sequence")
-                    or reg.is_subtype(tn, "list")
-                    or reg.is_subtype(tn, "array-like")
-                )
-                if is_coll:
-                    has_col_proj = True
+                    or getattr(c, "projection", "") in multi_projs
+                ):
+                    has_multi_key_slot = True
                 if reg is not None and reg.is_subtype(tn, "numeric"):
                     has_numeric_port = True
             for sk in getattr(c, "bound_slots", {}).keys():
@@ -1159,13 +1173,13 @@ class LatticePlanner:
                 if numeric_literals and has_numeric_port:
                     consumed += 1
             elif kind == "quoted_str":
-                if has_col_proj:
-                    consumed += 1
-                elif any(_port_match(lc, p) for p in port_tokens):
+                if any(_port_match(lc, p) for p in port_tokens):
                     consumed += 1
                 elif used_col_keys < path_col_key_slots:
                     consumed += 1
                     used_col_keys += 1
+                elif has_multi_key_slot:
+                    consumed += 1
             else:
                 if _identifier_match(lc):
                     consumed += 1
@@ -1256,6 +1270,22 @@ class LatticePlanner:
         if self.orchestrator and hasattr(self.orchestrator, "find_shortest_bridge_path"):
             return self.orchestrator.find_shortest_bridge_path(c1, c2, max_hops=max_hops)
         return []
+
+    def _insert_property_bridges(self, path: List[Cell]) -> List[Cell]:
+        """Inserts property-resolving bridges when an upstream cell's output does not directly unify with a downstream consumer."""
+        if not path or not self.orchestrator:
+            return path
+        bridged_path: List[Cell] = []
+        for c in path:
+            if not bridged_path:
+                bridged_path.append(c)
+            else:
+                prev_c = bridged_path[-1]
+                if not self.orchestrator.cells_directly_unify(prev_c, c):
+                    bridges = self.orchestrator.find_shortest_bridge_path(prev_c, c)
+                    bridged_path.extend(bridges)
+                bridged_path.append(c)
+        return bridged_path
 
     def _build_macro_edges_index(self) -> Dict[Tuple[str, str], List[str]]:
         index: Dict[Tuple[str, str], List[str]] = {}
@@ -1630,7 +1660,8 @@ class LatticePlanner:
                                     placeholder = reg.get_asset_placeholder(carrier, "")
                                     if placeholder and "." in placeholder:
                                         carrier_ext = placeholder.rpartition(".")[2].strip().lower()
-                                        if carrier_ext and carrier_ext != "dat":
+                                        generic_exts = set(reg.get_verification_semantics("generic_format_extensions"))
+                                        if carrier_ext and carrier_ext not in generic_exts:
                                             if ext == carrier_ext or reg.is_subtype(ext, carrier_ext) or reg.is_subtype(carrier_ext, ext):
                                                 return True
                                             for anc in reg.get_format_groups():
@@ -1660,7 +1691,8 @@ class LatticePlanner:
                                 placeholder = reg.get_asset_placeholder(target, "")
                                 if placeholder and "." in placeholder:
                                     carrier_ext = placeholder.rpartition(".")[2].strip().lower()
-                                    if carrier_ext and carrier_ext != "dat":
+                                    generic_exts = set(reg.get_verification_semantics("generic_format_extensions"))
+                                    if carrier_ext and carrier_ext not in generic_exts:
                                         if ext == carrier_ext or reg.is_subtype(ext, carrier_ext) or reg.is_subtype(carrier_ext, ext):
                                             return True
                                         for anc in reg.get_format_groups():
@@ -2444,8 +2476,9 @@ class LatticePlanner:
             max_allowed_ingress = len(src_file_literals) if src_file_literals else (len(file_literals) if file_literals else 1)
             if required_ingress_path_ports > max_allowed_ingress:
                 count += (required_ingress_path_ports - max_allowed_ingress)
-            if required_egress_path_ports > len(dest_file_literals):
-                count += (required_egress_path_ports - len(dest_file_literals))
+            max_allowed_egress = len(dest_file_literals) if dest_file_literals else 1
+            if required_egress_path_ports > max_allowed_egress:
+                count += (required_egress_path_ports - max_allowed_egress)
 
             # Role-carrier tracking (R2.5):
             # Check role-bearing inputs (e.g. target_input, feature_input, data_input)
@@ -2487,8 +2520,12 @@ class LatticePlanner:
                             and not any(unify(prod, p_sig.signature) is not None for prod in produced)
                         )
                         if not already_penalized:
-                            if p_role == "target_input":
-                                if not _is_table_groundable_target(p_sig, prev_path):
+                            projective_roles = (
+                                set(TypeRegistry.get_instance().get_verification_semantics("projective_roles"))
+                                | set(TypeRegistry.get_instance().get_verification_semantics("projective_binds"))
+                            )
+                            if p_role in projective_roles:
+                                if not _is_carrier_projectable_port(p_sig, prev_path, quoted_str_literals, identifier_literals):
                                     count += 1
                             elif not p_sig.required:
                                 if p_name in getattr(cand, "slots", []) and f"{{{p_name}}}" in getattr(cand, "code_template", ""):
@@ -2951,9 +2988,12 @@ class LatticePlanner:
                         if vocab.is_key_port(p_sig):
                             trigger_port_tokens |= set(CellTokenizer.tokenize_identifier(p_name))
                             trigger_port_tokens |= set(CellTokenizer.tokenize_identifier(str(getattr(p_sig.signature, "state", ""))))
-                target_role_tokens = vocab.role_tokens("target_input")
+                target_roles = set(registry.get_verification_semantics("target_roles"))
+                target_role_tokens: Set[str] = set()
+                for r in target_roles:
+                    target_role_tokens |= set(vocab.role_tokens(r))
                 path_has_target = any(
-                    (getattr(p, "port_role", "") == "target_input" or getattr(p, "derived_role", "") == "target_input")
+                    (getattr(p, "port_role", "") in target_roles or getattr(p, "derived_role", "") in target_roles)
                     for c in path for p in c.inputs.values()
                 )
                 identifier_role_map = getattr(self, "_last_identifier_roles", None)
@@ -3029,17 +3069,12 @@ class LatticePlanner:
                                 # binding preposition matches the literal's.
                                 if lit_pos is not None:
                                     prev_chunk = (prompt or "")[:lit_pos].rstrip()
-                                    words = prev_chunk.split()
-                                    last_word = words[-1].strip(".,!?:;'\"") if words else ""
-                                    trailing_letters = []
-                                    for ch in reversed(last_word):
-                                        if ch.isalpha():
-                                            trailing_letters.append(ch)
-                                        else:
-                                            break
-                                    prep = "".join(reversed(trailing_letters)).lower()
-                                    if prep and prep in trigger_port_tokens:
-                                        consumed_count += 1
+                                    toks = tokenize_alphanumeric(prev_chunk, min_len=1)
+                                    if toks:
+                                        prep = toks[-1].lower()
+                                        preps = registry.get_preposition_triggers() | registry.get_generic_prepositions()
+                                        if prep and prep in trigger_port_tokens and (not preps or prep in preps):
+                                            consumed_count += 1
                 literal_consumption = consumed_count / len(universal_literals)
             else:
                 literal_consumption = 1.0
@@ -3254,22 +3289,21 @@ class LatticePlanner:
             if num_clauses > 1 and covered and max(covered) < num_clauses - 1:
                 return False
 
-            # Semantic prediction/metric discrimination:
-            # Standalone evaluation metrics require prediction inputs. If the candidate terminal
-            # requires prediction inputs, ensure that the path actually produced predictions.
-            pred_in_roles = set(registry.get_verification_semantics("prediction_input_roles")) | {"prediction_input"}
-            has_pred_req = any(
-                p.required and (getattr(p, "port_role", "") in pred_in_roles or getattr(p, "derived_role", "") in pred_in_roles)
-                for p in terminal.inputs.values()
-            )
-            if has_pred_req:
-                pred_out_roles = set(registry.get_verification_semantics("prediction_output_roles")) | {"prediction_output"}
-                path_has_preds = any(
-                    any(getattr(o, "port_role", "") in pred_out_roles for o in c.outputs.values())
-                    for c in cand_path[:-1]
-                )
-                if not path_has_preds:
-                    return False
+            # Data-driven dependent terminal input verification:
+            # If the terminal has required inputs that depend on prior producers, ensure the path produced them.
+            dep_terminal_roles = registry.get_verification_semantics("dependent_terminal_input_roles")
+            if dep_terminal_roles:
+                for p in terminal.inputs.values():
+                    p_role = getattr(p, "port_role", "") or getattr(p, "derived_role", "")
+                    if p.required and p_role in dep_terminal_roles:
+                        required_producers = set(dep_terminal_roles.get(p_role) or registry.get_verification_semantics(f"dependent_terminal_input_roles:{p_role}"))
+                        if required_producers:
+                            path_has_producer = any(
+                                any(getattr(o, "port_role", "") in required_producers for o in c.outputs.values())
+                                for c in cand_path[:-1]
+                            )
+                            if not path_has_producer:
+                                return False
 
             if getattr(terminal, "endable", None) is True:
                 return True
@@ -3278,10 +3312,13 @@ class LatticePlanner:
             if getattr(terminal, "stage", None) == vocab.terminal_stage and vocab.terminal_stage is not None:
                 return True
             t_role = str(getattr(terminal, "node_role", "") or "").lower()
-            pred_out_roles = set(registry.get_verification_semantics("prediction_output_roles")) | {"prediction_output"}
+            term_out_roles = (
+                set(registry.get_verification_semantics("terminal_output_roles"))
+                | set(registry.get_verification_semantics("prediction_output_roles"))
+            )
             is_pred_terminal = any(
-                getattr(op, "port_role", "") in pred_out_roles
-                or getattr(op, "derived_role", "") in pred_out_roles
+                getattr(op, "port_role", "") in term_out_roles
+                or getattr(op, "derived_role", "") in term_out_roles
                 or str(getattr(op, "state", "")).lower() in vocab.terminal_states
                 for op in getattr(terminal, "outputs", {}).values()
             )
@@ -3526,15 +3563,8 @@ class LatticePlanner:
                                     sub_plan = self._bind_chain_slots(sub_plan, tunnel, relevance_map, it[1], prompt)
                                     c.bound_slots[slot_name] = sub_plan
                     from route_methods.base import RouteMethod as _RM
-                    from route_methods.m1_clause_anchor import M1ClauseAnchorRouteMethod as _Util
-                    _u = _Util(orchestrator=self.orchestrator)
-                    _u.prompt = prompt
-                    _u._current_prompt = prompt
-                    cand_private = _u.prune_unrequested(cand_private, prompt)
                     _RM.tag_cells_with_clause_indices(cand_private, prompt, orchestrator=self.orchestrator)
-                    cand_private = _u.insert_property_bridges(
-                        cand_private, prompt=prompt, ctx=ExecutionContext(prompt=prompt), trace=False
-                    )
+                    cand_private = self._insert_property_bridges(cand_private)
 
                     emitted = gate.emit_code(cand_private, ExecutionContext(prompt=prompt), extract_llm_slots=False)
 
@@ -4940,10 +4970,13 @@ class LatticePlanner:
             if not pool:
                 pool = [c for c in self.orchestrator.loaded_cells.values() if c.cell_id != parent_cell.cell_id and getattr(c, "node_type", "") != "constant"]
             if pool:
-                is_alt_branch = slot_name in ("else_branch", "except_body", "fallback")
-                pool_sorted = sorted(pool, key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)
-                if is_alt_branch and len(pool_sorted) > 1:
-                    return [pool_sorted[1]]
+                bound_cell_ids: Set[str] = set()
+                for b_slot, b_plan in (getattr(parent_cell, "bound_slots", {}) or {}).items():
+                    if b_slot != slot_name and isinstance(b_plan, (list, tuple)):
+                        bound_cell_ids.update(getattr(bc, "cell_id", "") for bc in b_plan if bc)
+                unbound_pool = [c for c in pool if c.cell_id not in bound_cell_ids]
+                candidate_pool = unbound_pool if unbound_pool else pool
+                pool_sorted = sorted(candidate_pool, key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)
                 return [pool_sorted[0]]
 
         # 4. Context Manager Slot Planning (bracket resource pattern)

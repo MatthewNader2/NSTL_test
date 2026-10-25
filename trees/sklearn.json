@@ -43,6 +43,15 @@
     ]
   },
   "verification_semantics": {
+    "feature_roles": [
+      "feature_input",
+      "features",
+      "feature"
+    ],
+    "target_roles": [
+      "target_input",
+      "target"
+    ],
     "strict_roles": [
       "model_input",
       "estimator",
@@ -94,8 +103,40 @@
       [
         "prediction_input",
         "target_input"
+      ],
+      [
+        "prediction_output",
+        "target_input"
+      ],
+      [
+        "prediction_output",
+        "target"
       ]
-    ]
+    ],
+    "paired_morphism_ranks": {
+      "feature": 2,
+      "target": 1
+    },
+    "instance_sink_roles": [
+      "model_sink"
+    ],
+    "stateful_instance_roots": [
+      "model"
+    ],
+    "instance_consumer_roles": [
+      "model_input",
+      "model",
+      "estimator",
+      "receiver"
+    ],
+    "state_precondition_properties": [
+      "is_fitted"
+    ],
+    "dependent_terminal_input_roles": {
+      "prediction_input": [
+        "prediction_output"
+      ]
+    }
   },
   "typestates": {
     "domain": "sklearn",
@@ -17668,6 +17709,9 @@
       "parent": "Estimator"
     },
     "Transformer": {
+      "parent": "Estimator"
+    },
+    "Clusterer": {
       "parent": "Estimator"
     },
     "modelformat": {

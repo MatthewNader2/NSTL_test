@@ -100,7 +100,11 @@ def reflect_mro_edges(cls: Type[Any], registry: Any) -> None:
     carrier = reflect_class_carrier(cls)
     if carrier:
         registry.register_type(cls_name, carrier)
-        registry.register_type(carrier, "object")
+        if carrier in ("numeric", "logical", "text"):
+            registry.register_type(carrier, "scalar")
+            registry.register_type("scalar", "object")
+        else:
+            registry.register_type(carrier, "object")
 
 
 def bootstrap_runtime_poset(registry: Any) -> None:
@@ -120,6 +124,10 @@ def bootstrap_runtime_poset(registry: Any) -> None:
     # 2. Lowest-level runtime ABC roots
     for _, proto_name in _RUNTIME_ABC_ROOTS:
         registry.register_type(proto_name, "object")
+    for abc_cls_a, proto_a in _RUNTIME_ABC_ROOTS:
+        for abc_cls_b, proto_b in _RUNTIME_ABC_ROOTS:
+            if abc_cls_a is not abc_cls_b and issubclass(abc_cls_a, abc_cls_b):
+                registry.register_type(proto_a, proto_b)
 
     # 3. Introspect all Python built-in classes via live MRO
     for obj in builtins.__dict__.values():
