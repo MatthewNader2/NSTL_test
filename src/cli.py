@@ -112,8 +112,8 @@ QUICK_PROFILE_SHORTCUTS: Tuple[Tuple[str, str], ...] = (
 # =====================================================================
 # Constants & Defaults
 # =====================================================================
-DEFAULT_SANDBOX_TIMEOUT: float = float(os.environ.get("NSTL_SANDBOX_TIMEOUT", getattr(settings, "sandbox_timeout", 30.0)))
-HIGH_TRUST_PRIORITY_THRESHOLD: int = getattr(settings, "verified_priority_threshold", 10)
+DEFAULT_SANDBOX_TIMEOUT: float = float(os.environ.get("NSTL_SANDBOX_TIMEOUT", settings.sandbox_timeout))
+HIGH_TRUST_PRIORITY_THRESHOLD: int = settings.verified_priority_threshold
 DEFAULT_TRANSLATOR_PROMPT: str = (
     "You are a precise technical translator. Rewrite the user request as a "
     "sequential pipeline specification that preserves every operation, its arguments, "
@@ -1075,12 +1075,6 @@ class PipelineDebugger:
 
         dbg_ctx = ExecutionContext(prompt=effective_prompt)
         if intent_data and isinstance(intent_data, dict):
-            tgt = intent_data.get("target_sink") or intent_data.get("target_key")
-            if tgt:
-                dbg_ctx.target_key = str(tgt).strip()
-                dbg_ctx.target_literals.add(dbg_ctx.target_key)
-            if intent_data.get("columns") and isinstance(intent_data["columns"], list):
-                dbg_ctx.columns = [str(c).strip() for c in intent_data["columns"]]
             if intent_data.get("hyperparameters") and isinstance(intent_data["hyperparameters"], dict):
                 dbg_ctx.hyperparameters = dict(intent_data["hyperparameters"])
             if intent_data.get("slots") and isinstance(intent_data["slots"], dict):
@@ -1271,8 +1265,8 @@ class PipelineDebugger:
             c.print(diag_table)
             c.print("")
 
-            # Layer 5 Feedback Check for Planning Refusal (Profile B/C/D/E/S/U or --llm-feedback)
-            llm_feedback = getattr(self, "llm_feedback", False) or (prof in ("B", "C", "D", "E", "S", "U") and ModelManager.get_instance().can_feedback_check())
+            # Layer 5 Feedback Check for Planning Refusal
+            llm_feedback = getattr(self, "llm_feedback", False) or ModelManager.get_instance().can_feedback_check()
             if not cells and refusal and llm_feedback:
                 mm = ModelManager.get_instance()
                 if mm.profile and mm.can_feedback_check():
@@ -1610,8 +1604,8 @@ class PipelineDebugger:
                             )
                             c.print(f"  [dim yellow]Deterministic bridge insertion attempt encountered: {type(e).__name__}: {e}[/dim yellow]")
 
-                # Layer 5 Self-Repair for Pre-Flight Lint Violations (Profile B/C/D/E/S/U or --llm-feedback)
-                llm_feedback = getattr(self, "llm_feedback", False) or (prof in ("B", "C", "D", "E", "S", "U") and ModelManager.get_instance().can_feedback_check())
+                # Layer 5 Self-Repair for Pre-Flight Lint Violations
+                llm_feedback = getattr(self, "llm_feedback", False) or ModelManager.get_instance().can_feedback_check()
                 rep_dt = 0.0
                 if not lint_valid and llm_feedback and final_code:
                     mm = ModelManager.get_instance()
@@ -1783,10 +1777,10 @@ class PipelineDebugger:
                     ))
             c.print("")
 
-        # LAYER 5: Self-Repair Cycle (Profile B/C/D/E/S/U)
+        # LAYER 5: Self-Repair Cycle
         rep_dt = 0.0
         repaired = False
-        if final_code and not sandbox_res.get("success", False) and (prof in ("B", "C", "D", "E", "S", "U") and ModelManager.get_instance().can_feedback_check()):
+        if final_code and not sandbox_res.get("success", False) and ModelManager.get_instance().can_feedback_check():
             mm = ModelManager.get_instance()
             if mm.profile and mm.can_feedback_check():
                 err_msg = sandbox_res.get("error", "")
@@ -1945,18 +1939,18 @@ class NSTLInteractiveShell(cmd.Cmd):
         elif no_exec:
             self.no_exec = True
         else:
-            self.no_exec = not getattr(settings, "sandbox_enabled", True)
+            self.no_exec = not settings.sandbox_enabled
         self.timeout: float = timeout
 
         if reranker is not None:
             settings.use_reranker = bool(reranker)
             os.environ["NSTL_USE_RERANKER"] = "1" if reranker else "0"
-        self.use_reranker = getattr(settings, "use_reranker", False)
+        self.use_reranker = settings.use_reranker
 
         if reranker_model is not None:
             settings.reranker_model = reranker_model
             os.environ["NSTL_RERANKER_MODEL"] = str(reranker_model)
-        self.reranker_model = getattr(settings, "reranker_model", None)
+        self.reranker_model = settings.reranker_model
 
         if macros is not None:
             settings.macros_enabled = bool(macros)
@@ -1968,13 +1962,13 @@ class NSTLInteractiveShell(cmd.Cmd):
 
         if topology is not None:
             settings.topology_mode = str(topology).lower()
-        self.topology_mode = getattr(settings, "topology_mode", "frontier")
+        self.topology_mode = settings.topology_mode
 
         if interactive:
             console.print("\n[bold cyan][*] Initializing NSTL Neuro-Symbolic Engine...[/bold cyan]")
         t0 = time.perf_counter()
 
-        trees_dir = getattr(settings, "trees_dir", Path(db_path).parent)
+        trees_dir = settings.trees_dir or Path(db_path).parent
         ensure_lattice_compiled(trees_dir=str(trees_dir), db_path=db_path)
         self.orchestrator = LatticeOrchestrator(trees_directory=str(trees_dir), db_path=db_path)
         self.orchestrator.load_from_database(db_path)
@@ -2155,6 +2149,11 @@ class NSTLInteractiveShell(cmd.Cmd):
         try:
             from config import settings
             settings.profile = p
+        except Exception:
+            pass
+        try:
+            from cognitive_pathfinder import LatentVectorExtractor
+            LatentVectorExtractor.reset_instance()
         except Exception:
             pass
         if p in ("0", "SYMBOLIC", "ZERO", "PURE"):
@@ -2855,8 +2854,8 @@ class NSTLInteractiveShell(cmd.Cmd):
                 for w in lint_res.warnings:
                     console.print(f"  [yellow]• {w}[/yellow]")
 
-            # Layer 5 Self-Repair for Pre-Flight Lint Violations (Profile B/C/D/E/S/U)
-            if not lint_valid and (getattr(self, "active_profile", getattr(self, "profile", "")) in ("B", "C", "D", "E", "S", "U") and ModelManager.get_instance().can_feedback_check()) and final_code:
+            # Layer 5 Self-Repair for Pre-Flight Lint Violations
+            if not lint_valid and ModelManager.get_instance().can_feedback_check() and final_code:
                 mm = ModelManager.get_instance()
                 if mm.profile and mm.can_feedback_check():
                     err_msg = "Pre-flight lint validation failed:\n" + "\n".join(f"- {v}" for v in lint_res.violations)
@@ -2899,7 +2898,7 @@ class NSTLInteractiveShell(cmd.Cmd):
             sandbox_dt = (time.perf_counter() - t_exec_start) * 1000.0
 
         repaired = False
-        if not sandbox_res.get("success", False) and (prof in ("B", "C", "D", "E", "S", "U") and ModelManager.get_instance().can_feedback_check()):
+        if not sandbox_res.get("success", False) and ModelManager.get_instance().can_feedback_check():
             mm = ModelManager.get_instance()
             if mm.profile and mm.can_feedback_check():
                 error_msg = sandbox_res.get("error", "")
@@ -3060,7 +3059,6 @@ def cmd_run(args):
         os.environ["NSTL_ALLOW_FALLBACK"] = "1" if args.allow_fallback else "0"
     db_path = getattr(args, "db", "trees/lattice.db")
     profile = getattr(args, "profile", "0")
-    import os
     os.environ["NSTL_PROFILE"] = str(profile).strip().upper()
     try:
         from config import settings

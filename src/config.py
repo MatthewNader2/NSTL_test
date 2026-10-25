@@ -98,6 +98,91 @@ class NSTLSettings(BaseSettings):
         default=False,
         description="When True, prints diagnostic table of cell-clause precision and coverage.",
     )
+    domain_affinity_bonus: float = Field(
+        default=0.5,
+        ge=0.0,
+        description="Score bonus for cells in the primary domain.",
+    )
+    max_plan_depth: int = Field(
+        default=24,
+        ge=1,
+        description="Maximum plan depth during chain expansion.",
+    )
+
+    # Search & Routing Bounds
+    bridge_bfs_max_expansions: int = Field(
+        default=300,
+        ge=10,
+        description="Maximum BFS expansions during shortest bridge path search in LatticeOrchestrator.",
+    )
+    m2_max_candidate_transforms: int = Field(
+        default=25,
+        ge=1,
+        description="Maximum transform candidates evaluated in M2 endpoint routing.",
+    )
+    macro_router_max_depth: int = Field(
+        default=2,
+        ge=1,
+        description="Maximum recursion depth for macro-goal unfolding in router.",
+    )
+    bridge_chain_max_hops: int = Field(
+        default=2,
+        ge=1,
+        description="Maximum intermediate hops allowed when bridging macro sub-chains.",
+    )
+    function_words_cutoff: float = Field(
+        default=0.5,
+        gt=0.0,
+        le=1.0,
+        description="Frequency threshold above which corpus words are classified as non-informative function words.",
+    )
+    secondary_anchor_min_recall: float = Field(
+        default=0.25,
+        ge=0.0,
+        le=1.0,
+        description="Minimum recall threshold for secondary clause anchors in token evidence audit.",
+    )
+    secondary_anchor_min_f: float = Field(
+        default=0.10,
+        ge=0.0,
+        le=1.0,
+        description="Minimum F-score threshold for secondary clause anchors.",
+    )
+    secondary_anchor_f_ratio: float = Field(
+        default=0.25,
+        ge=0.0,
+        le=1.0,
+        description="Minimum ratio of secondary to primary F-score for anchor acceptance.",
+    )
+    max_embedding_cache_size: int = Field(
+        default=16384,
+        ge=128,
+        description="Maximum number of entries retained in the global embedding cache.",
+    )
+    prune_unrequested_max_ops: int = Field(
+        default=50,
+        ge=1,
+        description="Operation-count budget for prune_unrequested passes before returning best-so-far pipeline.",
+    )
+    verified_priority_threshold: int = Field(
+        default=10,
+        ge=1,
+        description="Priority threshold for verified edges in CLI and router.",
+    )
+    latent_sim_weight: float = Field(default=0.5, ge=0.0, le=1.0)
+    latent_progress_weight: float = Field(default=0.5, ge=0.0, le=1.0)
+    latent_clause_weight: float = Field(default=0.5, ge=0.0, le=1.0)
+    latent_goal_weight: float = Field(default=0.3, ge=0.0, le=1.0)
+    latent_structural_weight: float = Field(default=0.2, ge=0.0, le=1.0)
+    latent_state_momentum: float = Field(default=0.7, ge=0.0, le=1.0)
+    default_cells_limit: Optional[int] = Field(
+        default=None,
+        description="Default cell limit for API extraction.",
+    )
+    clause_evidence_ratio: float = Field(default=0.75, ge=0.0, le=1.0)
+    clause_weight_ratio: float = Field(default=0.3, ge=0.0, le=1.0)
+    clause_precision_ratio: float = Field(default=0.5, ge=0.0, le=1.0)
+    join_relevance_threshold: float = Field(default=0.05, ge=0.0, le=1.0)
 
     @field_validator("cors_origins", mode="before")
     @classmethod

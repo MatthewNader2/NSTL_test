@@ -48,12 +48,12 @@ def get_latent_scoring_weights() -> Dict[str, float]:
     or settings without hardcoded magic numbers in the scoring loop.
     """
     defaults = {
-        "sim_weight": float(getattr(settings, "latent_sim_weight", 0.5)),
-        "progress_weight": float(getattr(settings, "latent_progress_weight", 0.5)),
-        "clause_weight": float(getattr(settings, "latent_clause_weight", 0.5)),
-        "goal_weight": float(getattr(settings, "latent_goal_weight", 0.3)),
-        "structural_weight": float(getattr(settings, "latent_structural_weight", 0.2)),
-        "state_momentum": float(getattr(settings, "latent_state_momentum", 0.7)),
+        "sim_weight": float(settings.latent_sim_weight),
+        "progress_weight": float(settings.latent_progress_weight),
+        "clause_weight": float(settings.latent_clause_weight),
+        "goal_weight": float(settings.latent_goal_weight),
+        "structural_weight": float(settings.latent_structural_weight),
+        "state_momentum": float(settings.latent_state_momentum),
     }
     try:
         reg = TypeRegistry.get_instance()
@@ -127,7 +127,7 @@ class LatentVectorExtractor:
         except Exception as e:
             errors.append(f"Profile 0 check: {e}")
 
-        if getattr(settings, "profile", "") == "0" or os.environ.get("NSTL_PROFILE") == "0":
+        if settings.profile == "0" or os.environ.get("NSTL_PROFILE") == "0":
             self._model = None
             self._backend = "unavailable"
             self._init_error = "Profile 0 is pure symbolic: neural embeddings are disabled."

@@ -28,7 +28,7 @@ logger = get_logger("reranker")
 
 def get_available_rerankers() -> List[str]:
     """Scans MODELS_DIR/rerankers for available reranker models."""
-    r_dir = getattr(settings, 'rerankers_dir', None) or os.path.join(MODELS_DIR, 'rerankers')
+    r_dir = settings.rerankers_dir or os.path.join(MODELS_DIR, 'rerankers')
     if os.path.exists(str(r_dir)):
         raw = sorted([
             d for d in os.listdir(str(r_dir))
@@ -67,7 +67,7 @@ class LocalReranker:
         return 'jinaai/jina-reranker-v3.5'
 
     def _load_model(self):
-        r_dir = getattr(settings, 'rerankers_dir', None) or os.path.join(MODELS_DIR, 'rerankers')
+        r_dir = settings.rerankers_dir or os.path.join(MODELS_DIR, 'rerankers')
         local_cand = os.path.join(str(r_dir), self.model_name)
         model_path = local_cand if os.path.exists(local_cand) else self.model_name
         logger.info(f"[RERANKER] Loading reranker '{self.model_name}' from {model_path} onto {self.device}...")

@@ -32,6 +32,10 @@ try:
     from .tokenizer import CellTokenizer
 except (ImportError, ValueError):
     from tokenizer import CellTokenizer
+try:
+    from .config import settings
+except (ImportError, ValueError):
+    from config import settings
 
 logger = get_logger('lattice')
 
@@ -266,6 +270,7 @@ class TypeRegistry:
         self._column_projection_tokens: Set[str] = set()
         self._stopwords: Set[str] = set()
         self._preposition_triggers: Set[str] = set()
+        self._generic_prepositions: Set[str] = set()
         self._sentence_connectives: Set[str] = set()
         self._coordinating_conjunctions: Set[str] = set()
         self._sequencing_connectives: Set[str] = set()
@@ -295,6 +300,7 @@ class TypeRegistry:
         # Data-driven structural vocabulary (declared in tree JSON; empty by default)
         self._top_level_carriers: Set[str] = set()
         self._path_port_tokens: Set[str] = set()
+        self._registered_supported_formats: Set[str] = set()
         self._state_role_ancestors: Dict[str, FrozenSet[str]] = {}
         self._state_role_markers: Dict[str, Tuple[str, ...]] = {}
         self._carrier_roles: Dict[str, Tuple[str, ...]] = {}
@@ -369,7 +375,7 @@ class TypeRegistry:
                 from .config import settings as _settings
             except (ImportError, ValueError):
                 from config import settings as _settings
-            if getattr(_settings, "trees_dir", None):
+            if _settings.trees_dir:
                 search_dirs.append(str(_settings.trees_dir))
         except Exception:
             pass
@@ -478,6 +484,8 @@ class TypeRegistry:
                             self.register_stopwords(data["stopwords"])
                         if "preposition_triggers" in data and isinstance(data["preposition_triggers"], list):
                             self.register_preposition_triggers(data["preposition_triggers"])
+                        if "generic_prepositions" in data and isinstance(data["generic_prepositions"], list):
+                            self.register_generic_prepositions(data["generic_prepositions"])
                         if "sentence_connectives" in data and isinstance(data["sentence_connectives"], list):
                             self.register_sentence_connectives(data["sentence_connectives"])
                         if "coordinating_conjunctions" in data and isinstance(data["coordinating_conjunctions"], list):
@@ -681,7 +689,9 @@ class TypeRegistry:
         return c in self._product_constructors
 
     @_locked
-    def derive_function_words(self, corpus_docs: List[str], cutoff: float = 0.5) -> FrozenSet[str]:
+    def derive_function_words(self, corpus_docs: List[str], cutoff: Optional[float] = None) -> FrozenSet[str]:
+        if cutoff is None:
+            cutoff = settings.function_words_cutoff
         from collections import Counter
         df = Counter()
         docs = [set(CellTokenizer.tokenize_prompt(d)) for d in corpus_docs if d]
@@ -896,18 +906,22 @@ class TypeRegistry:
     # --- Estimator verbs (data-driven from tree declarations) ---
     @_locked
     def register_estimator_verbs(self, verbs: Any) -> None:
-        pass
+        if verbs:
+            for v in verbs:
+                self._estimator_verbs.add(str(v).strip().lower())
 
     def get_estimator_verbs(self) -> FrozenSet[str]:
-        return frozenset()
+        return frozenset(self._estimator_verbs)
 
     # --- Column projection tokens (data-driven from tree declarations) ---
     @_locked
     def register_column_projection_tokens(self, tokens: Any) -> None:
-        pass
+        if tokens:
+            for t in tokens:
+                self._column_projection_tokens.add(str(t).strip().lower())
 
     def get_column_projection_tokens(self) -> FrozenSet[str]:
-        return frozenset()
+        return frozenset(self._column_projection_tokens) | frozenset(self.get_verification_semantics("projection_port_names"))
 
     def get_format_groups(self) -> FrozenSet[str]:
         """Returns registered format categories (subtypes of 'format' registered in poset)."""
@@ -927,53 +941,82 @@ class TypeRegistry:
         pass
 
     def get_stopwords(self) -> FrozenSet[str]:
-        return frozenset()
+        return frozenset(
+            self.get_prompt_filler_tokens()
+            | self.get_sentence_connectives()
+            | self.get_function_words()
+            | self.get_coordinating_conjunctions()
+            | self.get_sequencing_connectives()
+        )
 
     # --- Preposition triggers (data-driven from tree declarations) ---
     @_locked
     def register_preposition_triggers(self, triggers: Any) -> None:
-        pass
+        if triggers:
+            for t in triggers:
+                self._preposition_triggers.add(str(t).strip().lower())
 
     def get_preposition_triggers(self) -> FrozenSet[str]:
-        return frozenset()
+        return frozenset(self._preposition_triggers)
+
+    # --- Generic prepositions (data-driven from tree declarations) ---
+    @_locked
+    def register_generic_prepositions(self, preps: Any) -> None:
+        if preps:
+            for p in preps:
+                self._generic_prepositions.add(str(p).strip().lower())
+
+    def get_generic_prepositions(self) -> FrozenSet[str]:
+        return frozenset(self._generic_prepositions) | frozenset(self.get_verification_semantics("generic_prepositions") or ())
 
     # --- Sentence connectives (data-driven from tree declarations) ---
     @_locked
     def register_sentence_connectives(self, connectives: Any) -> None:
-        pass
+        if connectives:
+            for c in connectives:
+                self._sentence_connectives.add(str(c).strip().lower())
 
     def get_sentence_connectives(self) -> FrozenSet[str]:
-        return frozenset()
+        return frozenset(self._sentence_connectives)
 
     # --- Coordinating conjunctions (data-driven from tree declarations) ---
     @_locked
     def register_coordinating_conjunctions(self, words: Any) -> None:
-        pass
+        if words:
+            for w in words:
+                self._coordinating_conjunctions.add(str(w).strip().lower())
 
     def get_coordinating_conjunctions(self) -> FrozenSet[str]:
-        return frozenset()
+        return frozenset(self._coordinating_conjunctions)
 
     # --- Sequencing connectives (data-driven from tree declarations) ---
     @_locked
     def register_sequencing_connectives(self, words: Any) -> None:
-        pass
+        if words:
+            for w in words:
+                self._sequencing_connectives.add(str(w).strip().lower())
 
     def get_sequencing_connectives(self) -> FrozenSet[str]:
-        return frozenset()
+        return frozenset(self._sequencing_connectives)
 
     # --- Filter-context tokens (data-driven from tree declarations) ---
     @_locked
     def register_filter_context_tokens(self, words: Any) -> None:
-        pass
+        if words:
+            for w in words:
+                self._filter_context_tokens.add(str(w).strip().lower())
 
     def get_filter_context_tokens(self) -> FrozenSet[str]:
-        return frozenset()
+        return frozenset(self._filter_context_tokens)
 
+    @_locked
     def register_prompt_filler_tokens(self, words: Any) -> None:
-        pass
+        if words:
+            for w in words:
+                self._prompt_filler_tokens.add(str(w).strip().lower())
 
     def get_prompt_filler_tokens(self) -> FrozenSet[str]:
-        return frozenset()
+        return frozenset(self._prompt_filler_tokens)
 
     # --- Verification semantics (data-driven from tree declarations) --------
     @_locked
@@ -1054,6 +1097,30 @@ class TypeRegistry:
         if k in self._output_asset_placeholders:
             return self._output_asset_placeholders[k]
         return self._output_asset_placeholders.get("default", default)
+
+    @_locked
+    def register_supported_formats(self, formats: Any) -> None:
+        if not formats:
+            return
+        if isinstance(formats, (str, bytes)):
+            formats = [formats]
+        for f in formats:
+            clean = str(f).strip().lower().lstrip(".")
+            if clean and clean != "*":
+                self._registered_supported_formats.add(clean)
+
+    def get_registered_supported_formats(self) -> FrozenSet[str]:
+        if not self._registered_supported_formats:
+            try:
+                orch = LatticeOrchestrator.get_active_instance()
+                if orch:
+                    for c in getattr(orch, "cells", []) or ():
+                        for p in list(getattr(c, "inputs", {}).values()) + list(getattr(c, "outputs", {}).values()):
+                            if getattr(p, "supported_formats", None):
+                                self.register_supported_formats(p.supported_formats)
+            except Exception:
+                pass
+        return frozenset(self._registered_supported_formats)
 
     @classmethod
     def get_instance(cls) -> TypeRegistry:
@@ -1640,7 +1707,9 @@ class TypeRegistry:
         c_acc = {str(s).strip().lower() for s in (consumer_accepted or []) if str(s).strip()}
 
         # 1. Unconstrained consumer typestate (Phi = Top)
-        if self.is_declared_top_state(c_state) and not c_acc:
+        if any(self.is_declared_top_state(s) for s in (c_acc or (c_state,))) or (
+            self.is_declared_top_state(c_state) and not (c_acc - self._declared_top_states)
+        ):
             return True
 
         # 2. Unconstrained producer state cannot satisfy constrained consumer
@@ -2184,6 +2253,11 @@ class PortSignature:
         self.rank = rank if rank is not None else kwargs.get("rank")
         self.element_type = element_type or kwargs.get("element_type") or None
         self.supported_formats = list(supported_formats or kwargs.get("supported_formats") or [])
+        if self.supported_formats:
+            try:
+                TypeRegistry.get_instance().register_supported_formats(self.supported_formats)
+            except Exception:
+                pass
         acc_rej = rejected_qualifiers if rejected_qualifiers is not None else kwargs.get("rejected_qualifiers", [])
         if isinstance(acc_rej, (set, frozenset, list, tuple)):
             self.rejected_qualifiers = frozenset(str(s).strip().lower() for s in acc_rej if str(s).strip())
@@ -2551,6 +2625,7 @@ class Cell(ABC):
         all_placeholders = list(dict.fromkeys(extract_template_placeholders(code_template)))
         if code_template:
             import ast
+            import re
             try:
                 # Replace placeholders with valid python identifiers to parse AST
                 dummy_tpl = re.sub(r'\{([a-zA-Z_][a-zA-Z0-9_]*)\}', r'__ph_\1', code_template)
@@ -2558,14 +2633,23 @@ class Cell(ABC):
                 for node in ast.walk(tree):
                     if isinstance(node, ast.Assign):
                         for target in node.targets:
-                            for n in ast.walk(target):
-                                if isinstance(n, ast.Name) and n.id.startswith('__ph_'):
-                                    lhs_outs.add(n.id[5:])
+                            root = target
+                            while isinstance(root, (ast.Subscript, ast.Attribute)):
+                                root = root.value
+                            if isinstance(root, ast.Name) and root.id.startswith('__ph_'):
+                                lhs_outs.add(root.id[5:])
+                            elif isinstance(root, (ast.Tuple, ast.List)):
+                                for elt in root.elts:
+                                    if isinstance(elt, ast.Name) and elt.id.startswith('__ph_'):
+                                        lhs_outs.add(elt.id[5:])
                     elif hasattr(ast, "AnnAssign") and isinstance(node, ast.AnnAssign):
-                        if isinstance(node.target, ast.Name) and node.target.id.startswith('__ph_'):
-                            lhs_outs.add(node.target.id[5:])
+                        root = node.target
+                        while isinstance(root, (ast.Subscript, ast.Attribute)):
+                            root = root.value
+                        if isinstance(root, ast.Name) and root.id.startswith('__ph_'):
+                            lhs_outs.add(root.id[5:])
             except Exception:
-                eq_idx = code_template.rfind("=")
+                eq_idx = code_template.find("=")
                 if eq_idx != -1:
                     lhs = code_template[:eq_idx].split(";")[-1]
                     lhs_outs.update(extract_template_placeholders(lhs))
@@ -3423,6 +3507,11 @@ class LatticeOrchestrator:
         self._token_index: Dict[str, List[Cell]] = {}
         self._bridge_cells: List[Cell] = []
         self.dynamic_edges: Dict[Tuple[str, str], Dict[str, Any]] = {}
+        self._bridge_path_cache: Dict[Tuple[str, str, int], List[Cell]] = {}
+        self._directly_unify_cache: Dict[Tuple[str, str], bool] = {}
+        self._macro_edges: Optional[Set[Tuple[str, str]]] = None
+        self._generic_port_cache: Optional[Any] = None
+        self._version: int = 0
         self._lock = threading.RLock()
 
         if auto_load:
@@ -3440,6 +3529,25 @@ class LatticeOrchestrator:
     @property
     def cells(self) -> List[Cell]:
         return list(self.loaded_cells.values())
+
+    @property
+    def macro_edges(self) -> Set[Tuple[str, str]]:
+        if self._macro_edges is None:
+            with self._lock:
+                if self._macro_edges is None:
+                    macro_set: Set[Tuple[str, str]] = set()
+                    for m in self.loaded_cells.values():
+                        if getattr(m, "cell_type", "") == "macro" or getattr(m, "sub_cells", None):
+                            topo = getattr(m, "internal_topology", {}) or {}
+                            for s_id, targets in topo.items():
+                                for t_id in targets:
+                                    macro_set.add((s_id, t_id))
+                            subs = getattr(m, "sub_cells", None)
+                            if subs:
+                                for i in range(len(subs) - 1):
+                                    macro_set.add((subs[i], subs[i + 1]))
+                    self._macro_edges = macro_set
+        return self._macro_edges
 
     @property
     def _cells_by_input(self) -> Dict[Tuple[str, str], List[Cell]]:
@@ -3624,7 +3732,14 @@ class LatticeOrchestrator:
 
     def load_all_json_trees(self):
         """Loads all JSON trees located in trees_directory and supplemental trees."""
-        target_dir = self.trees_directory
+        with self._lock:
+            self.loaded_cells.clear()
+            self._bridge_path_cache.clear()
+            self._directly_unify_cache.clear()
+            self._macro_edges = None
+            self._generic_port_cache = None
+            self._version += 1
+            target_dir = self.trees_directory
         search_dirs = [target_dir]
         if os.path.basename(os.path.normpath(target_dir)) in TREE_SEARCH_DIRS:
             for candidate in TREE_SEARCH_DIRS:
@@ -3662,6 +3777,11 @@ class LatticeOrchestrator:
                 return
 
             self.loaded_cells.clear()
+            self._bridge_path_cache.clear()
+            self._directly_unify_cache.clear()
+            self._macro_edges = None
+            self._generic_port_cache = None
+            self._version += 1
             try:
                 with contextlib.closing(sqlite3.connect(self.db_path, check_same_thread=False)) as conn:
                     conn.execute("PRAGMA journal_mode=WAL;")
@@ -4063,6 +4183,9 @@ class LatticeOrchestrator:
                     f"falling back to JSON trees in '{self.trees_directory}'."
                 )
                 self.loaded_cells.clear()
+                self._bridge_path_cache.clear()
+                self._directly_unify_cache.clear()
+                self._macro_edges = None
                 self.load_all_json_trees()
 
     load_from_db = load_from_database
@@ -4078,6 +4201,9 @@ class LatticeOrchestrator:
             self._token_index.clear()
             self._bridge_cells.clear()
             self.dynamic_edges.clear()
+            self._bridge_path_cache.clear()
+            self._directly_unify_cache.clear()
+            self._macro_edges = None
 
             all_cells = list(self.loaded_cells.values())
             for cell in all_cells:
@@ -4280,10 +4406,11 @@ class LatticeOrchestrator:
         """True iff any output port of src can validly unify with an input port of dst."""
         if not src or not dst:
             return False
-        # 1. Fast check via precomputed directed transition adjacency
-        if dst.cell_id in self._adjacency.get(src.cell_id, []):
-            return True
-        # 2. Semantic port unification check (including typestate qualifiers and states)
+        cache_key = (src.cell_id, dst.cell_id)
+        if cache_key in self._directly_unify_cache:
+            return self._directly_unify_cache[cache_key]
+        # Semantic port unification check (including typestate qualifiers and states)
+        res = False
         try:
             try:
                 from .unification import is_edge_valid
@@ -4292,10 +4419,14 @@ class LatticeOrchestrator:
             for out_p in src.outputs.values():
                 for in_p in dst.inputs.values():
                     if is_edge_valid(out_p, in_p, producer_cell=src, consumer_cell=dst):
-                        return True
+                        res = True
+                        break
+                if res:
+                    break
         except Exception:
             pass
-        return False
+        self._directly_unify_cache[cache_key] = res
+        return res
 
     @staticmethod
     def _is_valid_bridge_candidate(cand: Cell) -> bool:
@@ -4317,7 +4448,7 @@ class LatticeOrchestrator:
             set(reg.get_verification_semantics("config_roles") or ())
             | set(reg.get_verification_semantics("configuration_roles") or ())
             | set(reg.get_verification_semantics("parameter_roles") or ())
-            | {"configuration", "parameter", "literal_parameter"}
+            | {"configuration", "parameter", "literal_parameter", "hyperparameter", "option", "config"}
         )
 
         dataflow_inputs = []
@@ -4325,7 +4456,7 @@ class LatticeOrchestrator:
             if getattr(p_sig, "default_value", None) is not None:
                 continue
             p_role = str(getattr(p_sig, "port_role", None) or getattr(p_sig, "role", None) or getattr(p_sig, "derived_role", "") or "").lower()
-            if p_role in cfg_roles:
+            if p_role in cfg_roles or str(getattr(p_sig, "param_kind", "")).lower() in cfg_roles:
                 continue
             t_str = str(getattr(getattr(p_sig, "signature", p_sig), "type_name", ""))
             if "Callable" in t_str or "function" in t_str.lower():
@@ -4384,6 +4515,10 @@ class LatticeOrchestrator:
         if self.cells_directly_unify(src, dst):
             return []
 
+        cache_key = (src.cell_id, dst.cell_id, max_hops) if candidate_pool is None else None
+        if cache_key is not None and cache_key in self._bridge_path_cache:
+            return list(self._bridge_path_cache[cache_key])
+
         # 2. Shortest-path BFS over the transition graph
         if candidate_pool is not None:
             pool = {c.cell_id: c for c in candidate_pool}
@@ -4440,9 +4575,29 @@ class LatticeOrchestrator:
             for k, v in c_props.items():
                 if k in p_props and p_props[k] == v:
                     score += 10.0
+            # 3. Categorical morphism role preference: prioritize declared bridge morphisms
+            reduction_tags = set(reg.get_verification_semantics("reduction_tags") or ())
+            for b_c in p:
+                b_role = getattr(b_c, "node_role", "")
+                if b_role == "bridge":
+                    score += 20.0
+                elif b_role == "reduction":
+                    score -= 20.0
+                if reduction_tags:
+                    tags = {str(t).lower() for t in (getattr(b_c, "semantic_tags", None) or [])}
+                    if tags & reduction_tags:
+                        score -= 20.0
             return score
 
+        expansions = 0
+        max_expansions = settings.bridge_bfs_max_expansions
+        work_cut = False
         while queue:
+            if expansions >= max_expansions:
+                if shortest_len is None and len(queue) > 0:
+                    work_cut = True
+                break
+            expansions += 1
             curr_cell, path = queue.popleft()
             if shortest_len is not None and len(path) > shortest_len:
                 break
@@ -4488,8 +4643,30 @@ class LatticeOrchestrator:
                             visited.add(b_id)
                             queue.append((b_cand, path + [b_cand]))
 
+        if work_cut:
+            if not hasattr(self, "trace_events"):
+                self.trace_events = []
+            self.trace_events.append({
+                "event": "bridge_bfs_truncated",
+                "src": getattr(src, "cell_id", str(src)),
+                "dst": getattr(dst, "cell_id", str(dst)),
+                "expansions": expansions,
+                "max_expansions": max_expansions,
+            })
+            logger.debug(
+                "[LATTICE] bridge_bfs_truncated: %s -> %s (expansions=%s, cap=%s)",
+                getattr(src, "cell_id", str(src)),
+                getattr(dst, "cell_id", str(dst)),
+                expansions,
+                max_expansions,
+            )
+
         if best_path:
+            if cache_key is not None:
+                self._bridge_path_cache[cache_key] = list(best_path)
             return best_path
+        if cache_key is not None and not work_cut:
+            self._bridge_path_cache[cache_key] = []
         return []
 
     def register_dynamic_edge(
@@ -4537,6 +4714,11 @@ class LatticeOrchestrator:
                 self._reverse_adjacency[dst_cell.cell_id] = []
             if src_cell.cell_id not in self._reverse_adjacency[dst_cell.cell_id]:
                 self._reverse_adjacency[dst_cell.cell_id].append(src_cell.cell_id)
+
+            self._bridge_path_cache.clear()
+            self._directly_unify_cache.clear()
+            self._generic_port_cache = None
+            self._version += 1
 
             return True
 

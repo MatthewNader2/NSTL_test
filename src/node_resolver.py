@@ -284,7 +284,7 @@ class DynamicNodeResolver:
             return None
 
         active_rag = rag or getattr(orchestrator, "rag", None)
-        is_dev = dev_mode if dev_mode is not None else getattr(settings, "dev_mode", False)
+        is_dev = dev_mode if dev_mode is not None else settings.dev_mode
 
         # -------------------------------------------------------------
         # Step 1: Check if node exists in orchestrator loaded catalog
@@ -482,7 +482,7 @@ class DynamicNodeResolver:
         Synthesizes a minimal 1-step converter/adapter cell on demand
         when src_cell output cannot directly unify with dst_cell input and no bridge cell exists.
         """
-        is_dev = dev_mode if dev_mode is not None else getattr(settings, "dev_mode", False)
+        is_dev = dev_mode if dev_mode is not None else settings.dev_mode
         if not is_dev:
             return None
 

@@ -137,6 +137,23 @@ class CellTokenizer:
     """Tokenizes code identifiers, cell IDs, and user prompts into sub-word tokens without regular expressions."""
 
     @classmethod
+    def clean_identifier(cls, token: str) -> str:
+        """
+        Strips non-identifier boundary characters using character transitions without regular expressions
+        or ad-hoc punctuation string lists.
+        """
+        if not token:
+            return ""
+        chars = list(str(token))
+        i = 0
+        while i < len(chars) and not (chars[i].isalnum() or chars[i] == '_'):
+            i += 1
+        j = len(chars)
+        while j > i and not (chars[j - 1].isalnum() or chars[j - 1] == '_'):
+            j -= 1
+        return "".join(chars[i:j])
+
+    @classmethod
     def tokenize_identifier(cls, identifier: str) -> Set[str]:
         """
         Splits camelCase, snake_case, kebab-case, and dotted identifiers into distinct sub-tokens

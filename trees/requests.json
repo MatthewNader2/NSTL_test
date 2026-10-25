@@ -125,7 +125,8 @@
       },
       {
         "name": "http_response",
-        "description": "Raw HTTP response received from server endpoint."
+        "description": "Raw HTTP response received from server endpoint.",
+        "parent_state": "received"
       },
       {
         "name": "json_payload",

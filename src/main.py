@@ -333,12 +333,6 @@ def run_prompt(request: Union[RunRequest, Dict[str, Any], str]) -> RunResponse:
 
     req_ctx = ExecutionContext(prompt=effective_prompt)
     if intent_data and isinstance(intent_data, dict):
-        tgt = intent_data.get("target_sink") or intent_data.get("target_key")
-        if tgt:
-            req_ctx.target_key = str(tgt).strip()
-            req_ctx.target_literals.add(req_ctx.target_key)
-        if intent_data.get("columns") and isinstance(intent_data["columns"], list):
-            req_ctx.columns = [str(c).strip() for c in intent_data["columns"]]
         if intent_data.get("hyperparameters") and isinstance(intent_data["hyperparameters"], dict):
             req_ctx.hyperparameters = dict(intent_data["hyperparameters"])
         if intent_data.get("slots") and isinstance(intent_data["slots"], dict):
@@ -604,7 +598,7 @@ async def get_models():
 @app.get("/api/cells", tags=["Metadata"])
 async def get_cells(
     limit: Optional[int] = Query(
-        default=getattr(settings, "default_cells_limit", None),
+        default=settings.default_cells_limit,
         description="Maximum number of cells to return. If omitted or <= 0, returns all cells without arbitrary truncation."
     )
 ):

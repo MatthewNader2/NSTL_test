@@ -158,11 +158,11 @@ class RouteMethod(ABC):
         """
         try:
             from config import settings
-            allow = getattr(settings, "allow_fallback", False)
+            allow = settings.allow_fallback
         except Exception:
             try:
                 from ..config import settings
-                allow = getattr(settings, "allow_fallback", False)
+                allow = settings.allow_fallback
             except Exception:
                 allow = False
 
@@ -222,23 +222,27 @@ class RouteMethod(ABC):
         # Synaptic Macro-Goal Edge Reinforcement (Synapses in the Brain):
         try:
             from config import settings
-            macros_enabled = bool(getattr(settings, "macros_enabled", True))
+            macros_enabled = bool(settings.macros_enabled)
         except Exception:
             macros_enabled = True
 
-        if macros_enabled and orch and hasattr(orch, "loaded_cells"):
-            for m in orch.loaded_cells.values():
-                if getattr(m, "cell_type", "") == "macro" or getattr(m, "sub_cells", None):
-                    topo = getattr(m, "internal_topology", {}) or {}
-                    is_macro_edge = dst_cell.cell_id in topo.get(src_cell.cell_id, ())
-                    if not is_macro_edge and getattr(m, "sub_cells", None):
-                        subs = m.sub_cells
-                        for i in range(len(subs) - 1):
-                            if subs[i] == src_cell.cell_id and subs[i + 1] == dst_cell.cell_id:
-                                is_macro_edge = True
-                                break
-                    if is_macro_edge:
-                        return 0.85
+        if macros_enabled and orch:
+            if hasattr(orch, "macro_edges"):
+                if (src_cell.cell_id, dst_cell.cell_id) in orch.macro_edges:
+                    return 0.85
+            elif hasattr(orch, "loaded_cells"):
+                for m in orch.loaded_cells.values():
+                    if getattr(m, "cell_type", "") == "macro" or getattr(m, "sub_cells", None):
+                        topo = getattr(m, "internal_topology", {}) or {}
+                        is_macro_edge = dst_cell.cell_id in topo.get(src_cell.cell_id, ())
+                        if not is_macro_edge and getattr(m, "sub_cells", None):
+                            subs = m.sub_cells
+                            for i in range(len(subs) - 1):
+                                if subs[i] == src_cell.cell_id and subs[i + 1] == dst_cell.cell_id:
+                                    is_macro_edge = True
+                                    break
+                        if is_macro_edge:
+                            return 0.85
 
         # 1. Forward declared edges on src_cell
         dst_id_lower = dst_cell.cell_id.lower()
@@ -303,6 +307,11 @@ class RouteMethod(ABC):
             return True
 
         for p in path_ports:
+            port_fmts = getattr(p, "supported_formats", None)
+            if port_fmts:
+                clean_fmts = {str(f).strip().lower() for f in port_fmts}
+                if "*" not in clean_fmts and ext not in clean_fmts:
+                    return False
             tn = str(getattr(p, "type_name", "") or "").strip()
             if "[" in tn and tn.endswith("]"):
                 ctor, _, inner = tn[:-1].partition("[")
@@ -1019,6 +1028,157 @@ class RouteMethod(ABC):
                 bridged_path.append(c)
         path = bridged_path
 
+        # Step 1.5: Closed open-port frontier closure via backward search and typestate demand
+        try:
+            from unification import is_edge_valid
+        except (ImportError, ValueError):
+            from ..unification import is_edge_valid
+        from dag_plan import OpenPortFrontier
+
+        reg = TypeRegistry.get_instance()
+        idx = 0
+        max_bridge_steps = len(path) * 4
+        bridge_steps = 0
+
+        while idx < len(path) and bridge_steps < max_bridge_steps:
+            bridge_steps += 1
+            curr_c = path[idx]
+            in_scope_cells = path[:idx]
+            cells_to_insert = []
+
+            # Build open-port frontier for in-scope cells
+            frontier = OpenPortFrontier()
+            for s_idx, sc in enumerate(in_scope_cells):
+                frontier.add_ingress_node(sc, step_idx=s_idx)
+
+            for p_name, p in (curr_c.inputs or {}).items():
+                if not getattr(p, "required", True) or getattr(p, "default_value", None) is not None:
+                    continue
+                p_tname = str(getattr(p, "type_name", "") or "").lower()
+                has_enum = bool(getattr(p, "enum_values", None))
+                if reg.is_literal_groundable(p_tname, has_enum=has_enum):
+                    continue
+                if is_path_port(p):
+                    continue
+                if getattr(curr_c, "stage", None) == 1 or getattr(curr_c, "node_role", "") == "source":
+                    continue
+
+                # Check if any in-scope cell output unifies with this port via is_edge_valid and rank check
+                p_unified = False
+                p_rank = getattr(p, "rank", None)
+                for op in frontier.open_ports:
+                    op_sig = op.signature
+                    op_rank = getattr(op_sig, "rank", None)
+                    if p_rank is not None and op_rank is not None and p_rank != op_rank:
+                        continue
+                    if is_edge_valid(op_sig, p, producer_cell=op.cell_ref, consumer_cell=curr_c):
+                        p_unified = True
+                        break
+
+                if p_unified:
+                    continue
+
+                # Port p is a required unbound port with no in-scope producer!
+                # Backward search by (carrier, rank, unification) and typestate demand
+                best_cand_cell = None
+                p_state = str(getattr(getattr(p, "signature", p), "state", "") or "").lower()
+                p_structure = str(getattr(p, "structure_kind", "") or "").lower()
+
+                # Priority 1: Algebraic typestate transition counterpart in same domain
+                curr_domain = getattr(curr_c, "domain_name", "") or getattr(curr_c, "domain", "")
+                if p_structure == "handle" or p_state:
+                    p_accepted = set(getattr(p, "accepted_states", ()) or ())
+                    if p_state:
+                        p_accepted.add(p_state)
+                    for cand in self.orchestrator.loaded_cells.values():
+                        if any(existing.cell_id == cand.cell_id for existing in path):
+                            continue
+                        cand_domain = getattr(cand, "domain_name", "") or getattr(cand, "domain", "")
+                        for cand_out in (cand.outputs or {}).values():
+                            c_rank = getattr(cand_out, "rank", None)
+                            if p_rank is not None and c_rank is not None and p_rank != c_rank:
+                                continue
+                            if is_edge_valid(cand_out, p, producer_cell=cand, consumer_cell=curr_c):
+                                out_st = str(getattr(getattr(cand_out, "signature", cand_out), "state", "") or "").lower()
+                                state_match = bool(p_accepted and out_st in p_accepted)
+                                domain_match = bool(curr_domain and cand_domain and curr_domain == cand_domain)
+                                if state_match and domain_match:
+                                    best_cand_cell = cand
+                                    break
+                                elif best_cand_cell is None:
+                                    best_cand_cell = cand
+                        if best_cand_cell is not None and bool(curr_domain and getattr(best_cand_cell, "domain_name", "") == curr_domain):
+                            break
+
+                # Priority 2: Projection from in-scope composite carrier (carrier, rank, unification)
+                if best_cand_cell is None:
+                    in_scope_carrier_cell = None
+                    for prev in reversed(in_scope_cells):
+                        for prev_out in (prev.outputs or {}).values():
+                            carrier = getattr(prev_out, "type_name", None) or getattr(prev_out, "abstract_type", None)
+                            if carrier and reg.is_composite_carrier(carrier):
+                                in_scope_carrier_cell = prev
+                                break
+                        if in_scope_carrier_cell:
+                            break
+
+                    if in_scope_carrier_cell:
+                        for cand in self.orchestrator.loaded_cells.values():
+                            if any(existing.cell_id == cand.cell_id for existing in path):
+                                continue
+                            for cand_out in (cand.outputs or {}).values():
+                                c_rank = getattr(cand_out, "rank", None)
+                                if p_rank is not None and c_rank is not None and p_rank != c_rank:
+                                    continue
+                                if not is_edge_valid(cand_out, p, producer_cell=cand, consumer_cell=curr_c):
+                                    continue
+                                if self.orchestrator.cells_directly_unify(in_scope_carrier_cell, cand):
+                                    best_cand_cell = cand
+                                    break
+                                bridges = self.orchestrator.find_shortest_bridge_path(in_scope_carrier_cell, cand)
+                                if bridges:
+                                    best_cand_cell = cand
+                                    break
+                            if best_cand_cell:
+                                break
+
+                # Priority 3: General backward search closing required unbound port
+                if best_cand_cell is None:
+                    for cand in self.orchestrator.loaded_cells.values():
+                        if any(existing.cell_id == cand.cell_id for existing in path):
+                            continue
+                        for cand_out in (cand.outputs or {}).values():
+                            c_rank = getattr(cand_out, "rank", None)
+                            if p_rank is not None and c_rank is not None and p_rank != c_rank:
+                                continue
+                            if is_edge_valid(cand_out, p, producer_cell=cand, consumer_cell=curr_c):
+                                best_cand_cell = cand
+                                break
+                        if best_cand_cell:
+                            break
+
+                if best_cand_cell is not None:
+                    cand_path = [best_cand_cell]
+                    if in_scope_cells:
+                        prev = in_scope_cells[-1]
+                        if not self.orchestrator.cells_directly_unify(prev, best_cand_cell):
+                            bridges = self.orchestrator.find_shortest_bridge_path(prev, best_cand_cell)
+                            if bridges:
+                                cand_path = bridges + [best_cand_cell]
+                    to_add = [c for c in cand_path if not any(existing.cell_id == c.cell_id for existing in path)]
+                    if to_add:
+                        cells_to_insert.extend(to_add)
+                        if trace:
+                            self._trace("unbound_port_closed", for_cell=curr_c.cell_id, port=p_name,
+                                        producer=best_cand_cell.cell_id)
+                else:
+                    logger.debug(f"[ROUTE] Unbound port gap: no tree cell closes port={p_name} of {curr_c.cell_id}")
+
+            if cells_to_insert:
+                path = path[:idx] + cells_to_insert + path[idx:]
+                continue
+            idx += 1
+
         try:
             try:
                 from ..unification import analyze_property_contracts as _prop_analyze
@@ -1057,14 +1217,24 @@ class RouteMethod(ABC):
                 ):
                     prod_idx += 1
 
+                prod_cell = out[prod_idx]
+                prod_domain = getattr(prod_cell, "domain", "")
+                cons_domain = getattr(out[min(prod_idx + 1, len(out) - 1)], "domain", "")
+
                 best_cand = None
+                best_score = -1.0
                 for cid in candidates:
                     cand_cell = self.orchestrator.loaded_cells.get(cid)
                     if cand_cell:
+                        c_score = 0.0
+                        if self.orchestrator.cells_directly_unify(prod_cell, cand_cell):
+                            c_score += 10.0
+                        if getattr(cand_cell, "domain", "") in (prod_domain, cons_domain):
+                            c_score += 5.0
                         if len(cand_cell.inputs) == 1:
-                            best_cand = cand_cell
-                            break
-                        if best_cand is None:
+                            c_score += 2.0
+                        if c_score > best_score:
+                            best_score = c_score
                             best_cand = cand_cell
 
                 if best_cand:
@@ -1153,14 +1323,33 @@ class RouteMethod(ABC):
             from ..token_evidence import audit
         except (ImportError, ValueError):
             from token_evidence import audit
+        try:
+            from config import settings
+        except (ImportError, ValueError):
+            from ..config import settings
+
+        max_ops = settings.prune_unrequested_max_ops
+        ops_count = 0
+
+        chain_valid_cache: Dict[Tuple[str, ...], bool] = {}
+        lint_cache: Dict[Tuple[str, ...], bool] = {}
+        pass1_failed_removals: Set[Tuple[str, ...]] = set()
+        pass2_failed_removals: Set[Tuple[str, ...]] = set()
+
         current = list(path)
         changed = True
         outer_iters = 0
+        budget_exceeded = False
         while changed and outer_iters < len(current):
             outer_iters += 1
             changed = False
             # Pass 1: Unrequested cell pruning
             for _ in range(len(current)):
+                ops_count += 1
+                if ops_count >= max_ops:
+                    self._trace("prune_unrequested_budget_exceeded", ops=ops_count, max_ops=max_ops)
+                    budget_exceeded = True
+                    break
                 res = audit(current, prompt, self.orchestrator)
                 if not res.get("available"):
                     break
@@ -1172,7 +1361,16 @@ class RouteMethod(ABC):
                     if idx is None or idx == 0:
                         continue
                     trial = current[:idx] + current[idx + 1:]
-                    if not self.chain_is_valid(trial, prompt=prompt):
+                    trial_key = tuple(c.cell_id for c in trial)
+                    if trial_key in pass1_failed_removals:
+                        continue
+                    if trial_key in chain_valid_cache:
+                        valid = chain_valid_cache[trial_key]
+                    else:
+                        valid = self.chain_is_valid(trial, prompt=prompt)
+                        chain_valid_cache[trial_key] = valid
+                    if not valid:
+                        pass1_failed_removals.add(trial_key)
                         self._trace("prune_blocked", cell=victim["cell"], reason="chain would not unify without it",
                                     winners=victim.get("winners"))
                         continue
@@ -1185,6 +1383,9 @@ class RouteMethod(ABC):
                 if not pruned_any:
                     break
 
+            if budget_exceeded:
+                break
+
             # Pass 2: Verifier-guided bridge minimization.
             # Any explicit bridge cell is redundant iff removing it still unifies and
             # passes all static preflight contracts (including property preconditions).
@@ -1195,9 +1396,16 @@ class RouteMethod(ABC):
             est_roles.update(str(r).lower() for r in reg.get_verification_semantics("model_roles"))
             from planner import _active_vocab
             vocab = _active_vocab(getattr(self, "orchestrator", None))
-            bridge_tags = {"bridge", "array_bridge", "adapter", "coercion", "cast"}
+            bridge_roles = set(b_roles) | set(reg.get_verification_semantics("bridge_roles"))
             idx = 1
             while idx < len(current) - 1:
+                ops_count += 1
+                if ops_count >= max_ops:
+                    self._trace("prune_unrequested_budget_exceeded", ops=ops_count, max_ops=max_ops)
+                    budget_exceeded = True
+                    break
+                bridge_pruned = False
+                trial_key = None
                 c = current[idx]
                 c_role = str(getattr(c, "node_role", "") or getattr(c, "role", "") or "").lower()
                 c_tags = {str(t).lower() for t in (getattr(c, "semantic_tags", None) or [])}
@@ -1207,13 +1415,17 @@ class RouteMethod(ABC):
                     or c_role in est_roles
                 )
                 is_candidate_bridge = not is_exempt and (
-                    c_role in b_roles
+                    c_role in bridge_roles
                     or getattr(c, "node_type", "") in ("tunnel", "bridge")
-                    or bool(bridge_tags & c_tags)
+                    or bool(bridge_roles & c_tags)
                     or (vocab is not None and hasattr(vocab, "is_bridge") and vocab.is_bridge(c))
                 )
                 if is_candidate_bridge:
                     trial = [x.clone() if hasattr(x, "clone") else x for x in (current[:idx] + current[idx + 1:])]
+                    trial_key = tuple(x.cell_id for x in trial)
+                    if trial_key in pass2_failed_removals:
+                        idx += 1
+                        continue
                     for x in trial[idx:]:
                         x.planned_port_wires = {}
                         x.bound_parent_ids = set()
@@ -1225,17 +1437,28 @@ class RouteMethod(ABC):
                         probe_trial = self.insert_property_bridges(trial, prompt=prompt, ctx=probe_ctx, trace=False)
                         u_res = gate.unify_pipeline(probe_trial, probe_ctx, extract_llm_slots=False)
                         if not u_res.is_bottom():
-                            emitted = gate.emit_code(probe_trial, probe_ctx, extract_llm_slots=False)
-                            lint_res = PreflightLinter.lint(gate.last_pipeline_bindings, prompt=prompt, code_str=emitted, orchestrator=self.orchestrator)
-                            if lint_res.is_valid:
+                            trial_sig = tuple(x.cell_id for x in probe_trial)
+                            if trial_sig in lint_cache:
+                                is_valid = lint_cache[trial_sig]
+                            else:
+                                emitted = gate.emit_code(probe_trial, probe_ctx, extract_llm_slots=False)
+                                lint_res = PreflightLinter.lint(gate.last_pipeline_bindings, prompt=prompt, code_str=emitted, orchestrator=self.orchestrator)
+                                is_valid = lint_res.is_valid
+                                lint_cache[trial_sig] = is_valid
+                            if is_valid:
                                 self._trace("pruned_redundant_bridge", cell=c.cell_id, reason="pipeline unifies and passes preflight without explicit bridge")
                                 current = probe_trial
                                 changed = True
                                 idx = 1
+                                bridge_pruned = True
                                 continue
                     except Exception:
                         pass
+                    if not bridge_pruned and trial_key is not None:
+                        pass2_failed_removals.add(trial_key)
                 idx += 1
+            if budget_exceeded:
+                break
         try:
             from dag_plan import OpenPortFrontier
             active_ids = {c.cell_id for c in current}
@@ -1290,10 +1513,50 @@ class RouteMethod(ABC):
         return False
 
     def file_compat(self, cell: Cell, literal: Any) -> int:
-        """+1 format-compatible, -1 incompatible, 0 not applicable (no literal / not a path consumer)."""
+        """
+        +2 explicit declared format match (supported_formats or File[..., ext]),
+        +1 wildcard match,
+        -1 incompatible,
+        0 not applicable (no literal / not a path consumer).
+        """
         if literal is None or not self._is_path_consumer(cell):
             return 0
-        return 1 if self.is_file_format_compatible(cell, str(literal)) else -1
+        file_path_str = str(literal)
+        if not file_path_str or "." not in file_path_str:
+            return 0
+        ext = file_path_str.rpartition(".")[2].strip().lower()
+        if not ext:
+            return 0
+        if not self.is_file_format_compatible(cell, file_path_str):
+            return -1
+
+        path_ports = [
+            p for p in list(cell.inputs.values()) + list(cell.outputs.values())
+            if is_path_port(p)
+        ]
+        reg = TypeRegistry.get_instance()
+        for p in path_ports:
+            port_fmts = getattr(p, "supported_formats", None)
+            if port_fmts:
+                clean_fmts = {str(f).strip().lower() for f in port_fmts}
+                if ext in clean_fmts:
+                    return 2
+            tn = str(getattr(p, "type_name", "") or "").strip()
+            if "[" in tn and tn.endswith("]"):
+                ctor, _, inner = tn[:-1].partition("[")
+                if ctor.strip().lower() in ("file", "stream", "path", "asset"):
+                    parts = [part.strip().lower() for part in inner.split(",") if part.strip()]
+                    if len(parts) >= 2:
+                        fmt = parts[1]
+                        if fmt not in ("any", "generic", "*", ""):
+                            if ext == fmt or reg.is_subtype(ext, fmt):
+                                return 2
+                    elif len(parts) == 1:
+                        target = parts[0]
+                        if target not in ("any", "generic", "*", ""):
+                            if ext == target or reg.is_subtype(ext, target):
+                                return 2
+        return 1
 
     def requested_sink(self, prompt: str, candidates: List[Cell]) -> Optional[Cell]:
         """

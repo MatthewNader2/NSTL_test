@@ -984,7 +984,7 @@ class LatticePlanner:
         else:
             try:
                 from config import settings
-                self.macros_enabled = bool(getattr(settings, "macros_enabled", True))
+                self.macros_enabled = bool(settings.macros_enabled)
             except Exception as e:
                 self.macros_enabled = True
         if topology_mode is not None:
@@ -992,7 +992,7 @@ class LatticePlanner:
         else:
             try:
                 from config import settings
-                self.topology_mode = str(getattr(settings, "topology_mode", "frontier")).lower()
+                self.topology_mode = str(settings.topology_mode).lower()
             except Exception as e:
                 self.topology_mode = "frontier"
 
@@ -1001,7 +1001,7 @@ class LatticePlanner:
         else:
             try:
                 from config import settings
-                self.require_coverage_floor = bool(getattr(settings, "require_coverage_floor", True))
+                self.require_coverage_floor = bool(settings.require_coverage_floor)
             except Exception:
                 self.require_coverage_floor = True
 
@@ -1010,7 +1010,7 @@ class LatticePlanner:
         else:
             try:
                 from config import settings
-                self.coverage_floor_fraction = float(getattr(settings, "coverage_floor_fraction", 0.85))
+                self.coverage_floor_fraction = float(settings.coverage_floor_fraction)
             except Exception:
                 self.coverage_floor_fraction = 0.85
 
@@ -1019,7 +1019,7 @@ class LatticePlanner:
         else:
             try:
                 from config import settings
-                self.planner_time_budget_ms = float(getattr(settings, "planner_time_budget_ms", 10000.0))
+                self.planner_time_budget_ms = float(settings.planner_time_budget_ms)
             except Exception:
                 self.planner_time_budget_ms = 10000.0
 
@@ -1028,7 +1028,7 @@ class LatticePlanner:
         else:
             try:
                 from config import settings
-                self.planner_greedy_budget_ms = float(getattr(settings, "planner_greedy_budget_ms", 1000.0))
+                self.planner_greedy_budget_ms = float(settings.planner_greedy_budget_ms)
             except Exception:
                 self.planner_greedy_budget_ms = 1000.0
 
@@ -1611,6 +1611,11 @@ class LatticePlanner:
             if not path_ports:
                 return True
             for p in path_ports:
+                port_fmts = getattr(p, "supported_formats", None)
+                if port_fmts:
+                    clean_fmts = {str(f).strip().lower() for f in port_fmts}
+                    if "*" not in clean_fmts and ext not in clean_fmts:
+                        return False
                 tn = str(getattr(p, "type_name", "") or "").strip()
                 if "[" in tn and tn.endswith("]"):
                     ctor, _, inner = tn[:-1].partition("[")
@@ -1640,6 +1645,30 @@ class LatticePlanner:
                             for anc in reg.get_format_groups():
                                 if reg.is_subtype(ext, anc) and (reg.is_subtype(fmt, anc) or fmt in anc):
                                     return True
+                            return False
+                        elif len(parts) == 1:
+                            target = parts[0]
+                            reg = TypeRegistry.get_instance()
+                            if target in ("any", "generic", "*", ""):
+                                return True
+                            if ext == target or target in ext or ext in target or reg.is_subtype(ext, target) or reg.is_subtype(target, ext):
+                                return True
+                            for anc in reg.get_format_groups():
+                                if reg.is_subtype(ext, anc) and (reg.is_subtype(target, anc) or target in anc):
+                                    return True
+                            try:
+                                placeholder = reg.get_asset_placeholder(target, "")
+                                if placeholder and "." in placeholder:
+                                    carrier_ext = placeholder.rpartition(".")[2].strip().lower()
+                                    if carrier_ext and carrier_ext != "dat":
+                                        if ext == carrier_ext or reg.is_subtype(ext, carrier_ext) or reg.is_subtype(carrier_ext, ext):
+                                            return True
+                                        for anc in reg.get_format_groups():
+                                            if reg.is_subtype(ext, anc) and reg.is_subtype(carrier_ext, anc):
+                                                return True
+                                        return False
+                            except Exception:
+                                pass
                             return False
             return True
 
@@ -2133,9 +2162,9 @@ class LatticePlanner:
         clause_min_evidence = []
         clause_min_precision = []
         from config import settings as _settings
-        _cl_ev_ratio = float(getattr(_settings, "clause_evidence_ratio", 0.75))
-        _cl_wt_ratio = float(getattr(_settings, "clause_weight_ratio", 0.3))
-        _cl_prec_ratio = float(getattr(_settings, "clause_precision_ratio", 0.5))
+        _cl_ev_ratio = float(_settings.clause_evidence_ratio)
+        _cl_wt_ratio = float(_settings.clause_weight_ratio)
+        _cl_prec_ratio = float(_settings.clause_precision_ratio)
         for gi in range(len(clause_tokens_list)):
             col = [v[gi] for v in _raw_by_cell.values()]
             prec_col = [v[gi] for v in _prec_by_cell.values()]
@@ -2205,7 +2234,7 @@ class LatticePlanner:
 
         try:
             from config import settings
-            _explain_active = bool(getattr(settings, "explain_plan", False))
+            _explain_active = bool(settings.explain_plan)
         except Exception:
             _explain_active = False
 
@@ -2545,7 +2574,7 @@ class LatticePlanner:
         _path_state_cache: Dict[Tuple[str, ...], Dict[str, Any]] = {}
         _cells_connect = self._cells_connect
         from config import settings as _settings
-        join_rel_thresh = float(getattr(_settings, "join_relevance_threshold", 0.05))
+        join_rel_thresh = float(_settings.join_relevance_threshold)
 
         def compute_path_score(item: Tuple[List[Cell], Substitution, float, int, int], is_final: bool = False) -> PathScore:
             path, _, sc, weak_edges, unbindable = item
@@ -3548,7 +3577,27 @@ class LatticePlanner:
                     logger.debug(f"[PLANNER] Semantic repair pass: {e}")
 
             if chosen_candidate is None:
-                chosen_candidate = scored_candidates[0][0]
+                chosen_candidate = scored_candidates[0][0] if scored_candidates else None
+            if chosen_candidate is None:
+                if settings.allow_fallback:
+                    logger.info("[PLANNER] Trellis candidate empty: running Monte Carlo fallback...")
+                    try:
+                        mcts_path = self._monte_carlo_chain_search(prompt, tunnel, relevance_map)
+                    except Exception:
+                        mcts_path = []
+                    if mcts_path:
+                        if not hasattr(self, "trace_events"):
+                            self.trace_events = []
+                        self.trace_events.append({"event": "m0_mcts_fallback_triggered", "plan_len": len(mcts_path)})
+                        return mcts_path
+                self.last_refusal = {
+                    "reason": "coverage_below_floor",
+                    "coverage_fraction": 0.0,
+                    "coverage_floor": floor_frac,
+                    "uncovered_clauses": [(i, clauses[i]) for i in range(len(clauses))] if clauses else [],
+                }
+                logger.warning("[PLANNER] Refused: Trellis found no valid paths meeting coverage floor.")
+                return []
             best_candidate = chosen_candidate
             best_path, best_sigma, _, _, _ = best_candidate
 
@@ -3655,7 +3704,7 @@ class LatticePlanner:
 
                 try:
                     from config import settings as _settings
-                    if bool(getattr(_settings, "explain_plan", False)):
+                    if bool(_settings.explain_plan):
                         print("\n=== EXPLAIN PLAN: CHOSEN PATH COVERAGE ===")
                         for pos_, c_ in enumerate(best_path):
                             print(
@@ -3671,16 +3720,20 @@ class LatticePlanner:
 
             return best_path
 
-        # Step 4: Monte Carlo Tree Search over chains if the Trellis was disconnected
-        logger.info("[PLANNER] Trellis disconnected: running Monte Carlo Tree Search over chains...")
-        try:
-            mcts_path = self._monte_carlo_chain_search(prompt, tunnel, relevance_map)
-        except Exception as mcts_err:
-            logger.debug(f"[PLANNER] MCTS chain search encountered error: {mcts_err}")
-            mcts_path = []
+        # Step 4: Monte Carlo Tree Search over chains if the Trellis was disconnected (gated on allow_fallback)
+        if settings.allow_fallback:
+            logger.info("[PLANNER] Trellis disconnected: running Monte Carlo Tree Search fallback...")
+            try:
+                mcts_path = self._monte_carlo_chain_search(prompt, tunnel, relevance_map)
+            except Exception as mcts_err:
+                logger.debug(f"[PLANNER] MCTS chain search encountered error: {mcts_err}")
+                mcts_path = []
 
-        if mcts_path:
-            return mcts_path
+            if mcts_path:
+                if not hasattr(self, "trace_events"):
+                    self.trace_events = []
+                self.trace_events.append({"event": "m0_mcts_fallback_triggered", "plan_len": len(mcts_path)})
+                return mcts_path
 
         self.last_refusal = {
             "reason": "coverage_below_floor",
@@ -4814,7 +4867,7 @@ class LatticePlanner:
                         rel = relevance_map.get(cand.cell_id, 0.0)
                         cand_id_toks = getattr(cand, "identity_tokens", cand.token_set)
                         tok_ov = len(target_tokens & cand_id_toks)
-                        bonus_val = float(getattr(settings, "domain_affinity_bonus", 0.5))
+                        bonus_val = float(settings.domain_affinity_bonus)
                         domain_bonus = bonus_val if cand.domain_name and any(c.domain_name == cand.domain_name for c in tunnel) else 0.0
                         score = tok_ov * 1.0 + rel + domain_bonus
                         child_candidates.append((cand, score, u_cand))
@@ -4955,7 +5008,7 @@ class LatticePlanner:
             logger.warning("[PLANNER] Monte Carlo fallback skipped: planner deadline already exceeded.")
             return None
         _search_seconds = min(float(settings.mcts_max_seconds), _remaining)
-        _max_depth = int(getattr(settings, "max_plan_depth", 24))
+        _max_depth = int(settings.max_plan_depth)
 
         _ing = self._vocab.ingress_stage
         entries = [c for c in tunnel if getattr(c, "is_ingress", False) or (c.stage == _ing)] or list(tunnel)

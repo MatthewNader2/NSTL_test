@@ -56,18 +56,14 @@
         "parent_state": "nd_tensor",
         "carrier_type": "ndarray",
         "description": "A 3-channel 8-bit array in BGR channel order.",
-        "properties": {
-          "is_interchange": true
-        }
+        "properties": {}
       },
       {
         "name": "color_rgb",
         "parent_state": "nd_tensor",
         "carrier_type": "ndarray",
         "description": "A 3-channel 8-bit array in RGB channel order.",
-        "properties": {
-          "is_interchange": true
-        }
+        "properties": {}
       },
       {
         "name": "dataframe_2d_generic",
@@ -136,7 +132,7 @@
       {
         "name": "fitted_estimator",
         "parent_state": null,
-        "carrier_type": "Axes",
+        "carrier_type": "BaseEstimator",
         "description": "Any object implementing a fitted-estimator interface.",
         "properties": {
           "is_interchange": true
@@ -147,9 +143,7 @@
         "parent_state": "nd_tensor",
         "carrier_type": "ndarray",
         "description": "A single-channel 8-bit intensity array.",
-        "properties": {
-          "is_interchange": true
-        }
+        "properties": {}
       },
       {
         "name": "jointgrid_initialized",
@@ -191,7 +185,7 @@
       {
         "name": "ndarray_generic",
         "parent_state": null,
-        "carrier_type": "Axes",
+        "carrier_type": "ndarray",
         "description": "A plain numpy array, dimensionality/dtype unspecified.",
         "properties": {
           "is_interchange": true

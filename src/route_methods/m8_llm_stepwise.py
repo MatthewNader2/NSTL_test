@@ -128,6 +128,12 @@ class M8LLMStepwisePathfinderRouteMethod(RouteMethod):
         **kwargs
     ) -> List[Cell]:
         self._current_prompt = prompt
+        try:
+            from inference import ModelManager
+        except (ImportError, ValueError):
+            from ..inference import ModelManager
+        if not ModelManager.get_instance().can_synthesize():
+            return []
         orch = orchestrator or self.orchestrator
         if not tunnel:
             return []

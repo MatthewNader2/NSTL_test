@@ -121,6 +121,12 @@ class M7LLMPathfinderRouteMethod(RouteMethod):
     def plan(self, prompt, tunnel, relevance_map, orchestrator=None, ctx=None,
              start_sig=None, goal_sig=None, max_transforms=6, **kwargs):
         self._current_prompt = prompt
+        try:
+            from inference import ModelManager
+        except (ImportError, ValueError):
+            from ..inference import ModelManager
+        if not ModelManager.get_instance().can_synthesize():
+            return []
         orch = orchestrator or self.orchestrator
         if not tunnel:
             return []

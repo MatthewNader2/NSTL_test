@@ -168,7 +168,8 @@
     "states": [
       {
         "name": "absolute_path",
-        "description": "Path instance with fully resolved absolute filesystem coordinates."
+        "description": "Path instance with fully resolved absolute filesystem coordinates.",
+        "parent_state": "existing_path"
       },
       {
         "name": "binary_payload",
@@ -196,11 +197,13 @@
       },
       {
         "name": "directory",
-        "description": "Path referencing an existing directory node."
+        "description": "Path referencing an existing directory node.",
+        "parent_state": "existing_path"
       },
       {
         "name": "directory_created",
-        "description": "Directory newly created or verified present on filesystem."
+        "description": "Directory newly created or verified present on filesystem.",
+        "parent_state": "existing_path"
       },
       {
         "name": "directory_deleted",
@@ -216,11 +219,13 @@
       },
       {
         "name": "file",
-        "description": "Path referencing an existing regular file node."
+        "description": "Path referencing an existing regular file node.",
+        "parent_state": "existing_path"
       },
       {
         "name": "file_created",
-        "description": "File newly created or touched on filesystem."
+        "description": "File newly created or touched on filesystem.",
+        "parent_state": "existing_path"
       },
       {
         "name": "file_deleted",
@@ -232,7 +237,8 @@
       },
       {
         "name": "file_renamed",
-        "description": "File or directory path successfully renamed."
+        "description": "File or directory path successfully renamed.",
+        "parent_state": "existing_path"
       },
       {
         "name": "glob_pattern",
@@ -240,7 +246,8 @@
       },
       {
         "name": "hardlink",
-        "description": "Path referencing a hard-linked filesystem node."
+        "description": "Path referencing a hard-linked filesystem node.",
+        "parent_state": "existing_path"
       },
       {
         "name": "paths_list",
@@ -264,7 +271,8 @@
       },
       {
         "name": "symlink",
-        "description": "Path referencing a symbolic link."
+        "description": "Path referencing a symbolic link.",
+        "parent_state": "existing_path"
       },
       {
         "name": "text_payload",
@@ -272,7 +280,8 @@
       },
       {
         "name": "unresolved_path",
-        "description": "Path instance that may or may not exist and has not been normalized."
+        "description": "Path instance that may or may not exist and has not been normalized.",
+        "parent_state": "existing_path"
       }
     ],
     "transitions": [],

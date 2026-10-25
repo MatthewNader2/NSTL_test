@@ -60,6 +60,14 @@
       "clusterer",
       "model"
     ],
+    "target_roles": [
+      "target_input",
+      "target"
+    ],
+    "feature_roles": [
+      "feature_input",
+      "features"
+    ],
     "mutually_exclusive_roles": [
       "regressor",
       "classifier",
@@ -3581,7 +3589,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "feature_input",
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -3616,7 +3624,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "target_input",
           "structure_kind": "tensor",
           "rank": 1,
           "element_type": "float64",
@@ -3796,7 +3804,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "feature_input",
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -3831,7 +3839,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "target_input",
           "structure_kind": "tensor",
           "rank": 1,
           "element_type": "float64",
@@ -4374,7 +4382,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "feature_input",
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -4409,7 +4417,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "target_input",
           "structure_kind": "tensor",
           "rank": 1,
           "element_type": "float64",
@@ -4601,7 +4609,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "feature_input",
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -4636,7 +4644,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "target_input",
           "structure_kind": "tensor",
           "rank": 1,
           "element_type": "float64",
@@ -4835,7 +4843,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "feature_input",
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -4873,7 +4881,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "target_input",
           "structure_kind": "tensor",
           "rank": 1,
           "element_type": "float64",
@@ -5184,7 +5192,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "feature_input",
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -5222,7 +5230,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "target_input",
           "structure_kind": "tensor",
           "rank": 1,
           "element_type": "float64",
@@ -5391,7 +5399,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "feature_input",
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -5426,7 +5434,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "target_input",
           "structure_kind": "tensor",
           "rank": 1,
           "element_type": "float64",
@@ -5596,7 +5604,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "feature_input",
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -5631,7 +5639,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "target_input",
           "structure_kind": "tensor",
           "rank": 1,
           "element_type": "float64",
@@ -6409,7 +6417,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "feature_input",
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -6444,7 +6452,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "target_input",
           "structure_kind": "tensor",
           "rank": 1,
           "element_type": "float64",
@@ -6656,7 +6664,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "feature_input",
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -6691,7 +6699,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "target_input",
           "structure_kind": "tensor",
           "rank": 1,
           "element_type": "float64",
@@ -8524,7 +8532,7 @@
             "len": null
           },
           "structure_kind": "tensor",
-          "rank": 3,
+          "rank": 2,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -8640,7 +8648,7 @@
             "len": null
           },
           "structure_kind": "tensor",
-          "rank": 3,
+          "rank": 2,
           "element_type": "float64",
           "supported_formats": []
         },
@@ -11801,7 +11809,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "feature_input",
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -11836,7 +11844,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "target_input",
           "structure_kind": "tensor",
           "rank": 1,
           "element_type": "float64",
@@ -12416,7 +12424,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "feature_input",
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -12451,7 +12459,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "target_input",
           "structure_kind": "tensor",
           "rank": 1,
           "element_type": "float64",
@@ -12630,7 +12638,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "feature_input",
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -12665,7 +12673,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "target_input",
           "structure_kind": "tensor",
           "rank": 1,
           "element_type": "float64",
@@ -12857,7 +12865,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "feature_input",
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -12892,7 +12900,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "target_input",
           "structure_kind": "tensor",
           "rank": 1,
           "element_type": "float64",
@@ -13106,7 +13114,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "feature_input",
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -13141,7 +13149,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "target_input",
           "structure_kind": "tensor",
           "rank": 1,
           "element_type": "float64",
@@ -13310,7 +13318,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "feature_input",
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -13345,7 +13353,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "target_input",
           "structure_kind": "tensor",
           "rank": 1,
           "element_type": "float64",
@@ -13492,7 +13500,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "feature_input",
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -13527,7 +13535,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "target_input",
           "structure_kind": "tensor",
           "rank": 1,
           "element_type": "float64",
@@ -13748,7 +13756,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "feature_input",
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -13783,7 +13791,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "target_input",
           "structure_kind": "tensor",
           "rank": 1,
           "element_type": "float64",
@@ -13995,7 +14003,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "feature_input",
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -14030,7 +14038,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "target_input",
           "structure_kind": "tensor",
           "rank": 1,
           "element_type": "float64",
@@ -14221,7 +14229,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "feature_input",
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -14256,7 +14264,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "target_input",
           "structure_kind": "tensor",
           "rank": 1,
           "element_type": "float64",
@@ -14470,7 +14478,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "feature_input",
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -14505,7 +14513,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "target_input",
           "structure_kind": "tensor",
           "rank": 1,
           "element_type": "float64",
@@ -14721,7 +14729,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "feature_input",
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -14756,7 +14764,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "target_input",
           "structure_kind": "tensor",
           "rank": 1,
           "element_type": "float64",
@@ -14950,7 +14958,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "feature_input",
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -14985,7 +14993,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "target_input",
           "structure_kind": "tensor",
           "rank": 1,
           "element_type": "float64",
@@ -15986,7 +15994,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "feature_input",
           "structure_kind": "tensor",
           "rank": 2,
           "element_type": "float64",
@@ -16021,7 +16029,7 @@
             "channel_axis": null,
             "len": null
           },
-          "port_role": "data_input",
+          "port_role": "target_input",
           "structure_kind": "tensor",
           "rank": 1,
           "element_type": "float64",

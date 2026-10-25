@@ -1353,11 +1353,11 @@ class LatticeRouter:
                 )
                 try:
                     from config import settings
-                    allow_fb = getattr(settings, "allow_fallback", False)
+                    allow_fb = settings.allow_fallback
                 except Exception:
                     try:
                         from .config import settings
-                        allow_fb = getattr(settings, "allow_fallback", False)
+                        allow_fb = settings.allow_fallback
                     except Exception:
                         allow_fb = False
 
@@ -1421,7 +1421,7 @@ class LatticeRouter:
             residual = 1.0
 
         recursion_depth = kwargs.get("recursion_depth", 0)
-        max_depth = kwargs.get("max_depth", 2)
+        max_depth = kwargs.get("max_depth", _cfg("macro_router_max_depth", 1))
         epsilon = kwargs.get("epsilon", 0.25)
 
         # Unified Fixpoint Rule:
@@ -1452,7 +1452,9 @@ class LatticeRouter:
                     "reason": "Generative synthesis disabled (null decomposition operator)",
                 })
             else:
-                subgoals = self._decompose_goal_coalgebraic(prompt, self.orchestrator, mm)
+                subgoals = self._decompose_goal_coalgebraic(
+                    prompt, self.orchestrator, mm, tunnel=tunnel_cells, relevance_map=relevance_map
+                )
                 if subgoals and len(subgoals) > 1:
                     logger.info(f"[ROUTER] Coalgebraic goal unfolding: {len(subgoals)} subgoals at depth {recursion_depth + 1}")
                     composed_path: List[Cell] = []
@@ -1470,7 +1472,8 @@ class LatticeRouter:
                         sub_cells = sub_res.cells if hasattr(sub_res, "cells") else sub_res
                         if sub_cells:
                             if composed_path:
-                                bridges = self.orchestrator.find_shortest_bridge_path(composed_path[-1], sub_cells[0])
+                                bridge_hops = _cfg("bridge_chain_max_hops", 2)
+                                bridges = self.orchestrator.find_shortest_bridge_path(composed_path[-1], sub_cells[0], max_hops=bridge_hops)
                                 composed_path.extend(bridges)
                             composed_path.extend(sub_cells)
                     if composed_path:
@@ -1537,6 +1540,14 @@ class LatticeRouter:
                                     cell.bound_slots[slot_name] = sub_plan
             except Exception as _sl_err:
                 logger.debug(f"[ROUTER] Sublattice slot planning skipped: {_sl_err}")
+
+        # Telemetry: planner and orchestrator events merge into route_trace
+        if self.orchestrator and hasattr(self.orchestrator, "trace_events"):
+            route_trace = list(route_trace) + list(self.orchestrator.trace_events)
+            self.orchestrator.trace_events = []
+        if self.planner and hasattr(self.planner, "trace_events"):
+            route_trace = list(route_trace) + list(self.planner.trace_events)
+            self.planner.trace_events = []
 
         cand_ids = set(c.cell_id for c in tunnel_cells) if tunnel_cells else set()
         plan_result = PlanResult(
@@ -1672,26 +1683,52 @@ class LatticeRouter:
                         logger.debug(f"[ROUTER] LLM adapter query failed for transition {curr_cell.cell_id}->{next_cell.cell_id}: {_e}")
         return new_path
 
-    def _decompose_goal_coalgebraic(self, prompt: str, orchestrator: Any, model_mgr: Any) -> List[str]:
+    def _decompose_goal_coalgebraic(
+        self,
+        prompt: str,
+        orchestrator: Any,
+        model_mgr: Any,
+        tunnel: Optional[List[Any]] = None,
+        relevance_map: Optional[Dict[str, float]] = None,
+    ) -> List[str]:
         """
         Subgoal Decomposition Operator psi(g, LatticeSchemaSummary) -> [g_1, ..., g_m]:
         Decomposes an abstract or high-residual goal g into fine-grained subgoals
-        grounded in the available carrier types and operations of the loaded lattice.
+        grounded in the available carrier types and operations of the active tunnel T.
         """
         if not model_mgr or not orchestrator:
             return []
         try:
-            all_cells = list(orchestrator.loaded_cells.values()) if hasattr(orchestrator, "loaded_cells") else []
-            domains = {getattr(c, "domain_name", "") for c in all_cells if getattr(c, "domain_name", "")}
-            sample_ops = [c.cell_id for c in all_cells[:30]]
+            scope_cells = tunnel if tunnel else (list(orchestrator.loaded_cells.values()) if hasattr(orchestrator, "loaded_cells") else [])
+            rel_map = relevance_map or {}
+            scored_cells = [(c, rel_map.get(getattr(c, "cell_id", ""), 1.0)) for c in scope_cells]
+            scored_cells.sort(key=lambda x: x[1], reverse=True)
+            top_cells = [c for c, _ in scored_cells[:30]]
 
+            domains = {getattr(c, "domain_name", "") for c in top_cells if getattr(c, "domain_name", "")}
+            sample_ops = [getattr(c, "cell_id", "") for c in top_cells if getattr(c, "cell_id", "")]
+
+            carriers = set()
+            for c in top_cells:
+                for p in getattr(c, "inputs", []) or []:
+                    t = getattr(p, "carrier_type", "") or getattr(p, "type", "")
+                    if t:
+                        carriers.add(str(t))
+                for p in getattr(c, "outputs", []) or []:
+                    t = getattr(p, "carrier_type", "") or getattr(p, "type", "")
+                    if t:
+                        carriers.add(str(t))
+
+            carrier_str = f"\nActive data carriers in scope: {', '.join(sorted(list(carriers))[:15])}" if carriers else ""
             system_prompt = (
                 "You are the Neuro-Symbolic Topological Lattice Subgoal Decomposer. "
                 "Given a high-level computational goal, decompose it into 2 to 4 sequential, "
                 "fine-grained sub-goals that can be executed step-by-step. "
-                "Ground your sub-goals in the operations and data carriers available in the system.\n"
-                f"Available domains: {', '.join(sorted(domains))}\n"
-                f"Sample available operations: {', '.join(sample_ops[:20])}\n"
+                "Ground your sub-goals strictly in the active domains and operations available in scope.\n"
+                f"Active domains in scope: {', '.join(sorted(domains))}\n"
+                f"Relevant operations in scope: {', '.join(sample_ops[:20])}"
+                f"{carrier_str}\n"
+                "Do NOT introduce unrelated domains (e.g. do not suggest computer vision, audio, or cryptography unless they are explicitly in scope).\n"
                 "Respond ONLY with a JSON array of string sub-goals, e.g.: [\"subgoal 1\", \"subgoal 2\", \"subgoal 3\"]"
             )
             raw_resp = model_mgr.generate_text(

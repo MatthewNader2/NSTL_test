@@ -160,7 +160,8 @@
       },
       {
         "name": "display_surface",
-        "description": "Primary hardware frame buffer Surface bound to the display window."
+        "description": "Primary hardware frame buffer Surface bound to the display window.",
+        "parent_state": "active"
       },
       {
         "name": "event_object",
@@ -196,7 +197,8 @@
       },
       {
         "name": "initialized",
-        "description": "Resource or engine subsystem allocated and initialized into operational state."
+        "description": "Resource or engine subsystem allocated and initialized into operational state.",
+        "parent_state": "active"
       },
       {
         "name": "key_map",
@@ -216,7 +218,8 @@
       },
       {
         "name": "modified",
-        "description": "Resource mutated during step transformation morphism."
+        "description": "Resource mutated during step transformation morphism.",
+        "parent_state": "active"
       },
       {
         "name": "mouse_state",
@@ -224,7 +227,8 @@
       },
       {
         "name": "rendered",
-        "description": "Buffer or surface updated with graphical primitives ready for display."
+        "description": "Buffer or surface updated with graphical primitives ready for display.",
+        "parent_state": "active"
       },
       {
         "name": "rgb_color",
@@ -2471,7 +2475,7 @@
       "inputs": {
         "screen": {
           "type_name": "surface",
-          "state": "rendered",
+          "state": "active",
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",
@@ -2520,7 +2524,7 @@
       "inputs": {
         "screen": {
           "type_name": "surface",
-          "state": "rendered",
+          "state": "active",
           "abstract_type": "handle",
           "required": true,
           "port_role": "data_input",

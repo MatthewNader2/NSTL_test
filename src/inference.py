@@ -272,6 +272,16 @@ def select_optimal_llm(requested_name: str = "") -> str:
     return available[0]
 
 
+_GLOBAL_EMBED_CACHE: Dict[Tuple[Any, str, str], List[float]] = {}
+_GLOBAL_EMBED_CACHE_LOCK = threading.RLock()
+
+
+def clear_embedding_cache() -> None:
+    """Clears the global in-memory embedding cache."""
+    with _GLOBAL_EMBED_CACHE_LOCK:
+        _GLOBAL_EMBED_CACHE.clear()
+
+
 def _encode_with_modes(
     model: Any,
     texts: List[str],
@@ -283,9 +293,33 @@ def _encode_with_modes(
     Robust embedding encoder applying model-specific prompt modes (query vs document)
     with adaptive fallback across SentenceTransformer models.
     Properly isolates CUDA OOM handling from non-OOM runtime exceptions.
+    Uses in-memory LRU caching to eliminate redundant forward passes across route methods.
     """
     if not texts:
         return []
+
+    if not hasattr(model, "_model_cache_id"):
+        try:
+            import uuid
+            model._model_cache_id = f"{type(model).__name__}_{id(model)}_{uuid.uuid4().hex}"
+        except Exception:
+            model._model_cache_id = f"{type(model).__name__}_{id(model)}"
+    m_id = model._model_cache_id
+    cached_map: Dict[int, List[float]] = {}
+    missing_indices: List[int] = []
+    missing_texts: List[str] = []
+
+    with _GLOBAL_EMBED_CACHE_LOCK:
+        for idx, txt in enumerate(texts):
+            key = (m_id, txt, mode)
+            if key in _GLOBAL_EMBED_CACHE:
+                cached_map[idx] = _GLOBAL_EMBED_CACHE[key]
+            else:
+                missing_indices.append(idx)
+                missing_texts.append(txt)
+
+    if not missing_texts:
+        return [cached_map[i] for i in range(len(texts))]
 
     prompt_name = "query" if mode == "query" else "document"
 
@@ -316,11 +350,13 @@ def _encode_with_modes(
     ]
 
     last_sig_error = None
+    computed: Optional[List[List[float]]] = None
 
     for p_name, t_name in attempts:
         try:
-            res = _invoke(p_name, t_name, batch_size, texts)
-            return res.tolist() if hasattr(res, "tolist") else [list(r) for r in res]
+            res = _invoke(p_name, t_name, batch_size, missing_texts)
+            computed = res.tolist() if hasattr(res, "tolist") else [list(r) for r in res]
+            break
         except (TypeError, ValueError) as arg_err:
             last_sig_error = arg_err
             continue
@@ -338,14 +374,15 @@ def _encode_with_modes(
             micro_bs = max(1, batch_size // 4)
             micro_results: List[List[float]] = []
             try:
-                for i in range(0, len(texts), micro_bs):
-                    sub_batch = texts[i : i + micro_bs]
+                for i in range(0, len(missing_texts), micro_bs):
+                    sub_batch = missing_texts[i : i + micro_bs]
                     sub_res = _invoke(p_name, t_name, micro_bs, sub_batch)
                     if hasattr(sub_res, "tolist"):
                         micro_results.extend(sub_res.tolist())
                     else:
                         micro_results.extend([list(r) for r in sub_res])
-                return micro_results
+                computed = micro_results
+                break
             except (TypeError, ValueError) as arg_err:
                 last_sig_error = arg_err
                 continue
@@ -357,28 +394,44 @@ def _encode_with_modes(
                         gc.collect()
                         torch.cuda.empty_cache()
                     continue
-                logger.error(f"[ENCODER] Non-OOM error occurred in sub-batch loop: {sub_err}")
+                logger.error(f"[ENCODER] Fatal error in micro-batch encoding: {sub_err}")
                 raise sub_err
 
-    # Final guarded fallback if model signature rejected prompt/task arguments
-    try:
-        if lock is not None:
-            with lock:
+    if computed is None:
+        # Final guarded fallback if model signature rejected prompt/task arguments
+        try:
+            if lock is not None:
+                with lock:
+                    if TORCH_AVAILABLE:
+                        with torch.inference_mode():
+                            res = model.encode(missing_texts, convert_to_numpy=True)
+                    else:
+                        res = model.encode(missing_texts, convert_to_numpy=True)
+            else:
                 if TORCH_AVAILABLE:
                     with torch.inference_mode():
-                        res = model.encode(texts, convert_to_numpy=True)
+                        res = model.encode(missing_texts, convert_to_numpy=True)
                 else:
-                    res = model.encode(texts, convert_to_numpy=True)
-        else:
-            if TORCH_AVAILABLE:
-                with torch.inference_mode():
-                    res = model.encode(texts, convert_to_numpy=True)
-            else:
-                res = model.encode(texts, convert_to_numpy=True)
-        return res.tolist() if hasattr(res, "tolist") else [list(r) for r in res]
-    except Exception as final_err:
-        logger.error(f"[ENCODER] Fallback encoding failed: {final_err}")
-        raise final_err from last_sig_error
+                    res = model.encode(missing_texts, convert_to_numpy=True)
+            computed = res.tolist() if hasattr(res, "tolist") else [list(r) for r in res]
+        except Exception as final_err:
+            logger.error(f"[ENCODER] Fallback encoding failed: {final_err}")
+            raise final_err from last_sig_error
+
+    with _GLOBAL_EMBED_CACHE_LOCK:
+        max_size = settings.max_embedding_cache_size
+        for idx, txt, emb in zip(missing_indices, missing_texts, computed):
+            key = (m_id, txt, mode)
+            _GLOBAL_EMBED_CACHE[key] = emb
+            cached_map[idx] = emb
+        while len(_GLOBAL_EMBED_CACHE) > max_size:
+            try:
+                first_key = next(iter(_GLOBAL_EMBED_CACHE))
+                del _GLOBAL_EMBED_CACHE[first_key]
+            except (StopIteration, KeyError):
+                break
+
+    return [cached_map[i] for i in range(len(texts))]
 
 
 class BenchmarkProfile_0(InferenceProfile):
@@ -533,7 +586,7 @@ class BenchmarkProfile_C(InferenceProfile):
         n_threads = max(1, (os.cpu_count() or 4) - 1)
         self.llm = Llama(
             model_path=model_file,
-            n_ctx=getattr(settings, "llm_context_length", 4096),
+            n_ctx=settings.llm_context_length,
             n_gpu_layers=gpu_layers,
             n_threads=n_threads,
             verbose=False
@@ -564,8 +617,8 @@ class BenchmarkProfile_C(InferenceProfile):
         kwargs: Dict[str, Any] = {
             "messages": messages,
             "max_tokens": max_tokens,
-            "temperature": getattr(settings, "llm_temperature", 0.2),
-            "top_p": getattr(settings, "llm_top_p", 0.95),
+            "temperature": settings.llm_temperature,
+            "top_p": settings.llm_top_p,
         }
         if schema:
             kwargs["response_format"] = {"type": "json_object", "schema": schema}
@@ -627,7 +680,15 @@ class BenchmarkProfile_C(InferenceProfile):
 
         try:
             raw = self.generate_text(prompt, max_tokens=384, schema=target_schema, system_prompt=target_system_prompt)
-            data = json.loads(raw)
+            data = None
+            try:
+                data = json.loads(raw)
+            except Exception:
+                try:
+                    from utils import extract_json_object
+                    data = extract_json_object(raw)
+                except Exception:
+                    pass
             if isinstance(data, dict):
                 # Ensure backward-compatible aliases for legacy consumers
                 if "inputs" in data and "source_files" not in data:

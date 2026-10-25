@@ -929,18 +929,18 @@ class GEVRSandbox:
         self.default_timeout = float(
             os.environ.get(
                 "NSTL_SANDBOX_TIMEOUT",
-                getattr(settings, "sandbox_timeout", default_timeout) if settings else default_timeout,
+                settings.sandbox_timeout if settings else default_timeout,
             )
         )
         self.max_memory_mb = int(
             max_memory_mb
             if max_memory_mb is not None
-            else (getattr(settings, "sandbox_max_memory_mb", 8192) if settings else 8192)
+            else (settings.sandbox_max_memory_mb if settings else 8192)
         )
         self.max_cpu_seconds = int(
             max_cpu_seconds
             if max_cpu_seconds is not None
-            else (getattr(settings, "sandbox_max_cpu_seconds", 30) if settings else 30)
+            else (settings.sandbox_max_cpu_seconds if settings else 30)
         )
         self.postconditions = postcondition_registry or PostconditionRegistry()
         self.intents = intent_registry or TerminalIntentRegistry()

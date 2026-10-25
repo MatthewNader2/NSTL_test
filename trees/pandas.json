@@ -12414,7 +12414,7 @@
         "array_bridge"
       ],
       "inputs": {
-        "port_0": {
+        "df": {
           "type_name": "DataFrame",
           "state": "cleaned",
           "accepted_states": [
@@ -12468,7 +12468,7 @@
         }
       },
       "outputs": {
-        "port_0": {
+        "output_var": {
           "type_name": "ndarray",
           "state": "ndarray_generic",
           "qualifiers": [
@@ -12496,7 +12496,7 @@
           "port_role": "data_output",
           "structure_kind": "tensor",
           "rank": 2,
-          "element_type": "float64",
+          "element_type": "opaque",
           "supported_formats": []
         }
       },
@@ -13739,7 +13739,7 @@
           "element_type": "string",
           "supported_formats": [],
           "port_role": "column_projection",
-          "default_value": ""
+          "default_value": null
         }
       },
       "outputs": {

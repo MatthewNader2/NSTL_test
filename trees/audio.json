@@ -41,7 +41,8 @@
       },
       {
         "name": "clipped",
-        "description": "Waveform with dynamic range constrained within hard amplitude thresholds."
+        "description": "Waveform with dynamic range constrained within hard amplitude thresholds.",
+        "parent_state": "floating_waveform"
       },
       {
         "name": "coefficient",
@@ -49,7 +50,8 @@
       },
       {
         "name": "concatenated",
-        "description": "Sequentially appended composite audio waveform."
+        "description": "Sequentially appended composite audio waveform.",
+        "parent_state": "floating_waveform"
       },
       {
         "name": "db_scale",
@@ -73,7 +75,8 @@
       },
       {
         "name": "faded",
-        "description": "Audio waveform with boundary fade-in or fade-out envelopes applied."
+        "description": "Audio waveform with boundary fade-in or fade-out envelopes applied.",
+        "parent_state": "floating_waveform"
       },
       {
         "name": "filter_order",
@@ -85,7 +88,8 @@
       },
       {
         "name": "filtered",
-        "description": "Time-domain signal processed through frequency-selective filters."
+        "description": "Time-domain signal processed through frequency-selective filters.",
+        "parent_state": "floating_waveform"
       },
       {
         "name": "floating_waveform",
@@ -97,11 +101,13 @@
       },
       {
         "name": "gain_adjusted",
-        "description": "Audio waveform scaled by a decibel gain multiplier."
+        "description": "Audio waveform scaled by a decibel gain multiplier.",
+        "parent_state": "floating_waveform"
       },
       {
         "name": "integer_waveform",
-        "description": "Integer PCM audio time-series tensor (e.g. 16-bit or 24-bit PCM)."
+        "description": "Integer PCM audio time-series tensor (e.g. 16-bit or 24-bit PCM).",
+        "parent_state": "floating_waveform"
       },
       {
         "name": "max_amplitude",
@@ -113,15 +119,18 @@
       },
       {
         "name": "mono_waveform",
-        "description": "Single-channel monophonic audio waveform."
+        "description": "Single-channel monophonic audio waveform.",
+        "parent_state": "floating_waveform"
       },
       {
         "name": "padded",
-        "description": "Waveform prepended or appended with silence padding."
+        "description": "Waveform prepended or appended with silence padding.",
+        "parent_state": "floating_waveform"
       },
       {
         "name": "peak_normalized",
-        "description": "Audio waveform scaled such that peak absolute amplitude matches target."
+        "description": "Audio waveform scaled such that peak absolute amplitude matches target.",
+        "parent_state": "floating_waveform"
       },
       {
         "name": "plot_saved",
@@ -129,19 +138,23 @@
       },
       {
         "name": "rendered",
-        "description": "Waveform finalized and formatted for storage serialization."
+        "description": "Waveform finalized and formatted for storage serialization.",
+        "parent_state": "floating_waveform"
       },
       {
         "name": "resampled",
-        "description": "Audio waveform converted to a target sampling frequency."
+        "description": "Audio waveform converted to a target sampling frequency.",
+        "parent_state": "floating_waveform"
       },
       {
         "name": "reversed",
-        "description": "Waveform with reversed time axis (retrograde playback)."
+        "description": "Waveform with reversed time axis (retrograde playback).",
+        "parent_state": "floating_waveform"
       },
       {
         "name": "rms_normalized",
-        "description": "Audio waveform scaled such that root-mean-square loudness matches target."
+        "description": "Audio waveform scaled such that root-mean-square loudness matches target.",
+        "parent_state": "floating_waveform"
       },
       {
         "name": "spectrogram_db",
@@ -153,7 +166,8 @@
       },
       {
         "name": "stereo_waveform",
-        "description": "Dual-channel stereophonic audio waveform."
+        "description": "Dual-channel stereophonic audio waveform.",
+        "parent_state": "floating_waveform"
       },
       {
         "name": "stft_complex",
@@ -161,15 +175,18 @@
       },
       {
         "name": "synthetic",
-        "description": "Waveform procedurally generated via mathematical synthesis."
+        "description": "Waveform procedurally generated via mathematical synthesis.",
+        "parent_state": "floating_waveform"
       },
       {
         "name": "trimmed",
-        "description": "Audio waveform with temporal slices or low-energy silence removed."
+        "description": "Audio waveform with temporal slices or low-energy silence removed.",
+        "parent_state": "floating_waveform"
       },
       {
         "name": "unnormalized",
-        "description": "Audio waveform with unconstrained or arbitrary amplitude scaling."
+        "description": "Audio waveform with unconstrained or arbitrary amplitude scaling.",
+        "parent_state": "floating_waveform"
       },
       {
         "name": "window_size",
@@ -3012,7 +3029,7 @@
         },
         "waveform": {
           "type_name": "audio_waveform",
-          "state": "rendered",
+          "state": "floating_waveform",
           "abstract_type": "tensor",
           "required": true,
           "port_role": "data_input",
@@ -3097,7 +3114,7 @@
         },
         "waveform": {
           "type_name": "audio_waveform",
-          "state": "rendered",
+          "state": "floating_waveform",
           "abstract_type": "tensor",
           "required": true,
           "port_role": "data_input",
@@ -3268,7 +3285,7 @@
         },
         "waveform": {
           "type_name": "audio_waveform",
-          "state": "rendered",
+          "state": "floating_waveform",
           "abstract_type": "tensor",
           "required": true,
           "port_role": "data_input",
@@ -3354,7 +3371,7 @@
         },
         "waveform": {
           "type_name": "audio_waveform",
-          "state": "rendered",
+          "state": "floating_waveform",
           "abstract_type": "tensor",
           "required": true,
           "port_role": "data_input",

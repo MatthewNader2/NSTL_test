@@ -22,6 +22,8 @@ domain-specific identifiers.
 
 from __future__ import annotations
 import ast
+import functools
+import importlib.util
 import sys
 from typing import List, Dict, Set, Tuple, Any, Optional
 from dataclasses import dataclass, field
@@ -104,6 +106,14 @@ try:
     _UNRESOLVED_PORT_SENTINEL = str(UNRESOLVED_PORT).strip().lower()
 except Exception:
     _UNRESOLVED_PORT_SENTINEL = ""
+
+
+@functools.lru_cache(maxsize=2048)
+def _cached_find_spec(mod_name: str) -> bool:
+    try:
+        return importlib.util.find_spec(mod_name) is not None
+    except Exception:
+        return False
 
 
 def _is_unbound(value: Any) -> bool:
@@ -357,7 +367,7 @@ class PreflightLinter:
                 if not clean_lit or clean_lit in waived or clean_lit.lower() in stopwords:
                     continue
 
-                if kind not in ("file_asset", "identifier", "quoted_str"):
+                if kind not in ("file_asset", "quoted_str", "numeric"):
                     continue
 
                 if clean_lit in seen_consumed_lits:
@@ -556,7 +566,7 @@ class PreflightLinter:
                 # "from x import y") is defined by the emission header the emitter
                 # generates from those same declarations — referencing it is not an
                 # undefined variable.
-                if root_var in declared_dep_names or root_var in sys.modules or (importlib.util.find_spec(root_var) is not None if root_var.isidentifier() else False):
+                if root_var in declared_dep_names or root_var in sys.modules or (root_var.isidentifier() and _cached_find_spec(root_var)):
                     continue
 
                 if resolved_sig is None:
@@ -738,7 +748,6 @@ class PreflightLinter:
                 if (
                     is_terminal
                     or getattr(cell, "is_goal", False)
-                    or getattr(cell, "matched_clause_idx", None) is not None
                 ):
                     continue
                 outs_all_scalar = bool(cell.outputs) and all(

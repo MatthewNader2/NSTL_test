@@ -24,7 +24,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional, Tuple
 
 from .base import RouteMethod, Cell
-from lattice import LatticeOrchestrator
+from lattice import LatticeOrchestrator, TypeRegistry
 from unification import ExecutionContext, unify
 
 

@@ -16,10 +16,12 @@ try:
     from ..lattice import Cell, LatticeOrchestrator
     from ..tokenizer import CellTokenizer
     from ..unification import unify, ExecutionContext
+    from ..config import settings
 except (ImportError, ValueError):
     from lattice import Cell, LatticeOrchestrator
     from tokenizer import CellTokenizer
     from unification import unify, ExecutionContext
+    from config import settings
 
 
 class M2EndpointAnchorRouteMethod(RouteMethod):
@@ -73,11 +75,47 @@ class M2EndpointAnchorRouteMethod(RouteMethod):
         src_lit = src_file_literals[0] if src_file_literals else None
         dst_lit = dest_file_literals[0] if dest_file_literals else None
 
-        # 1. Source anchor: format-compatible (ordinal) > evidence for the FIRST clause > retrieval relevance.
+        # 1. Source anchor: format-compatible (ordinal) > reachable downstream anchors > evidence for the FIRST clause > retrieval relevance.
         source_pool = [c for c in candidates if getattr(c, "stage", None) == 1] or candidates[:5]
+        downstream_cands = [c for c in candidates if getattr(c, "stage", None) != 1]
+        from lattice import TypeRegistry
+        reg = TypeRegistry.get_instance()
+
+        _reach_cache: Dict[str, int] = {}
+
+        def _downstream_reach(source_cell: Cell) -> int:
+            if getattr(source_cell, "stage", None) != 1:
+                return 0
+            cid = source_cell.cell_id
+            if cid in _reach_cache:
+                return _reach_cache[cid]
+            cnt = 0
+            s_out = getattr(source_cell, "primary_output", None) or (
+                list(source_cell.outputs.values())[0] if source_cell.outputs else None
+            )
+            s_tname = str(getattr(getattr(s_out, "signature", s_out), "type_name", "")).lower() if s_out else ""
+            if s_tname:
+                for dc in downstream_cands:
+                    for d_in in dc.inputs.values():
+                        d_tname = str(getattr(getattr(d_in, "signature", d_in), "type_name", "")).lower()
+                        if (
+                            s_tname == d_tname
+                            or reg.is_subtype(s_tname, d_tname)
+                            or (reg.is_composite_carrier(s_tname) and (reg.is_composite_carrier(d_tname) or reg.get_abstract_carrier(s_tname) == reg.get_abstract_carrier(d_tname)))
+                        ):
+                            cnt += 1
+                            break
+            _reach_cache[cid] = cnt
+            return cnt
+
         best_source: Optional[Cell] = max(
             source_pool,
-            key=lambda c: (self.file_compat(c, src_lit), self.clause_fit(first_clause, c), relevance_map.get(c.cell_id, 0.0)),
+            key=lambda c: (
+                self.file_compat(c, src_lit),
+                _downstream_reach(c),
+                self.clause_fit(first_clause, c),
+                relevance_map.get(c.cell_id, 0.0),
+            ),
         )
 
         # 2. Sink anchor: only a cell the FINAL clause actually names (or a format-compatible writer for
@@ -176,9 +214,10 @@ class M2EndpointAnchorRouteMethod(RouteMethod):
                 logger.debug("[M2] Coverage audit check skipped: %s", _cov_exc)
 
             try:
-                from ..unification import unify_pipeline
+                from ..unification import UnificationGate, ExecutionContext
                 from ..preflight import PreflightLinter
-                _ur = unify_pipeline(path, prompt=prompt, context=ctx)
+                _gate = UnificationGate(orchestrator=orch)
+                _ur = _gate.unify_pipeline(path, ctx=ctx or ExecutionContext(prompt=prompt))
                 if _ur is not None and getattr(_ur, "value", None):
                     _lint = PreflightLinter.lint(_ur.value, prompt=prompt, orchestrator=orch)
                     if not _lint.is_valid:
@@ -193,6 +232,11 @@ class M2EndpointAnchorRouteMethod(RouteMethod):
 
         # Bidirectional Meeting-in-the-Middle through Stage 2 transforms (short prompts)
         transforms = [c for c in candidates if getattr(c, "stage", None) == 2]
+        transforms.sort(key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)
+        max_tf = settings.m2_max_candidate_transforms
+        if len(transforms) > max_tf:
+            self._trace("m2_transforms_truncated", total_candidates=len(transforms), cap=max_tf)
+            transforms = transforms[:max_tf]
 
         if best_sink and transforms:
             # Look for 1-hop bridge: source -> T -> sink

@@ -92,6 +92,53 @@ class M1ClauseAnchorRouteMethod(RouteMethod):
                 or not (getattr(c, "is_combinator", False) or getattr(c, "node_role", "") == "combinator" or getattr(c, "role", "") == "combinator" or getattr(c, "node_type", "") == "combinator")
             ]
 
+            if idx == 0 and len(clauses) > 1:
+                src_lits, _ = self.extract_file_literals(prompt, ctx=ctx)
+                src_lit = src_lits[0] if src_lits else None
+                downstream_cands = [c for c in candidates if getattr(c, "stage", None) != 1]
+                from lattice import TypeRegistry
+                reg = TypeRegistry.get_instance()
+
+                _reach_cache: Dict[str, int] = {}
+
+                def _downstream_reach(source_cell: Cell) -> int:
+                    if getattr(source_cell, "stage", None) != 1:
+                        return 0
+                    cid = source_cell.cell_id
+                    if cid in _reach_cache:
+                        return _reach_cache[cid]
+                    cnt = 0
+                    s_out = getattr(source_cell, "primary_output", None) or (
+                        list(source_cell.outputs.values())[0] if source_cell.outputs else None
+                    )
+                    s_tname = str(getattr(getattr(s_out, "signature", s_out), "type_name", "")).lower() if s_out else ""
+                    if s_tname:
+                        for dc in downstream_cands:
+                            for d_in in dc.inputs.values():
+                                d_tname = str(getattr(getattr(d_in, "signature", d_in), "type_name", "")).lower()
+                                if (
+                                    s_tname == d_tname
+                                    or reg.is_subtype(s_tname, d_tname)
+                                    or (reg.is_composite_carrier(s_tname) and (reg.is_composite_carrier(d_tname) or reg.get_abstract_carrier(s_tname) == reg.get_abstract_carrier(d_tname)))
+                                ):
+                                    cnt += 1
+                                    break
+                    _reach_cache[cid] = cnt
+                    return cnt
+
+                pool.sort(
+                    key=lambda c: (
+                        self.file_compat(c, src_lit),
+                        _downstream_reach(c),
+                        self.clause_fit(cl, c),
+                        relevance_map.get(c.cell_id, 0.0),
+                    ),
+                    reverse=True,
+                )
+            else:
+                _downstream_reach = None
+                src_lit = None
+
             # Evidence-ranked anchor selection (corpus-derived, no vocabulary).
             # Every pool cell is scored by identity F (precision x recall of its
             # operation tokens against the clause, token_evidence.py). The best
@@ -110,8 +157,19 @@ class M1ClauseAnchorRouteMethod(RouteMethod):
                     clause_cells.append(c_inst)
                 if not clause_cells and pool:
                     # No lattice cell carries identity evidence for this clause:
-                    # fall back to the retrieval score alone and SAY so.
-                    best = max(pool, key=lambda c: relevance_map.get(c.cell_id, 0.0))
+                    # fall back to the retrieval score (maximizing reachable downstream anchors for ingress) and SAY so.
+                    if idx == 0 and _downstream_reach is not None:
+                        best = max(
+                            pool,
+                            key=lambda c: (
+                                self.file_compat(c, src_lit),
+                                _downstream_reach(c),
+                                self.clause_fit(cl, c),
+                                relevance_map.get(c.cell_id, 0.0),
+                            ),
+                        )
+                    else:
+                        best = max(pool, key=lambda c: relevance_map.get(c.cell_id, 0.0))
                     if relevance_map.get(best.cell_id, 0.0) > 0.0:
                         c_inst = best.clone() if hasattr(best, "clone") else best
                         c_inst.matched_clause_idx = idx
@@ -125,18 +183,53 @@ class M1ClauseAnchorRouteMethod(RouteMethod):
                                     reason="no identity evidence and no retrieval score")
 
             if len(clause_cells) >= 2:
-                from functools import cmp_to_key
-                def _reach_cmp(a: Cell, b: Cell) -> int:
-                    if a.cell_id == b.cell_id:
-                        return 0
-                    aff_ab = self.calculate_edge_affinity(a, b, orch)
-                    aff_ba = self.calculate_edge_affinity(b, a, orch)
-                    if aff_ab > aff_ba:
-                        return -1
-                    if aff_ba > aff_ab:
-                        return 1
-                    return 0
-                clause_cells = sorted(clause_cells, key=cmp_to_key(_reach_cmp))
+                from unification import is_edge_valid
+                nodes = list(clause_cells)
+                in_degree: Dict[str, int] = {c.cell_id: 0 for c in nodes}
+                adj: Dict[str, List[str]] = {c.cell_id: [] for c in nodes}
+
+                for i, a in enumerate(nodes):
+                    for j, b in enumerate(nodes):
+                        if i == j:
+                            continue
+                        a_feeds_b = any(
+                            getattr(inp, "required", True) and is_edge_valid(out, inp, a, b)
+                            for out in a.outputs.values()
+                            for inp in b.inputs.values()
+                        )
+                        b_feeds_a = any(
+                            getattr(inp, "required", True) and is_edge_valid(out, inp, b, a)
+                            for out in b.outputs.values()
+                            for inp in a.inputs.values()
+                        )
+                        if a_feeds_b and not b_feeds_a:
+                            adj[a.cell_id].append(b.cell_id)
+                            in_degree[b.cell_id] += 1
+
+                def _clause_key(c: Cell) -> int:
+                    idx_val = getattr(c, "matched_clause_idx", None)
+                    return idx_val if idx_val is not None else 0
+
+                cell_by_id = {c.cell_id: c for c in nodes}
+                ready = [c for c in nodes if in_degree[c.cell_id] == 0]
+                ready.sort(key=_clause_key)
+
+                ordered = []
+                while ready:
+                    curr = ready.pop(0)
+                    ordered.append(curr)
+                    for nxt_id in adj[curr.cell_id]:
+                        in_degree[nxt_id] -= 1
+                        if in_degree[nxt_id] == 0:
+                            ready.append(cell_by_id[nxt_id])
+                            ready.sort(key=_clause_key)
+
+                if len(ordered) < len(nodes):
+                    rem = [c for c in nodes if c not in ordered]
+                    rem.sort(key=_clause_key)
+                    ordered.extend(rem)
+
+                clause_cells = ordered
 
             for c in clause_cells:
                 if not anchors or anchors[-1].cell_id != c.cell_id or getattr(anchors[-1], "clause_literals", None) != getattr(c, "clause_literals", None):
@@ -218,11 +311,11 @@ class M1ClauseAnchorRouteMethod(RouteMethod):
         # 4. Fallback to LatticePlanner if empty and allow_fallback is enabled
         try:
             from config import settings
-            allow_fb = getattr(settings, "allow_fallback", False)
+            allow_fb = settings.allow_fallback
         except Exception:
             try:
                 from ..config import settings
-                allow_fb = getattr(settings, "allow_fallback", False)
+                allow_fb = settings.allow_fallback
             except Exception:
                 allow_fb = False
 

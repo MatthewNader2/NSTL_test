@@ -203,11 +203,11 @@ class M6HybridAnchorsRouteMethod(RouteMethod):
         # If waypoints failed to assemble, fallback to Trellis only if allow_fallback is enabled
         try:
             from config import settings
-            allow_fb = getattr(settings, "allow_fallback", False)
+            allow_fb = settings.allow_fallback
         except Exception:
             try:
                 from ..config import settings
-                allow_fb = getattr(settings, "allow_fallback", False)
+                allow_fb = settings.allow_fallback
             except Exception:
                 allow_fb = False
 

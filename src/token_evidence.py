@@ -26,6 +26,10 @@ try:
     from .tokenizer import CellTokenizer
 except (ImportError, ValueError):
     from tokenizer import CellTokenizer
+try:
+    from .config import settings
+except (ImportError, ValueError):
+    from config import settings
 
 
 class TokenEvidence:
@@ -81,11 +85,31 @@ class TokenEvidence:
         try:
             from unification import ExecutionContext
             lits = ExecutionContext._extract_universal_literals(clause)
+            clause_chars = list(clause)
+            for lit in lits:
+                pos, kind, val = lit
+                if kind in ("quoted_str", "file_asset"):
+                    end_idx = min(len(clause_chars), getattr(lit, "end_pos", pos + len(val)))
+                    for k in range(pos, end_idx):
+                        clause_chars[k] = " "
+            unquoted = "".join(clause_chars)
+            unquoted_toks = {t.lower() for t in CellTokenizer.tokenize_prompt(unquoted)}
+
             lit_toks = set()
-            for _, kind, val in lits:
-                if kind in ("file_asset", "quoted_str", "numeric"):
+            for lit in lits:
+                _, kind, val = lit
+                if kind == "file_asset":
+                    parts = str(val).rsplit(".", 1)
+                    stem = parts[0]
+                    for t in CellTokenizer.tokenize_identifier(stem):
+                        t_low = t.lower()
+                        if t_low not in unquoted_toks:
+                            lit_toks.add(t_low)
+                elif kind in ("quoted_str", "numeric"):
                     for t in CellTokenizer.tokenize_identifier(str(val)):
-                        lit_toks.add(t.lower())
+                        t_low = t.lower()
+                        if t_low not in unquoted_toks:
+                            lit_toks.add(t_low)
             if lit_toks:
                 rem = toks - lit_toks
                 if rem:
@@ -175,8 +199,17 @@ def anchors_for_clause(ev: "TokenEvidence", clause: str, pool: Iterable[Any],
             ok, why = True, "primary (best rank: recall, name-precision, F)"
         else:
             residual = ev.identity_overlap(toks - covered, c)
-            ok = residual["hit"] > 0.0 and residual["f"] >= primary_f
-            why = "secondary: residual F %.3f %s primary F %.3f" % (residual["f"], ">=" if ok else "<", primary_f)
+            min_recall = settings.secondary_anchor_min_recall
+            min_f = settings.secondary_anchor_min_f
+            f_ratio = settings.secondary_anchor_f_ratio
+            ok = residual["hit"] > 0.0 and (
+                residual["recall"] >= min_recall
+                or residual["f"] >= min_f
+                or residual["f"] >= (primary_f * f_ratio if primary_f else 0.0)
+            )
+            why = "secondary: residual hit=%.3f, recall=%.3f, F=%.3f %s" % (
+                residual["hit"], residual["recall"], residual["f"], "accepted" if ok else "rejected"
+            )
             if ok:
                 covered |= set(residual["tokens"])
         if on_event is not None:

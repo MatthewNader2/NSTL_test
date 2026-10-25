@@ -102,7 +102,7 @@
       },
       {
         "name": "blake2b_state",
-        "parent_state": null,
+        "parent_state": "updated",
         "carrier_type": "hasher",
         "description": "Initialized BLAKE2b hash context.",
         "properties": {}
@@ -286,7 +286,7 @@
       },
       {
         "name": "md5_state",
-        "parent_state": null,
+        "parent_state": "updated",
         "carrier_type": "hasher",
         "description": "Initialized MD5 hash context.",
         "properties": {}
@@ -342,14 +342,14 @@
       },
       {
         "name": "pem_encoded_private",
-        "parent_state": null,
+        "parent_state": "pem_encoded",
         "carrier_type": "bytes",
         "description": "PKCS8 PEM-formatted private key bytes.",
         "properties": {}
       },
       {
         "name": "pem_encoded_public",
-        "parent_state": null,
+        "parent_state": "pem_encoded",
         "carrier_type": "bytes",
         "description": "SubjectPublicKeyInfo PEM-formatted public key bytes.",
         "properties": {}
@@ -430,21 +430,21 @@
       },
       {
         "name": "sha256_state",
-        "parent_state": null,
+        "parent_state": "updated",
         "carrier_type": "hasher",
         "description": "Initialized SHA-256 hash context.",
         "properties": {}
       },
       {
         "name": "sha3_256_state",
-        "parent_state": null,
+        "parent_state": "updated",
         "carrier_type": "hasher",
         "description": "Initialized SHA3-256 hash context.",
         "properties": {}
       },
       {
         "name": "sha512_state",
-        "parent_state": null,
+        "parent_state": "updated",
         "carrier_type": "hasher",
         "description": "Initialized SHA-512 hash context.",
         "properties": {}

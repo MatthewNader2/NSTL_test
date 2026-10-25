@@ -343,8 +343,14 @@ def resolve_typed_binding_record(
             )
 
     # (D) Method calls on variable (e.g. var.to_numpy()) or module functions (e.g. np.asarray(var))
-    if isinstance(parsed, ast.Call) and isinstance(parsed.func, ast.Attribute) and isinstance(parsed.func.value, ast.Name):
-        root_v = parsed.func.value.id
+    if isinstance(parsed, ast.Call) and isinstance(parsed.func, ast.Attribute):
+        root_v = None
+        for node in ast.walk(parsed.func.value):
+            if isinstance(node, ast.Name) and node.id in var_sigs:
+                root_v = node.id
+                break
+        if root_v is None and isinstance(parsed.func.value, ast.Name):
+            root_v = parsed.func.value.id
         attr_name = parsed.func.attr
 
         # Check if root_v is a module or library alias rather than a pipeline variable
@@ -366,8 +372,8 @@ def resolve_typed_binding_record(
 
         import sys
         import importlib.util
-        def _is_module_or_alias(name: str) -> bool:
-            if not name.isidentifier():
+        def _is_module_or_alias(name: Optional[str]) -> bool:
+            if not name or not isinstance(name, str) or not name.isidentifier():
                 return False
             if name in known_aliases or name in known_modules or name in sys.modules:
                 return True
@@ -461,18 +467,28 @@ def _wire_rejection(cell: Any, p_name: str, port: Any, v_name: str, ctx: Any, re
     if not ctx or not hasattr(ctx, "variables"):
         return None
     if v_name not in ctx.variables:
-        return ("unknown_variable", {"v_name": v_name})
+        return ("unknown_variable", {"v_name": v_name, "port": p_name})
 
     if port is not None:
+        p_role = str(getattr(port, "port_role", "") or getattr(port, "role", "") or getattr(port, "derived_role", "") or "").lower()
+        cfg_roles = ("parameter", "hyperparameter", "option", "config", "configuration", "literal_parameter")
+        if p_role in cfg_roles or str(getattr(port, "param_kind", "")).lower() in cfg_roles:
+            t_name = str(getattr(port, "type_name", "") or "").lower()
+            str_kind = str(getattr(port, "structure_kind", "") or "").lower()
+            c_rank = getattr(port, "canonical_rank", None) if getattr(port, "canonical_rank", None) is not None else getattr(port, "rank", None)
+            is_scalar = (c_rank == 0 or str_kind == "scalar" or t_name in ("str", "int", "float", "bool", "scalar"))
+            if is_scalar:
+                return ("config_port_rejects_dataflow_wire", {"v_name": v_name, "port": p_name})
+
         v_entry = ctx.variables[v_name]
         v_sig = v_entry[0] if isinstance(v_entry, tuple) else v_entry
         v_actual_sig = getattr(v_sig, "signature", v_sig)
         p_actual_sig = getattr(port, "signature", port)
         if not _shape_compatible(v_actual_sig, port):
-            return ("shape_incompatible", {"v_name": v_name, "port": p_name})
+            return ("shape_incompatible", {"v_name": v_name, "port": p_name, "rejected_sig": str(v_actual_sig)})
         res = unify(v_actual_sig, p_actual_sig)
         if res is None:
-            return ("type_incompatible", {"v_name": v_name, "port": p_name})
+            return ("type_incompatible", {"v_name": v_name, "port": p_name, "rejected_sig": str(v_actual_sig)})
 
     return None
 
@@ -889,18 +905,14 @@ def is_edge_valid(
         if not (is_pred_state or out_role in pred_out):
             return False
     elif in_role in target_roles:
-        if out_role in pred_out or is_pred_state:
+        if out_role in feature_roles or out_role in model_roles or out_role in pred_out or is_pred_state:
             return False
-
-    if in_role in role_restricted and out_role in role_restricted:
-        if in_role != out_role:
+    elif in_role in feature_roles:
+        if out_role in target_roles or out_role in model_roles or out_role in pred_out or is_pred_state:
             return False
-    elif in_role in target_roles and out_role not in target_roles:
-        return False
-    elif in_role in feature_roles and out_role in target_roles:
-        return False
-    elif in_role in model_roles and out_role not in model_roles:
-        return False
+    elif in_role in model_roles:
+        if out_role not in model_roles:
+            return False
 
     # 2. Structural Kind and Abstract Carrier Gating
     out_sk = str(_get_p_field(p_out, "structure_kind", "") or "").lower()
@@ -1156,13 +1168,14 @@ def _shape_compatible(p_out: Any, p_in: Any) -> bool:
     return is_edge_valid(p_out, p_in)
 
 
-def _extract_lhs_template_placeholders(tpl: str) -> Set[str]:
+@functools.lru_cache(maxsize=4096)
+def _extract_lhs_template_placeholders(tpl: str) -> FrozenSet[str]:
     """Extracts placeholder names bound on the LHS of assignments in code_template."""
     if not tpl or "=" not in tpl:
-        return set()
+        return frozenset()
     phs = extract_template_placeholders(tpl)
     if not phs:
-        return set()
+        return frozenset()
     ast_ready = tpl
     for ph in phs:
         ast_ready = ast_ready.replace(f"{{{ph}}}", f"_nstl_ph_{ph}")
@@ -1177,7 +1190,7 @@ def _extract_lhs_template_placeholders(tpl: str) -> Set[str]:
                         if isinstance(t_node, ast.Name) and t_node.id.startswith("_nstl_ph_"):
                             lhs_phs.add(t_node.id[len("_nstl_ph_"):])
         if lhs_phs:
-            return lhs_phs
+            return frozenset(lhs_phs)
     except Exception:
         pass
 
@@ -1203,8 +1216,8 @@ def _extract_lhs_template_placeholders(tpl: str) -> Set[str]:
                     break
     if eq_idx is not None:
         lhs = tpl[:eq_idx]
-        return set(extract_template_placeholders(lhs))
-    return set()
+        return frozenset(extract_template_placeholders(lhs))
+    return frozenset()
 
 
 def _has_data_bearing_output_assignment(cell: Any) -> bool:
@@ -1255,31 +1268,48 @@ def _has_data_bearing_output_assignment(cell: Any) -> bool:
     return bool(lhs_phs & (data_bearing_names | {"output_var"}))
 
 
+_SINK_CELL_CACHE: Dict[Tuple[str, int], bool] = {}
+_SINK_CELL_LOCK = threading.Lock()
+_MAX_SINK_CACHE_SIZE = 4096
+
+
 def _is_sink_cell(cell: Any) -> bool:
     """Returns True if cell represents a void/materialization sink morphism with no outgoing dataflow."""
     if cell is None:
         return False
+    try:
+        from lattice import LatticeOrchestrator
+        orch = LatticeOrchestrator.get_active_instance()
+        version = getattr(orch, "_version", 0) if orch else 0
+    except Exception:
+        version = 0
+    c_id = getattr(cell, "cell_id", None) or str(id(cell))
+    cache_key = (c_id, version)
+    with _SINK_CELL_LOCK:
+        if cache_key in _SINK_CELL_CACHE:
+            return _SINK_CELL_CACHE[cache_key]
 
     # A cell whose code_template assigns to {output_var} or {<primary_output.name>}
     # on the LHS of '=' and whose output type is a concrete data carrier is a
     # value-producing morphism (even if is_endable is True), NOT a sink.
     if _has_data_bearing_output_assignment(cell):
-        return False
+        res = False
+    elif getattr(cell, "is_endable", False):
+        res = True
+    else:
+        role = str(getattr(cell, "node_role", "") or getattr(cell, "role", "") or "").lower()
+        term_roles = _declared_role_semantics("terminal_roles") | _declared_role_semantics("sink_roles")
+        if role in term_roles or role in ("sink", "terminal", "egress", "consumer"):
+            res = True
+        else:
+            outputs = getattr(cell, "outputs", None)
+            res = not bool(outputs)
 
-    if getattr(cell, "is_endable", False):
-        return True
-    role = str(getattr(cell, "node_role", "") or getattr(cell, "role", "") or "").lower()
-    term_roles = _declared_role_semantics("terminal_roles") | _declared_role_semantics("sink_roles")
-    if role in term_roles:
-        return True
-    if role in ("sink", "terminal", "egress", "consumer"):
-        return True
-
-    outputs = getattr(cell, "outputs", None)
-    if not outputs:
-        return True
-
-    return False
+    with _SINK_CELL_LOCK:
+        if len(_SINK_CELL_CACHE) >= _MAX_SINK_CACHE_SIZE:
+            _SINK_CELL_CACHE.pop(next(iter(_SINK_CELL_CACHE)), None)
+        _SINK_CELL_CACHE[cache_key] = res
+    return res
 
 
 
@@ -2114,6 +2144,13 @@ def _is_valid_slot_value(val: Any, sig: Optional[PortSignature] = None) -> bool:
     if val_low in ("none", "null"):
         return False
 
+    c_rank = getattr(sig, "canonical_rank", None) if getattr(sig, "canonical_rank", None) is not None else getattr(sig, "rank", None)
+    str_kind = str(getattr(sig, "structure_kind", "") or "").lower()
+    t_sig = str(getattr(sig, "type_name", "")).strip().lower()
+    is_scalar = (c_rank == 0 or str_kind == "scalar" or t_sig in ("str", "int", "float", "bool", "scalar"))
+    if is_scalar and isinstance(val, (list, tuple)):
+        return False
+
     declared_enums = getattr(sig, "enum_values", None)
     enum_set = {str(e).strip().lower() for e in declared_enums} if declared_enums else set()
 
@@ -2171,6 +2208,15 @@ def _format_literal_value(val: Any, sig: Optional[PortSignature] = None) -> str:
     """Formats an extracted slot/hyperparameter value into an executable code literal."""
     if val is None:
         return "None"
+    if sig is not None:
+        c_rank = getattr(sig, "canonical_rank", None) if getattr(sig, "canonical_rank", None) is not None else getattr(sig, "rank", None)
+        str_kind = str(getattr(sig, "structure_kind", "") or "").lower()
+        t_name = str(getattr(sig, "type_name", "") or "").lower()
+        is_scalar = (c_rank == 0 or str_kind == "scalar" or t_name in ("str", "int", "float", "bool", "scalar"))
+        if is_scalar and isinstance(val, (list, tuple)):
+            if getattr(sig, "default_value", None) is not None:
+                return str(sig.default_value)
+            return "None"
     if isinstance(val, bool):
         return "True" if val else "False"
     if isinstance(val, (int, float)):
@@ -2233,6 +2279,14 @@ def _format_literal_value(val: Any, sig: Optional[PortSignature] = None) -> str:
 # =====================================================================
 # 4. Domain-Agnostic Execution Context
 # =====================================================================
+
+class LiteralSpan(tuple):
+    """3-tuple (pos, kind, val) that also retains exact span start and end positions."""
+    def __new__(cls, pos: int, kind: str, val: str, end_pos: Optional[int] = None):
+        inst = super().__new__(cls, (pos, kind, val))
+        inst.end_pos = end_pos if end_pos is not None else (pos + len(val))
+        return inst
+
 
 class ExecutionContext:
     """
@@ -2350,7 +2404,7 @@ class ExecutionContext:
 
     @staticmethod
     def _extract_target_sink(prompt: str) -> Optional[str]:
-        """Deprecated target sink extraction: tabular target scanning is removed."""
+        """Target sink extraction: in symbolic profiles, returns None; resolved by LLM in neural profiles."""
         return None
 
     def declare_runtime_alias(self, alias_name: str, source_var: str) -> None:
@@ -2650,18 +2704,17 @@ class ExecutionContext:
                     j += 1
                 if j < n and prompt[j] == quote_char:
                     val = prompt[i + 1:j]
-                    is_file = "/" in val or "\\" in val or (
-                        "." in val and not val.startswith(".") and not val.endswith(".")
-                        and val.rsplit(".", 1)[1].isalnum() and not val.rsplit(".", 1)[1].isdigit()
-                        and len(val.rsplit(".", 1)[1]) <= 8
-                    )
+                    parts = val.rsplit(".", 1) if ("." in val and not val.startswith(".") and not val.endswith(".")) else ()
+                    ext = parts[1].lower() if parts else ""
+                    reg_fmts = TypeRegistry.get_instance().get_registered_supported_formats()
+                    is_file = "/" in val or "\\" in val or (bool(ext) and (ext in reg_fmts or (not reg_fmts and ext.isalnum() and not ext.isdigit() and len(ext) <= 8)))
                     kind = "file_asset" if is_file else "quoted_str"
-                    spans.append((i, kind, val))
+                    spans.append(LiteralSpan(i, kind, val, end_pos=j + 1))
                     i = j + 1
                     continue
             i += 1
 
-        # 2. Word tokens for file assets, numerics, and bare referential identifiers
+        # 2. Word tokens for file assets and numerics (zero unquoted prose identifiers)
         words_with_pos: List[Tuple[int, str]] = []
         cur_word: List[str] = []
         w_start = None
@@ -2679,17 +2732,10 @@ class ExecutionContext:
             words_with_pos.append((w_start, "".join(cur_word)))
 
         def _quoted_range(pos: int, length: int) -> bool:
-            return any(s - 1 <= pos and pos + length <= s + len(v) + 2 for s, t, v in spans)
-
-        # Sentence-initial positions: the first word of the prompt, and any word
-        # that directly follows a sentence-terminating period. Capitalization
-        # at those positions is grammatical, never naming.
-        sentence_initial: Set[int] = set()
-        prev_terminates = True
-        for _w_idx, (_pos, _raw) in enumerate(words_with_pos):
-            if prev_terminates:
-                sentence_initial.add(_pos)
-            prev_terminates = _raw.endswith(".")
+            return any(
+                getattr(s, "pos", s[0]) <= pos and pos + length <= getattr(s, "end_pos", s[0] + len(s[2]))
+                for s in spans
+            )
 
         for pos, raw_w in words_with_pos:
             w = raw_w.rstrip(".,;:)")
@@ -2709,20 +2755,21 @@ class ExecutionContext:
 
             # Path or filename token (domain-agnostic, zero hardcoded extensions)
             if "/" in w or "\\" in w:
-                spans.append((pos, "file_asset", w))
+                spans.append(LiteralSpan(pos, "file_asset", w, end_pos=pos + len(w)))
                 continue
             if "." in w and not w.startswith(".") and not w.endswith("."):
                 parts = w.rsplit(".", 1)
                 ext = parts[1].lower()
-                if ext.isalnum() and not ext.isdigit() and len(ext) <= 8:
-                    spans.append((pos, "file_asset", w))
+                reg_fmts = TypeRegistry.get_instance().get_registered_supported_formats()
+                if ext.isalnum() and not ext.isdigit() and (ext in reg_fmts or (not reg_fmts and len(ext) <= 8)):
+                    spans.append(LiteralSpan(pos, "file_asset", w, end_pos=pos + len(w)))
                     continue
 
             # Numeric tokens (including comma-separated integers like "1,000" or "10,000")
             num_candidate = w.replace(",", "") if ("," in w and all(part.isdigit() for part in w.split(","))) else w
             try:
                 float(num_candidate)
-                spans.append((pos, "numeric", num_candidate))
+                spans.append(LiteralSpan(pos, "numeric", num_candidate, end_pos=pos + len(num_candidate)))
                 continue
             except ValueError:
                 pass
@@ -2736,9 +2783,9 @@ class ExecutionContext:
                         dim_parts = (p1, p2)
                         break
             if dim_parts:
-                spans.append((pos, "numeric", dim_parts[0]))
+                spans.append(LiteralSpan(pos, "numeric", dim_parts[0], end_pos=pos + len(dim_parts[0])))
                 if dim_parts[0] != dim_parts[1]:
-                    spans.append((pos + len(dim_parts[0]) + 1, "numeric", dim_parts[1]))
+                    spans.append(LiteralSpan(pos + len(dim_parts[0]) + 1, "numeric", dim_parts[1], end_pos=pos + len(dim_parts[0]) + 1 + len(dim_parts[1])))
                 continue
 
         # 3. Predicate / filter comparison expressions (e.g. "value > 100", "score <= 50", "x == 1") without regex
@@ -2761,7 +2808,7 @@ class ExecutionContext:
                                 expr_str = f"{lhs} {op} {rhs}"
                                 start_pos = prompt.rfind(lhs, 0, op_pos)
                                 if start_pos != -1:
-                                    spans.append((start_pos, "expr", expr_str))
+                                    spans.append(LiteralSpan(start_pos, "expr", expr_str, end_pos=start_pos + len(expr_str)))
                 idx = op_pos + len(op)
 
         # Order strictly by character position in prompt
@@ -2771,6 +2818,8 @@ class ExecutionContext:
         seen = set()
         deduped_spans: List[Tuple[int, str, str]] = []
         for pos, kind, val in spans:
+            if kind == "identifier" and len(val) == 1 and val.lower() in ("a", "i"):
+                continue
             key = (pos, str(val).strip().lower())
             if key in seen:
                 continue
@@ -2779,13 +2828,21 @@ class ExecutionContext:
         return deduped_spans
 
     @staticmethod
+    def _is_bare_identifier_token(w: str) -> bool:
+        """
+        Unconditionally returns False. Bare unquoted words in natural language
+        prompts are prose tokens, never formal code literals.
+        """
+        return False
+
+    @staticmethod
     def extract_identifier_groups(prompt: str) -> List[IdentifierGroup]:
-        """Universal stub: zero prompt-based role grouping heuristics."""
+        """Universal stub: zero prompt-based role grouping heuristics; resolved by LLM in neural profiles."""
         return []
 
     @staticmethod
     def _build_identifier_role_map(prompt: str) -> Dict[int, FrozenSet[str]]:
-        """Universal stub: zero prompt-based role mapping heuristics."""
+        """Universal stub: zero prompt-based role mapping heuristics; resolved by LLM in neural profiles."""
         return {}
 
     def _get_clause_idx_for_pos(self, pos: int) -> int:
@@ -3033,31 +3090,39 @@ class ExecutionContext:
         is_str = registry.is_subtype(t_name, "str") or t_name in ("str", "any")
 
         # 1. Parameter explicitly supplied in context or LLM slots
+        c_rank = getattr(port_sig, "canonical_rank", None) if getattr(port_sig, "canonical_rank", None) is not None else getattr(port_sig, "rank", None)
+        str_kind = str(getattr(port_sig, "structure_kind", "") or "").lower()
+        is_scalar = (c_rank == 0 or str_kind == "scalar" or t_name in ("str", "int", "float", "bool", "scalar") or registry.is_subtype(t_name, "scalar"))
+
         if port_sig.name in self.parameters:
             val = self.parameters[port_sig.name]
-            return json.dumps(val) if isinstance(val, str) else str(val)
+            if not (is_scalar and isinstance(val, (list, tuple))):
+                return json.dumps(val) if isinstance(val, str) else str(val)
         if hasattr(self, "hyperparameters") and isinstance(self.hyperparameters, dict) and port_sig.name in self.hyperparameters:
             cand_val = self.hyperparameters[port_sig.name]
-            is_req = getattr(port_sig, "required", True)
-            if is_req:
-                return _format_literal_value(cand_val, port_sig)
-            # Optional port: verify token provenance grounding before overriding declared default
-            val_s = str(cand_val).strip("'\"")
-            prompt_str = str(self.prompt or "")
-            p_n_lower = port_sig.name.lower()
-            c_toks = {t.lower() for t in cell_tokens} if cell_tokens else set()
-            valid_nums = {v for _, k_lit, v in getattr(self, "ordered_literals", []) if k_lit in ("int_literal", "float_literal")}
-            has_name = p_n_lower in c_toks or (len(p_n_lower) > 2 and p_n_lower in prompt_str.lower())
-            if isinstance(cand_val, (int, float)) and not isinstance(cand_val, bool):
-                has_val = (val_s in valid_nums) or (val_s in prompt_str)
-            else:
-                has_val = (val_s.lower() in c_toks) or (len(val_s) > 2 and val_s.lower() in prompt_str.lower())
-            if has_name and has_val:
-                return _format_literal_value(cand_val, port_sig)
+            if not (is_scalar and isinstance(cand_val, (list, tuple))):
+                is_req = getattr(port_sig, "required", True)
+                if is_req:
+                    return _format_literal_value(cand_val, port_sig)
+                # Optional port: verify token provenance grounding before overriding declared default
+                val_s = str(cand_val).strip("'\"")
+                prompt_str = str(self.prompt or "")
+                p_n_lower = port_sig.name.lower()
+                c_toks = {t.lower() for t in cell_tokens} if cell_tokens else set()
+                valid_nums = {v for _, k_lit, v in getattr(self, "ordered_literals", []) if k_lit in ("int_literal", "float_literal")}
+                has_name = p_n_lower in c_toks or (len(p_n_lower) > 2 and p_n_lower in prompt_str.lower())
+                if isinstance(cand_val, (int, float)) and not isinstance(cand_val, bool):
+                    has_val = (val_s in valid_nums) or (val_s in prompt_str)
+                else:
+                    has_val = (val_s.lower() in c_toks) or (len(val_s) > 2 and val_s.lower() in prompt_str.lower())
+                if has_name and has_val:
+                    return _format_literal_value(cand_val, port_sig)
         if hasattr(self, "llm_slots") and isinstance(self.llm_slots, dict):
             for cell_s in self.llm_slots.values():
                 if isinstance(cell_s, dict) and port_sig.name in cell_s:
-                    return _format_literal_value(cell_s[port_sig.name], port_sig)
+                    slot_val = cell_s[port_sig.name]
+                    if not (is_scalar and isinstance(slot_val, (list, tuple))):
+                        return _format_literal_value(slot_val, port_sig)
 
         # 2. Dynamic Enum / Flag Constant Grounding via Domain Reflection & Vector Similarity
         if (t_name == "enum" or getattr(port_sig, "domain", None)) and self.prompt:
@@ -3424,6 +3489,11 @@ class ExecutionContext:
                 if port_sig.default_value is not None:
                     val = str(port_sig.default_value)
                     return json.dumps(val) if not (val.startswith(("'", '"')) or val in ("None", "True", "False")) else val
+                supp_fmts = getattr(port_sig, "supported_formats", None) or getattr(cell, "supported_formats", None) or ()
+                if supp_fmts:
+                    fmt = str(supp_fmts[0]).lstrip(".")
+                    prefix = "output" if str(getattr(port_sig, "port_role", "") or "").lower() in ("data_output", "destination", "sink", "target_output") else "input"
+                    return json.dumps(f"{prefix}.{fmt}")
                 t_str = str(getattr(port_sig, "type_name", "")).lower()
                 dom = str(getattr(port_sig, "domain", "")).lower()
                 registry = TypeRegistry.get_instance()
@@ -3439,7 +3509,11 @@ class ExecutionContext:
                 return json.dumps(placeholder)
 
             # If sink cell has a path port and prompt omitted explicit destination literal:
-            if is_sink_ctx and (port_sig.required or is_path or is_path_role):
+            if is_sink_ctx:
+                supp_fmts = getattr(port_sig, "supported_formats", None) or getattr(cell, "supported_formats", None) or ()
+                if supp_fmts:
+                    fmt = str(supp_fmts[0]).lstrip(".")
+                    return json.dumps(f"output.{fmt}")
                 t_str = str(getattr(port_sig, "type_name", "")).lower()
                 dom = str(getattr(port_sig, "domain", "")).lower()
                 registry = TypeRegistry.get_instance()
@@ -3584,25 +3658,9 @@ class ExecutionContext:
         )
         if is_operational and is_collection:
             _raw_state = str(getattr(port_sig, "state", "") or "")
-            _raw_state_low = _raw_state.lower()
-            p_role_low = str(getattr(port_sig, "port_role", "") or getattr(port_sig, "derived_role", "") or "").lower()
-            is_col_proj_port = (
-                p_role_low in _declared_role_semantics("projection_port_roles")
-                or p_role_low in _declared_role_semantics("target_roles")
-                or _raw_state_low in _declared_role_semantics("projection_port_states")
-                or p_name in _declared_role_semantics("projection_port_names")
-            )
-            # If not a column projection port and has a declared default, do not greedily
-            # bind string literals to structural collection arguments (e.g. axes: tuple = None)
-            if not is_col_proj_port and port_sig.default_value is not None:
+            if port_sig.default_value is not None:
                 pass  # Fall through to Step 7 (port default value)
             else:
-                if hasattr(self, "columns") and self.columns:
-                    if is_col_proj_port:
-                        target_lits = {str(t).strip().lower() for t in getattr(self, "target_literals", set()) if t}
-                        cols_to_use = [c for c in self.columns if str(c).strip().lower() not in target_lits]
-                        return json.dumps(cols_to_use if cols_to_use else self.columns)
-
                 _state_tokens = CellTokenizer.tokenize_identifier(_raw_state) if _raw_state.lower() not in ("any", "default", "") else set()
                 _proj_tokens = TypeRegistry.get_instance().get_column_projection_tokens()
                 _identity_scope: Set[str] = set(cell_tokens or set()) | _state_tokens | _proj_tokens
@@ -3618,14 +3676,9 @@ class ExecutionContext:
 
                 all_available = [
                     idx for idx, (_, kind, val) in enumerate(self.ordered_literals)
-                    if idx not in self.used_indices and kind in ("identifier", "quoted_str")
+                    if idx not in self.used_indices and kind == "quoted_str"
                     and str(val).lower() not in target_lits
                 ]
-                if not all_available and is_col_proj_port:
-                    all_available = [
-                        idx for idx, (_, kind, val) in enumerate(self.ordered_literals)
-                        if kind in ("identifier", "quoted_str") and str(val).lower() not in target_lits
-                    ]
                 if cell_clause is not None and lit_clause_map:
                     clause_cands = [idx for idx in all_available if lit_clause_map.get(idx) == cell_clause]
                     cands_to_check = clause_cands if clause_cands else all_available
@@ -3644,10 +3697,6 @@ class ExecutionContext:
 
                     is_candidate = False
                     if role_tokens and (role_tokens & _identity_scope):
-                        is_candidate = True
-                    elif is_col_proj_port and kind == "quoted_str" and not ExecutionContext._is_path_string(val_str) and "." not in val_str:
-                        is_candidate = True
-                    elif is_col_proj_port and kind == "identifier":
                         is_candidate = True
 
                     if is_candidate and val not in matched_vals:
@@ -3774,6 +3823,9 @@ class UnificationGate:
         candidate wire bindings. Derived purely from the loaded corpus; no
         literal token list lives in the engine.
         """
+        orch = getattr(self, "orchestrator", None)
+        if orch is not None and getattr(orch, "_generic_port_cache", None) is not None:
+            return orch._generic_port_cache
         lc = getattr(self.orchestrator, "loaded_cells", None) or {}
         stamp = (id(lc), len(lc))
         if self._generic_port_cache is not None and self._generic_port_cache[0] == stamp:
@@ -3786,13 +3838,18 @@ class UnificationGate:
                     toks[t.lower()] = toks.get(t.lower(), 0) + 1
         dfs = list(toks.values())
         if not dfs:
-            self._generic_port_cache = (stamp, frozenset())
-            return frozenset()
+            out = frozenset()
+            self._generic_port_cache = (stamp, out)
+            if orch is not None:
+                orch._generic_port_cache = out
+            return out
         mean = sum(dfs) / len(dfs)
         var = sum((v - mean) ** 2 for v in dfs) / len(dfs)
         cut = mean + (var ** 0.5)
         out = frozenset(t for t, v in toks.items() if v > cut)
         self._generic_port_cache = (stamp, out)
+        if orch is not None:
+            orch._generic_port_cache = out
         return out
 
     def get_runtime_aliases(self) -> Dict[str, str]:
@@ -4675,7 +4732,7 @@ class UnificationGate:
                                 continue
                             _rej = _wire_rejection(cell, p_name, cell.inputs.get(p_name), v_name, ctx, registry)
                             if _rej is not None:
-                                ctx.trace_binding(f"planned_wire_rejected_{_rej[0]}", cell=cell.cell_id, port=p_name, var=v_name, **_rej[1])
+                                ctx.trace_binding(f"planned_wire_rejected_{_rej[0]}", cell=cell.cell_id, port=p_name, var=v_name, **{k: v for k, v in _rej[1].items() if k not in ("cell", "port", "var")})
                                 continue
                             cell_bindings[p_name] = v_name
                             bound_producer = True
@@ -4709,7 +4766,7 @@ class UnificationGate:
                             # clause names is left unbound for the projection branches to resolve.
                             _rej = _wire_rejection(cell, p_name, cell.inputs.get(p_name), v_name, ctx, registry)
                             if _rej is not None:
-                                ctx.trace_binding(f"dag_scope_rejected_{_rej[0]}", cell=cell.cell_id, port=p_name, var=v_name, **_rej[1])
+                                ctx.trace_binding(f"dag_scope_rejected_{_rej[0]}", cell=cell.cell_id, port=p_name, var=v_name, **{k: v for k, v in _rej[1].items() if k not in ("cell", "port", "var")})
                                 continue
                             cell_bindings[p_name] = v_name
                             bound_producer = True
@@ -4767,10 +4824,15 @@ class UnificationGate:
                     _declared_role_semantics("config_roles")
                     | _declared_role_semantics("configuration_roles")
                     | _declared_role_semantics("parameter_roles")
-                    | {"configuration", "parameter", "literal_parameter"}
+                    | {"configuration", "parameter", "literal_parameter", "hyperparameter", "option", "config"}
                 )
-                if role in cfg_roles:
-                    return False
+                if role in cfg_roles or str(getattr(p_s, "param_kind", "")).lower() in cfg_roles:
+                    t_name = str(getattr(p_s, "type_name", "") or "").lower()
+                    str_kind = str(getattr(p_s, "structure_kind", "") or "").lower()
+                    c_rank = getattr(p_s, "canonical_rank", None) if getattr(p_s, "canonical_rank", None) is not None else getattr(p_s, "rank", None)
+                    is_scalar = (c_rank == 0 or str_kind == "scalar" or t_name in ("str", "int", "float", "bool", "scalar"))
+                    if is_scalar:
+                        return False
 
                 data_roles = (
                     _declared_role_semantics("dataflow_roles")
@@ -4828,14 +4890,13 @@ class UnificationGate:
                         v_sig, _ = ctx.variables[v_name]
                         v_role = getattr(v_sig, "port_role", None) or getattr(v_sig, "derived_role", "standard")
 
-                        # Hard role gating
-                        if p_role in ROLE_RESTRICTED and v_role in ROLE_RESTRICTED:
-                            if p_role != v_role:
+                        # Conflict-based role gating
+                        if p_role in _wire_target_roles:
+                            if v_role in _wire_feature_roles or v_role in _wire_model_roles:
                                 continue
-                        elif p_role in _wire_target_roles and v_role not in _wire_target_roles:
-                            continue
-                        elif p_role in _wire_feature_roles and v_role in _wire_target_roles:
-                            continue
+                        elif p_role in _wire_feature_roles:
+                            if v_role in _wire_target_roles or v_role in _wire_model_roles:
+                                continue
                         elif p_role in _wire_model_roles and v_role not in _wire_model_roles:
                             continue
 
@@ -4898,7 +4959,7 @@ class UnificationGate:
                     # Clause-scoped admissibility (column provenance + feature columns), shared with the DAG site.
                     _rej = _wire_rejection(cell, p_name, p, v_name, ctx, registry)
                     if _rej is not None:
-                        ctx.trace_binding(f"multiport_rejected_{_rej[0]}", cell=cell.cell_id, port=p_name, var=v_name, **_rej[1])
+                        ctx.trace_binding(f"multiport_rejected_{_rej[0]}", cell=cell.cell_id, port=p_name, var=v_name, **{k: v for k, v in _rej[1].items() if k not in ("cell", "port", "var")})
                         continue
                     # Monoidal origin disjointness: avoid binding multiple join ports to the same origin wire
                     if v_origins and (v_origins & assigned_origins):
@@ -5166,11 +5227,11 @@ class UnificationGate:
                     if not _shape_compatible(v_sig, concrete_sig):
                         continue
 
-                    # Role-gating in scope resolution: restricted roles must not cross-bind
+                    # Role-gating in scope resolution: conflict-based role rules
                     v_role = getattr(v_sig, "port_role", None) or getattr(v_sig, "derived_role", "")
-                    if p_role_in in _target_roles and v_role not in _target_roles:
+                    if p_role_in in _target_roles and (v_role in _feature_roles or v_role in _model_roles):
                         continue
-                    if p_role_in in _feature_roles and v_role not in _feature_roles:
+                    if p_role_in in _feature_roles and (v_role in _target_roles or v_role in _model_roles):
                         continue
                     if p_role_in in _model_roles and v_role not in _model_roles:
                         continue
@@ -5178,7 +5239,7 @@ class UnificationGate:
                     # Admissibility gating: provenance compatibility and single-key setter multi-fiber rejection
                     _rej = _wire_rejection(cell, p_name, p_sig, v_name, ctx, registry)
                     if _rej is not None:
-                        ctx.trace_binding(f"in_scope_rejected_{_rej[0]}", cell=cell.cell_id, port=p_name, var=v_name, **_rej[1])
+                        ctx.trace_binding(f"in_scope_rejected_{_rej[0]}", cell=cell.cell_id, port=p_name, var=v_name, **{k: v for k, v in _rej[1].items() if k not in ("cell", "port", "var")})
                         continue
 
                     u_v = unify(v_sig.signature, concrete_sig.signature, accumulated_sigma)
@@ -6095,11 +6156,6 @@ class UnificationGate:
                 or bool(getattr(ctx, "llm_feedback", False))
                 or bool(getattr(self.context, "llm_feedback", False))
             )
-        if getattr(ctx, "unresolved_ports", None):
-            ports_str = ", ".join(f"{cid}.{p}" for cid, p in ctx.unresolved_ports)
-            raise UnresolvedPlaceholderError(
-                f"Code synthesis refused: pipeline contains unresolved ports: [{ports_str}]"
-            )
 
         if accum_sigma is None:
             accum_sigma = Substitution()
@@ -6109,6 +6165,62 @@ class UnificationGate:
             return ""
         if isinstance(cells[0], tuple):
             pipeline_bindings = cells
+            # Autonomous Missing Parameter Resolution under --llm-feedback for pre-bound tuples
+            if getattr(ctx, "unresolved_ports", None) and (extract_llm_slots or os.environ.get("NSTL_LLM_FEEDBACK") == "1"):
+                try:
+                    from inference import ModelManager
+                except (ImportError, ValueError):
+                    from .inference import ModelManager
+                mm = ModelManager.get_instance()
+                if mm.profile and (mm.can_synthesize() or mm.can_feedback_check()):
+                    prompt_txt = getattr(ctx, "_prompt", "") or getattr(self.context, "_prompt", "")
+                    resolved_any = False
+                    rem_unres = []
+                    cell_objs = [c for c, _ in cells]
+                    for cid, p_name in list(ctx.unresolved_ports):
+                        cell_obj = next((c for c in cell_objs if c.cell_id == cid), None)
+                        p_sig = cell_obj.inputs.get(p_name) if cell_obj else None
+                        p_desc = getattr(p_sig, "description", "") or getattr(p_sig, "type_name", "") or p_name
+                        query = (
+                            f"User Prompt: {prompt_txt}\n"
+                            f"Missing Parameter Required:\n"
+                            f"Node: {cid}\n"
+                            f"Parameter Port: {p_name} ({p_desc})\n"
+                            f"Extract the exact argument value (e.g. column name, threshold, file path, mode) from the prompt for this port.\n"
+                            f"Return JSON: {{\"value\": <extracted_value>}}"
+                        )
+                        try:
+                            resp = mm.generate_text(query, max_tokens=64, system_prompt="You are a precise argument extractor.")
+                            if resp and "value" in resp:
+                                import json as _json
+                                cleaned = resp.strip()
+                                if "```json" in cleaned:
+                                    cleaned = cleaned.split("```json", 1)[1].split("```", 1)[0].strip()
+                                elif "```" in cleaned:
+                                    cleaned = cleaned.split("```", 1)[1].split("```", 1)[0].strip()
+                                parsed = _json.loads(cleaned)
+                                val = parsed.get("value")
+                                if val is not None:
+                                    ctx.parameters[p_name] = val
+                                    ctx.target_literals.add(str(val))
+                                    resolved_any = True
+                                    continue
+                        except Exception as _ex:
+                            logger.debug(f"[UNIFICATION] LLM missing parameter extraction failed for {cid}.{p_name}: {_ex}")
+                        rem_unres.append((cid, p_name))
+                    if resolved_any:
+                        ctx.unresolved_ports = rem_unres
+                        res = self.unify_pipeline(cell_objs, ctx, allow_llm=False)
+                        if not res.is_bottom() and isinstance(res, Success):
+                            pipeline_bindings = res.value
+                            accum_sigma = res.sigma
+                            self.last_egress_paths = self._derive_egress_paths(pipeline_bindings)
+                            self.last_runtime_aliases = dict(getattr(ctx, "runtime_aliases", {}) or {})
+            if getattr(ctx, "unresolved_ports", None):
+                ports_str = ", ".join(f"{cid}.{p}" for cid, p in ctx.unresolved_ports)
+                raise UnresolvedPlaceholderError(
+                    f"Code synthesis refused: pipeline contains unresolved ports: [{ports_str}]"
+                )
         else:
             ctx_run = ctx.clone() if hasattr(ctx, "clone") else ctx
             if hasattr(ctx_run, "reset"):
@@ -7577,12 +7689,15 @@ def unify_cell_with_scope(
                             break
                         if p_prop in earlier_state_props:
                             known_val = earlier_state_props[p_prop]
-                            if p_op == "==" and known_val != p_val:
-                                prop_conflict = True
-                                break
-                            elif p_op == "!=" and known_val == p_val:
-                                prop_conflict = True
-                                break
+                            if known_val is None and earlier_out is not None and hasattr(earlier_out, "rank"):
+                                known_val = getattr(earlier_out, "rank", None)
+                            if known_val is not None:
+                                if p_op == "==" and known_val != p_val:
+                                    prop_conflict = True
+                                    break
+                                elif p_op == "!=" and known_val == p_val:
+                                    prop_conflict = True
+                                    break
             if prop_conflict:
                 continue
             for out_name, out_sig in earlier_cell.outputs.items():
@@ -7860,7 +7975,7 @@ def analyze_property_contracts(
                         have = col_props.get((rec.root_var, k), {}).get(prop)
             if have is None:
                 have = _prop_known(bindings[port], props, col_props).get(prop)
-            if have is None:
+            if have is None or have[0] is None:
                 continue
             satisfied = (have[0] == want) if op == "==" else (have[0] != want)
             if not satisfied:
@@ -7891,7 +8006,14 @@ def analyze_property_contracts(
             if out_state:
                 state_props = reg.get_state_properties(out_state)
                 for pk, pv in state_props.items():
-                    mine[pk] = (pv, cell.cell_id, f"typestate:{out_state}")
+                    if pv is not None:
+                        mine[pk] = (pv, cell.cell_id, f"typestate:{out_state}")
+            port_rank = getattr(out_port, "rank", None)
+            if port_rank is not None and "ndim" not in mine:
+                mine["ndim"] = (port_rank, cell.cell_id, "port:rank")
+            shape_c = getattr(out_port, "shape_contract", None)
+            if isinstance(shape_c, dict) and "ndim" in shape_c and "ndim" not in mine:
+                mine["ndim"] = (shape_c["ndim"], cell.cell_id, "port:shape_contract")
 
         for post in (getattr(cell, "postconditions", None) or []):
             p_op = _prop_cond_field(post, "operator")
@@ -7955,8 +8077,13 @@ def analyze_property_contracts(
                 in_carriers.append(rec_t.root_var if (rec_t and rec_t.root_var) else str(bindings.get(n)))
         if in_carriers and not (key_port and val_port):
             for (v, c), pr in list(col_props.items()):
-                if v in in_carriers and (out, c) not in col_props:
-                    col_props[(out, c)] = dict(pr)
+                if v in in_carriers:
+                    if (out, c) not in col_props:
+                        col_props[(out, c)] = dict(pr)
+                    # Functorial Monoidal Property Lifting: constituent column properties transfer to container
+                    for prop_name, prop_val in pr.items():
+                        if isinstance(prop_val, (tuple, list)) and prop_val[0] is True:
+                            props[out] = {**props.get(out, {}), prop_name: prop_val}
     return issues
 
 
