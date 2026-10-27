@@ -69,7 +69,7 @@ SYSTEM_PROMPT_STEP = (
     "current pipeline prefix, a list of topologically VALID next transitions from "
     "the current node, and the remaining available candidate operations in the pool.\n"
     "Select the NEXT operation from the 'Valid Next Transitions' list to advance "
-    "toward fulfilling the request, or output 'FINISH' if the pipeline has achieved "
+    "toward fulfilling the request, or output 'FINISH' if the pipeline has achieved all goals of the request.\n"
     "- NEVER select terminal sinks or file exporters while intermediate processing clauses are still unserved.\n"
     "- Only select transforms that have positive lexical or structural evidence in the prompt.\n"
     "- Progress through the request clauses sequentially in chronological order.\n"
@@ -171,7 +171,7 @@ class M8LLMStepwisePathfinderRouteMethod(RouteMethod):
         src_file_literals, _ = self.extract_file_literals(prompt or "", ctx=ctx)
         entry_candidates = [
             c for c in shown
-            if getattr(c, "stage", None) == 1 or getattr(c, "node_role", "") == "source"
+            if self.is_ingress_node(c, orch)
         ]
         if not entry_candidates:
             entry_candidates = shown[:5]
@@ -279,7 +279,7 @@ class M8LLMStepwisePathfinderRouteMethod(RouteMethod):
             for c in shown:
                 if c.cell_id in visited_ids:
                     continue
-                if getattr(c, "stage", None) == 1:
+                if self.is_ingress_node(c, orch):
                     continue
                 if is_terminal_sink(c, orch) and not target_is_egress and uncovered_indices:
                     continue

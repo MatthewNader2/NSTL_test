@@ -69,7 +69,7 @@ class M3GreedyFreezeRouteMethod(RouteMethod):
         src_file_literals, dest_file_literals = self.extract_file_literals(prompt or "", ctx=ctx)
 
         # 1. Select initial entry cell C_0
-        stage1_cands = [c for c in candidates if getattr(c, "stage", None) == 1]
+        stage1_cands = [c for c in candidates if self.is_ingress_node(c, orch)]
         entry_pool = stage1_cands if stage1_cands else candidates[:5]
 
         clauses = self.segment_prompt_clauses(prompt)
@@ -93,7 +93,7 @@ class M3GreedyFreezeRouteMethod(RouteMethod):
                 except (ImportError, ValueError):
                     from ..token_evidence import anchors_for_clause
                 for j, cl in enumerate(clauses):
-                    stage_pool = [c for c in candidates if (getattr(c, "stage", None) == 1 if (j == 0 and len(clauses) > 1) else getattr(c, "stage", None) != 1)] or candidates
+                    stage_pool = [c for c in candidates if (self.is_ingress_node(c, orch) if (j == 0 and len(clauses) > 1) else not self.is_ingress_node(c, orch))] or candidates
                     acc = anchors_for_clause(_ev, cl, stage_pool, relevance_map, clause_idx=j)
                     clause_anchors[j] = [c for c, _ in acc]
             except Exception as _e:
@@ -134,8 +134,8 @@ class M3GreedyFreezeRouteMethod(RouteMethod):
         for step in range(max_steps):
             curr = committed_path[-1]
 
-            # Terminal condition: Stage 3 or terminal evaluator reached after covering clauses
-            if (getattr(curr, "stage", None) == 3 or getattr(curr, "is_endable", False)) and len(committed_path) > 1:
+            # Terminal condition: terminal evaluator reached after covering clauses
+            if self.is_sink_node(curr, orch) and len(committed_path) > 1:
                 if step >= max(1, num_clauses - 1) or not (prompt_tokens - covered_tokens):
                     break
 
@@ -193,11 +193,23 @@ class M3GreedyFreezeRouteMethod(RouteMethod):
                 aff = self.calculate_edge_affinity(curr, cand, orch, relevance_map=relevance_map)
                 c_toks = getattr(cand, "identity_tokens", cand.token_set)
                 new_mass = _ev.mass((c_toks & prompt_tokens) - covered_tokens) if _ev is not None else 0.0
-                curr_stage = getattr(curr, "stage", 1) or 1
-                cand_stage = getattr(cand, "stage", 2) or 2
-                progress = 2 if cand_stage > curr_stage else (1 if cand_stage == curr_stage else 0)
-                is_cand_sink = is_terminal_sink(cand, orch)
-                is_curr_sink = is_terminal_sink(curr, orch)
+                is_cand_sink = self.is_sink_node(cand, orch)
+                is_curr_sink = self.is_sink_node(curr, orch)
+                is_cand_ing = self.is_ingress_node(cand, orch)
+                is_curr_ing = self.is_ingress_node(curr, orch)
+                if is_curr_ing and not is_cand_ing:
+                    progress = 2
+                elif not is_curr_sink and is_cand_sink:
+                    progress = 2
+                elif is_cand_ing and not is_curr_ing:
+                    progress = 0
+                else:
+                    curr_stage = getattr(curr, "stage", 1) or 1
+                    cand_stage = getattr(cand, "stage", 2) or 2
+                    try:
+                        progress = 2 if int(cand_stage) > int(curr_stage) else (1 if int(cand_stage) == int(curr_stage) else 0)
+                    except (ValueError, TypeError):
+                        progress = 1
                 unrequested_egress = (
                     is_cand_sink and self._is_path_consumer(cand)
                     and not (dst_lit is not None and self.file_compat(cand, dst_lit) > 0)
@@ -266,8 +278,8 @@ class M3GreedyFreezeRouteMethod(RouteMethod):
                         self._trace("m3_goal_reached", step=step, path_len=len(committed_path))
                         break
 
-            # Check if all prompt content tokens are covered and cell is stage 3
-            if (prompt_tokens - covered_tokens) == set() and (getattr(best_next, "stage", None) == 3 or getattr(best_next, "is_endable", False)):
+            # Check if all prompt content tokens are covered and cell is a terminal sink
+            if (prompt_tokens - covered_tokens) == set() and self.is_sink_node(best_next, orch):
                 break
 
         self.tag_cells_with_clause_indices(committed_path, prompt, orchestrator=orch)

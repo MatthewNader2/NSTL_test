@@ -251,7 +251,7 @@ class M11LatentCognitiveRouteMethod(RouteMethod):
                 except (ImportError, ValueError):
                     from ..token_evidence import anchors_for_clause
                 for j, cl in enumerate(clauses):
-                    stage_pool = [c for c in candidates if (getattr(c, "stage", None) == 1 if (j == 0 and len(clauses) > 1) else getattr(c, "stage", None) != 1)] or candidates
+                    stage_pool = [c for c in candidates if (self.is_ingress_node(c, orch) if (j == 0 and len(clauses) > 1) else not self.is_ingress_node(c, orch))] or candidates
                     acc = anchors_for_clause(_ev, cl, stage_pool, relevance_map, clause_idx=j)
                     clause_anchors[j] = [c for c, _ in acc]
             except Exception as _e:
@@ -363,12 +363,23 @@ class M11LatentCognitiveRouteMethod(RouteMethod):
                 aff = self.calculate_edge_affinity(curr, cand, orch, relevance_map=relevance_map)
                 rel = relevance_map.get(cand.cell_id, 0.0)
 
-                curr_stage = getattr(curr, "stage", None) or 0
-                cand_stage = getattr(cand, "stage", None) or 0
-                progress = 2 if cand_stage > curr_stage else (1 if cand_stage == curr_stage else 0)
-
-                is_cand_sink = _is_sink_node(cand, orch)
-                is_curr_sink = _is_sink_node(curr, orch)
+                is_cand_sink = self.is_sink_node(cand, orch)
+                is_curr_sink = self.is_sink_node(curr, orch)
+                is_cand_ing = self.is_ingress_node(cand, orch)
+                is_curr_ing = self.is_ingress_node(curr, orch)
+                if is_curr_ing and not is_cand_ing:
+                    progress = 2
+                elif not is_curr_sink and is_cand_sink:
+                    progress = 2
+                elif is_cand_ing and not is_curr_ing:
+                    progress = 0
+                else:
+                    curr_stage = getattr(curr, "stage", None) or 0
+                    cand_stage = getattr(cand, "stage", None) or 0
+                    try:
+                        progress = 2 if int(cand_stage) > int(curr_stage) else (1 if int(cand_stage) == int(curr_stage) else 0)
+                    except (ValueError, TypeError):
+                        progress = 1
                 unrequested_egress = (
                     is_cand_sink and self._is_path_consumer(cand)
                     and not (dst_lit is not None and self.file_compat(cand, dst_lit) > 0)

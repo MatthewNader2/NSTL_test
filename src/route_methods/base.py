@@ -47,6 +47,8 @@ def _bridge_roles() -> frozenset:
 
 def is_terminal_sink(cell: Any, orch: Optional[Any] = None) -> bool:
     """Check if cell is a terminal/sink morphism dynamically via LatticeVocabulary, TypeRegistry, or structure."""
+    if getattr(cell, "is_sink", False):
+        return True
     try:
         from planner import _active_vocab
         vocab = _active_vocab(orch)
@@ -57,13 +59,14 @@ def is_terminal_sink(cell: Any, orch: Optional[Any] = None) -> bool:
     try:
         from lattice import TypeRegistry
         reg = TypeRegistry.get_instance()
-        term_roles = {str(r).lower() for r in reg.get_verification_semantics("terminal_roles")}
-        term_roles.update(str(r).lower() for r in reg.get_verification_semantics("sink_roles"))
+        term_roles = {str(r).lower() for r in (reg.get_verification_semantics("terminal_roles") or ())}
+        term_roles.update(str(r).lower() for r in (reg.get_verification_semantics("sink_roles") or ()))
         role = str(getattr(cell, "node_role", "") or getattr(cell, "role", "") or "").lower()
         if role in term_roles:
             return True
-        term_stages = reg.get_verification_semantics("terminal_stages")
-        if term_stages and getattr(cell, "stage", None) in term_stages:
+        term_stages = {str(s).strip() for s in (reg.get_verification_semantics("terminal_stages") or ())}
+        c_st = str(getattr(cell, "stage", "") or "").strip()
+        if term_stages and c_st in term_stages:
             return True
     except Exception:
         term_roles = set()
@@ -78,6 +81,8 @@ def is_terminal_sink(cell: Any, orch: Optional[Any] = None) -> bool:
 
 def is_ingress_source(cell: Any, orch: Optional[Any] = None) -> bool:
     """Check if cell is an ingress/source morphism dynamically via LatticeVocabulary, TypeRegistry, or structure."""
+    if getattr(cell, "is_ingress", False):
+        return True
     try:
         from planner import _active_vocab
         vocab = _active_vocab(orch)
@@ -88,18 +93,17 @@ def is_ingress_source(cell: Any, orch: Optional[Any] = None) -> bool:
     try:
         from lattice import TypeRegistry
         reg = TypeRegistry.get_instance()
-        ing_roles = {str(r).lower() for r in reg.get_verification_semantics("ingress_roles")}
-        ing_roles.update(str(r).lower() for r in reg.get_verification_semantics("source_roles"))
+        ing_roles = {str(r).lower() for r in (reg.get_verification_semantics("ingress_roles") or ())}
+        ing_roles.update(str(r).lower() for r in (reg.get_verification_semantics("source_roles") or ()))
         role = str(getattr(cell, "node_role", "") or getattr(cell, "role", "") or "").lower()
         if role in ing_roles:
             return True
-        ing_stages = reg.get_verification_semantics("ingress_stages")
-        if ing_stages and getattr(cell, "stage", None) in ing_stages:
+        ing_stages = {str(s).strip() for s in (reg.get_verification_semantics("ingress_stages") or ())}
+        c_st = str(getattr(cell, "stage", "") or "").strip()
+        if ing_stages and c_st in ing_stages:
             return True
     except Exception:
         ing_roles = set()
-    if getattr(cell, "is_ingress", False):
-        return True
     ins = getattr(cell, "inputs", {}) or {}
     required_data_ins = [
         p for p in ins.values()
@@ -123,12 +127,13 @@ def is_intermediate_transform(cell: Any, orch: Optional[Any] = None) -> bool:
     try:
         from lattice import TypeRegistry
         reg = TypeRegistry.get_instance()
-        tf_roles = {str(r).lower() for r in reg.get_verification_semantics("transform_roles")}
+        tf_roles = {str(r).lower() for r in (reg.get_verification_semantics("transform_roles") or ())}
         role = str(getattr(cell, "node_role", "") or getattr(cell, "role", "") or "").lower()
         if role in tf_roles:
             return True
-        tf_stages = reg.get_verification_semantics("transform_stages")
-        if tf_stages and getattr(cell, "stage", None) in tf_stages:
+        tf_stages = {str(s).strip() for s in (reg.get_verification_semantics("transform_stages") or ())}
+        c_st = str(getattr(cell, "stage", "") or "").strip()
+        if tf_stages and c_st in tf_stages:
             return True
     except Exception:
         pass
@@ -145,6 +150,15 @@ class RouteMethod(ABC):
         self.orchestrator = orchestrator
         self.kwargs = kwargs
         self.trace_events: List[Dict[str, Any]] = []
+
+    def is_ingress_node(self, cell: Any, orch: Optional[Any] = None) -> bool:
+        return is_ingress_source(cell, orch or self.orchestrator)
+
+    def is_sink_node(self, cell: Any, orch: Optional[Any] = None) -> bool:
+        return is_terminal_sink(cell, orch or self.orchestrator)
+
+    def is_transform_node(self, cell: Any, orch: Optional[Any] = None) -> bool:
+        return is_intermediate_transform(cell, orch or self.orchestrator)
 
     effective_method: Optional[str] = None      # set when this method handed the request to another
     fallback_reason: Optional[str] = None
@@ -391,7 +405,7 @@ class RouteMethod(ABC):
           2. Type-monadic verification via LatticePlanner._verify_transition with prompt literals.
           3. Multi-carrier DAG scope verification via unify_cell_with_scope across available path wires.
         """
-        if getattr(consumer, "stage", None) == 1:
+        if self.is_ingress_node(consumer):
             return False
 
         orch = self.orchestrator
@@ -446,7 +460,7 @@ class RouteMethod(ABC):
         DAG-frontier unification check: verifies if consumer can validly execute
         given the full multi-carrier scope of available ancestor cells (fork/join).
         """
-        if getattr(consumer, "stage", None) == 1 or not available_cells:
+        if self.is_ingress_node(consumer) or not available_cells:
             return False
         res = unify_cell_with_scope(consumer, available_cells, sigma=sigma, context=ctx)
         return res is not None
@@ -520,10 +534,11 @@ class RouteMethod(ABC):
 
             cand_role = str(getattr(cand, "node_role", "") or getattr(cand, "role", "") or "").lower()
             cand_tags = {str(t).lower() for t in (getattr(cand, "semantic_tags", None) or [])}
+            bridge_tokens = set(reg.get_verification_semantics("bridge_tokens") or ())
             is_declared_bridge = (
                 cand_role in _bridge_roles()
                 or getattr(cand, "node_type", "") in ("tunnel", "bridge")
-                or bool({"bridge", "array_bridge", "adapter", "coercion", "cast"} & cand_tags)
+                or bool(bridge_tokens & cand_tags)
             )
             resolves_property_mismatch = False
 
@@ -1060,7 +1075,7 @@ class RouteMethod(ABC):
                     continue
                 if is_path_port(p):
                     continue
-                if getattr(curr_c, "stage", None) == 1 or getattr(curr_c, "node_role", "") == "source":
+                if self.is_ingress_node(curr_c) or getattr(curr_c, "node_role", "") == "source":
                     continue
 
                 # Check if any in-scope cell output unifies with this port via is_edge_valid and rank check
@@ -1630,9 +1645,9 @@ class RouteMethod(ABC):
         primary_cells: List[Cell] = []
         for idx, cl in enumerate(clauses):
             if idx == 0 and len(clauses) > 1:
-                stage_pool = [c for c in filtered_cands if getattr(c, "stage", None) == 1] or filtered_cands
+                stage_pool = [c for c in filtered_cands if self.is_ingress_node(c)] or filtered_cands
             else:
-                stage_pool = [c for c in filtered_cands if getattr(c, "stage", None) != 1] or filtered_cands
+                stage_pool = [c for c in filtered_cands if not self.is_ingress_node(c)] or filtered_cands
 
             if ev is not None:
                 anchors = anchors_for_clause(ev, cl, stage_pool, relevance_map, clause_idx=idx)
@@ -1665,7 +1680,7 @@ class RouteMethod(ABC):
             for idx, cl in enumerate(clauses):
                 if len(selected_cells) >= max_shown:
                     break
-                stage_pool = [c for c in filtered_cands if getattr(c, "stage", None) != 1] or filtered_cands
+                stage_pool = [c for c in filtered_cands if not self.is_ingress_node(c)] or filtered_cands
                 cl_tokens = ev.clause_tokens(cl)
                 for c in stage_pool:
                     if len(selected_cells) >= max_shown:

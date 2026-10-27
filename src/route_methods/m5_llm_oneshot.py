@@ -116,10 +116,10 @@ class M5LLMOneShotRouteMethod(RouteMethod):
 
         chain = [proposed[0]]
         first = chain[0]
-        if getattr(first, "stage", None) != 1 and any(getattr(p, "required", False) and getattr(p, "default_value", None) is None for p in first.inputs.values()):
-            s1_candidates = [c for c in candidates if getattr(c, "stage", None) == 1]
+        if not self.is_ingress_node(first, orch) and any(getattr(p, "required", False) and getattr(p, "default_value", None) is None for p in first.inputs.values()):
+            s1_candidates = [c for c in candidates if self.is_ingress_node(c, orch)]
             if not s1_candidates and orch and hasattr(orch, "loaded_cells"):
-                s1_candidates = [c for c in orch.loaded_cells.values() if getattr(c, "stage", None) == 1]
+                s1_candidates = [c for c in orch.loaded_cells.values() if self.is_ingress_node(c, orch)]
             if s1_candidates:
                 best_s1 = None
                 best_bridge = None
@@ -146,7 +146,7 @@ class M5LLMOneShotRouteMethod(RouteMethod):
                     try:
                         p_clauses = self.segment_prompt_clauses(prompt)
                         producer = self._find_type_producer(first, [], candidates, p_clauses, orch)
-                        if producer is not None and getattr(producer, "stage", None) == 1:
+                        if producer is not None and self.is_ingress_node(producer, orch):
                             best_s1 = producer
                     except Exception:
                         pass

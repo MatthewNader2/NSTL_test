@@ -69,6 +69,7 @@ SYSTEM_PROMPT_MILESTONES = (
     "of available typed operations (cells). Each cell has an ID, domain, stage, "
     "input ports with types, and output ports with types.\n"
     "Identify the essential MUST-HAVE operations (milestones) required to fulfill "
+    "all steps of the user request from start to finish:\n"
     "- When operations apply to distinct inputs or branches, include the appropriate selection and transformation cells for EACH branch so all branches exist in the pipeline.\n"
     "- NEVER select multiple redundant alternatives for the same step; choose exactly one operation per requested step.\n"
     "- Do NOT select operations that have no evidence in the prompt.\n"
@@ -144,12 +145,21 @@ class M9LLMMilestonePathfinderRouteMethod(RouteMethod):
                         return intermediates
                     continue
 
-                if cand.cell_id in visited or getattr(cand, "stage", None) == 1:
-                    continue
-                if getattr(cand, "is_combinator", False) or getattr(cand, "node_role", "") == "combinator" or getattr(cand, "role", "") == "combinator" or cand.cell_id.startswith("CF_") or getattr(cand, "domain_name", "") == "control_flow":
+                if cand.cell_id in visited or self.is_ingress_node(cand):
                     continue
 
                 reg = TypeRegistry.get_instance()
+                comb_roles = set(reg.get_verification_semantics("combinator_roles") or ())
+                comb_topologies = set(reg.get_verification_semantics("combinator_topologies") or ())
+                cand_role = str(getattr(cand, "node_role", "") or getattr(cand, "role", "") or "").lower()
+                cand_topology = str(getattr(cand, "topology_type", "") or getattr(cand, "node_type", "") or "").lower()
+                if (
+                    getattr(cand, "is_combinator", False)
+                    or cand_role in comb_roles
+                    or cand_topology in comb_topologies
+                ):
+                    continue
+
                 destructive_names = set(reg.get_verification_semantics("destructive_effects"))
                 effects = getattr(cand, "effects", []) or []
                 has_destructive_effect = any(
@@ -162,11 +172,11 @@ class M9LLMMilestonePathfinderRouteMethod(RouteMethod):
 
                 cand_toks = set(getattr(cand, "token_set", set())) | set(getattr(cand, "keywords", []) or []) | set(getattr(cand, "semantic_tags", []) or [])
                 cand_toks = {str(t).lower() for t in cand_toks}
-                cand_role = str(getattr(cand, "node_role", "") or getattr(cand, "role", "") or "").lower()
+                bridge_tokens = set(reg.get_verification_semantics("bridge_tokens") or ())
                 is_declared_bridge = (
                     cand_role in declared_bridge_roles
                     or getattr(cand, "node_type", "") in ("tunnel", "bridge")
-                    or bool({"bridge", "array_bridge", "adapter", "coercion", "cast"} & cand_toks)
+                    or bool(bridge_tokens & cand_toks)
                 )
 
                 if not is_declared_bridge and not (cand_toks & prompt_toks):
@@ -310,10 +320,10 @@ class M9LLMMilestonePathfinderRouteMethod(RouteMethod):
         # Phase 2: Topological Path Synthesis between Milestones
         chain: List[Cell] = [milestones[0]]
         first = chain[0]
-        if getattr(first, "stage", None) != 1 and any(getattr(p, "required", False) and getattr(p, "default_value", None) is None for p in first.inputs.values()):
-            s1_candidates = [c for c in candidates if getattr(c, "stage", None) == 1]
+        if not self.is_ingress_node(first, orch) and any(getattr(p, "required", False) and getattr(p, "default_value", None) is None for p in first.inputs.values()):
+            s1_candidates = [c for c in candidates if self.is_ingress_node(c, orch)]
             if not s1_candidates and orch and hasattr(orch, "loaded_cells"):
-                s1_candidates = [c for c in orch.loaded_cells.values() if getattr(c, "stage", None) == 1]
+                s1_candidates = [c for c in orch.loaded_cells.values() if self.is_ingress_node(c, orch)]
             if s1_candidates:
                 best_s1 = None
                 best_bridge = None
@@ -340,7 +350,7 @@ class M9LLMMilestonePathfinderRouteMethod(RouteMethod):
                     try:
                         p_clauses = self.segment_prompt_clauses(prompt)
                         producer = self._find_type_producer(first, [], candidates, p_clauses, orch)
-                        if producer is not None and getattr(producer, "stage", None) == 1:
+                        if producer is not None and self.is_ingress_node(producer, orch):
                             best_s1 = producer
                     except Exception:
                         pass

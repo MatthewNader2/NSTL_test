@@ -2,6 +2,54 @@
   "domain": "control_flow",
   "description": "Higher-Order Lattice Combinators (Cartesian Closed Category morphisms) for modular, language-agnostic control flow synthesis in NSTL.",
   "version": "1.0.0",
+  "verification_semantics": {
+    "fold_loop_topologies": [
+      "fold_loop",
+      "reduce_loop",
+      "accumulation_loop",
+      "fold",
+      "reduce"
+    ],
+    "collect_loop_topologies": [
+      "collect_loop",
+      "collection_loop",
+      "accumulate_loop"
+    ],
+    "extremum_loop_topologies": [
+      "extremum_loop",
+      "argmax_loop",
+      "argmin_loop"
+    ],
+    "fold_loop_kinds": [
+      "fold",
+      "reduce",
+      "accumulation"
+    ],
+    "collect_loop_kinds": [
+      "collect"
+    ],
+    "extremum_loop_kinds": [
+      "extremum"
+    ],
+    "order_flag_names": [
+      "direction",
+      "extreme",
+      "mode",
+      "order"
+    ],
+    "combinator_roles": [
+      "combinator"
+    ],
+    "combinator_topologies": [
+      "combinator",
+      "traced_loop",
+      "state_loop",
+      "coproduct_branch",
+      "product_parallel",
+      "identity_junction",
+      "context_manager"
+    ]
+  },
   "cells": [
     {
       "cell_id": "CF_FUNCTION_DEF",

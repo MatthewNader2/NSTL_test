@@ -60,17 +60,17 @@ class M6HybridAnchorsRouteMethod(RouteMethod):
         source_cell: Optional[Cell] = None
         sink_cell: Optional[Cell] = None
 
-        stage1_cands = [c for c in candidates if getattr(c, "stage", None) == 1]
-        stage3_cands = [c for c in candidates if getattr(c, "stage", None) == 3]
+        ingress_cands = [c for c in candidates if self.is_ingress_node(c, orch)]
+        sink_cands = [c for c in candidates if self.is_sink_node(c, orch)]
         clauses = self.segment_prompt_clauses(prompt)
         first_clause = clauses[0] if clauses else (prompt or "")
         last_clause = clauses[-1] if clauses else (prompt or "")
         src_lit = src_file_literals[0] if src_file_literals else None
         dst_lit = dest_file_literals[0] if dest_file_literals else None
 
-        if stage1_cands:
+        if ingress_cands:
             source_cell = max(
-                stage1_cands,
+                ingress_cands,
                 key=lambda c: (self.file_compat(c, src_lit), self.clause_fit(first_clause, c), relevance_map.get(c.cell_id, 0.0)),
             )
         # A sink exists only if a clause is better explained by a sink than by every non-sink cell
@@ -78,9 +78,9 @@ class M6HybridAnchorsRouteMethod(RouteMethod):
         # has a format-compatible writer.
         sink_cell = self.requested_sink(prompt, candidates)
         if sink_cell is None and dst_lit is not None:
-            writers = [c for c in stage3_cands if self.file_compat(c, dst_lit) > 0]
-            if writers:
-                sink_cell = max(writers, key=lambda c: (self.clause_fit(last_clause, c), relevance_map.get(c.cell_id, 0.0)))
+            destination_sinks = [c for c in sink_cands if self.file_compat(c, dst_lit) > 0]
+            if destination_sinks:
+                sink_cell = max(destination_sinks, key=lambda c: (self.clause_fit(last_clause, c), relevance_map.get(c.cell_id, 0.0)))
         self._trace("m6_endpoints", source=source_cell.cell_id if source_cell else None,
                     sink=sink_cell.cell_id if sink_cell else None)
 

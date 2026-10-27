@@ -22,6 +22,10 @@
     ]
   },
   "verification_semantics": {
+    "forbidden_side_effect_methods": [
+      "to_pickle",
+      "read_pickle"
+    ],
     "row_set_effects": [
       "cleans_missing",
       "drops_rows",

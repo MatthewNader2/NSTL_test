@@ -76,15 +76,15 @@ class M2EndpointAnchorRouteMethod(RouteMethod):
         dst_lit = dest_file_literals[0] if dest_file_literals else None
 
         # 1. Source anchor: format-compatible (ordinal) > reachable downstream anchors > evidence for the FIRST clause > retrieval relevance.
-        source_pool = [c for c in candidates if getattr(c, "stage", None) == 1] or candidates[:5]
-        downstream_cands = [c for c in candidates if getattr(c, "stage", None) != 1]
+        source_pool = [c for c in candidates if self.is_ingress_node(c, orch)] or candidates[:5]
+        downstream_cands = [c for c in candidates if not self.is_ingress_node(c, orch)]
         from lattice import TypeRegistry
         reg = TypeRegistry.get_instance()
 
         _reach_cache: Dict[str, int] = {}
 
         def _downstream_reach(source_cell: Cell) -> int:
-            if getattr(source_cell, "stage", None) != 1:
+            if not self.is_ingress_node(source_cell, orch):
                 return 0
             cid = source_cell.cell_id
             if cid in _reach_cache:
@@ -120,7 +120,7 @@ class M2EndpointAnchorRouteMethod(RouteMethod):
 
         # 2. Sink anchor: only a cell the FINAL clause actually names (or a format-compatible writer for
         # an explicit destination file). A path-writing sink with no destination literal is never requested.
-        sink_pool = [c for c in candidates if getattr(c, "stage", None) == 3 or getattr(c, "is_endable", False)]
+        sink_pool = [c for c in candidates if self.is_sink_node(c, orch)]
         requested = self.requested_sink(prompt, sink_pool)   # beats every non-sink cell on some clause
         if requested is not None:
             eligible_sinks = [requested]
@@ -155,7 +155,7 @@ class M2EndpointAnchorRouteMethod(RouteMethod):
             _last_toks = _ev.clause_tokens(clauses[-1]) if _ev is not None else set()
             _covered_last: set = set()
             for cl_idx in range(1, num_clauses + 2):
-                if getattr(curr, "stage", None) == 3 or (best_sink and curr.cell_id == best_sink.cell_id):
+                if self.is_sink_node(curr, orch) or (best_sink and curr.cell_id == best_sink.cell_id):
                     break
                 valid_next = [
                     c for c in candidates
@@ -230,8 +230,8 @@ class M2EndpointAnchorRouteMethod(RouteMethod):
 
             return path
 
-        # Bidirectional Meeting-in-the-Middle through Stage 2 transforms (short prompts)
-        transforms = [c for c in candidates if getattr(c, "stage", None) == 2]
+        # Bidirectional Meeting-in-the-Middle through intermediate transforms (short prompts)
+        transforms = [c for c in candidates if self.is_transform_node(c, orch)]
         transforms.sort(key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)
         max_tf = settings.m2_max_candidate_transforms
         if len(transforms) > max_tf:
@@ -300,7 +300,7 @@ class M2EndpointAnchorRouteMethod(RouteMethod):
             nxt = valid_next[0]
             path.append(nxt)
             curr = nxt
-            if getattr(curr, "stage", None) == 3:
+            if self.is_sink_node(curr, orch):
                 break
 
         return path

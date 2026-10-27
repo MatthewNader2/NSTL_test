@@ -53,6 +53,21 @@ class _PermittedModuleNamespacesDescriptor:
         return ASTCapabilityValidator.get_permitted_module_namespaces()
 
 
+class _ForbiddenSideEffectMethodsDescriptor:
+    def __get__(self, instance: Any, owner: Optional[Type[Any]] = None) -> Set[str]:
+        return ASTCapabilityValidator.get_forbidden_side_effect_methods()
+
+
+class _ForbiddenNamesDescriptor:
+    def __get__(self, instance: Any, owner: Optional[Type[Any]] = None) -> Set[str]:
+        return ASTCapabilityValidator.get_forbidden_names()
+
+
+class _PermittedBuiltinsDescriptor:
+    def __get__(self, instance: Any, owner: Optional[Type[Any]] = None) -> Set[str]:
+        return ASTCapabilityValidator.get_permitted_builtins()
+
+
 class ASTCapabilityValidator(ast.NodeVisitor):
     """
     Capability-based AST Permit-List Validator for synthesized kernels.
@@ -61,17 +76,52 @@ class ASTCapabilityValidator(ast.NodeVisitor):
     (getattr, eval, exec, open, __import__), unwhitelisted modules, and dunder attribute traversal.
     """
 
-    PERMITTED_BUILTINS: Set[str] = {
-        "abs", "all", "any", "bool", "chr", "cmp", "complex", "dict", "divmod",
-        "enumerate", "filter", "float", "frozenset", "hex", "int", "isinstance",
-        "issubclass", "iter", "len", "list", "map", "max", "min", "next", "oct",
-        "ord", "pow", "range", "reversed", "round", "set", "slice", "sorted",
-        "str", "sum", "tuple", "zip",
-        # Safe exception types for defensive arithmetic
-        "ValueError", "TypeError", "ZeroDivisionError", "IndexError", "KeyError", "Exception",
-    }
-
+    PERMITTED_BUILTINS = _PermittedBuiltinsDescriptor()
     PERMITTED_MODULE_NAMESPACES = _PermittedModuleNamespacesDescriptor()
+    FORBIDDEN_NAMES = _ForbiddenNamesDescriptor()
+    FORBIDDEN_SIDE_EFFECT_METHODS = _ForbiddenSideEffectMethodsDescriptor()
+
+    @classmethod
+    def get_forbidden_side_effect_methods(cls) -> Set[str]:
+        methods: Set[str] = set()
+        try:
+            try:
+                from .lattice import TypeRegistry
+            except (ImportError, ValueError):
+                from lattice import TypeRegistry
+            reg = TypeRegistry.get_instance()
+            methods.update(reg.get_verification_semantics("forbidden_side_effect_methods") or ())
+        except Exception:
+            pass
+        return methods
+
+    @classmethod
+    def get_forbidden_names(cls) -> Set[str]:
+        names: Set[str] = set()
+        try:
+            try:
+                from .lattice import TypeRegistry
+            except (ImportError, ValueError):
+                from lattice import TypeRegistry
+            reg = TypeRegistry.get_instance()
+            names.update(reg.get_verification_semantics("forbidden_identifier_names") or ())
+        except Exception:
+            pass
+        return names
+
+    @classmethod
+    def get_permitted_builtins(cls) -> Set[str]:
+        builtins: Set[str] = set()
+        try:
+            try:
+                from .lattice import TypeRegistry
+            except (ImportError, ValueError):
+                from lattice import TypeRegistry
+            reg = TypeRegistry.get_instance()
+            builtins.update(reg.get_verification_semantics("permitted_kernel_builtins") or ())
+        except Exception:
+            pass
+        return builtins
 
     @classmethod
     def get_permitted_module_namespaces(cls) -> Set[str]:
@@ -117,13 +167,6 @@ class ASTCapabilityValidator(ast.NodeVisitor):
             pass
         return namespaces
 
-    FORBIDDEN_NAMES: Set[str] = {
-        "__builtins__", "__import__", "__loader__", "__spec__", "__package__",
-        "__file__", "__cached__", "globals", "locals", "vars", "dir",
-        "eval", "exec", "compile", "open", "input", "breakpoint", "exit", "quit",
-        "getattr", "setattr", "delattr", "hasattr", "memoryview", "classmethod", "staticmethod",
-    }
-
     PERMITTED_NODES: Tuple[Type[ast.AST], ...] = (
         ast.Module,
         # Statements
@@ -146,6 +189,10 @@ class ASTCapabilityValidator(ast.NodeVisitor):
         self.error: Optional[str] = None
         self.allowed_vars: Set[str] = set(allowed_vars or ())
         self._valid_roots: Set[str] = set()
+        self._active_forbidden_names: Set[str] = set(self.FORBIDDEN_NAMES)
+        self._active_forbidden_methods: Set[str] = set(self.FORBIDDEN_SIDE_EFFECT_METHODS)
+        self._active_permitted_builtins: Set[str] = set(self.PERMITTED_BUILTINS)
+        self._active_permitted_modules: Set[str] = set(self.PERMITTED_MODULE_NAMESPACES)
 
     def _collect_local_assigned_names(self, tree: ast.AST) -> Set[str]:
         assigned: Set[str] = set()
@@ -182,14 +229,17 @@ class ASTCapabilityValidator(ast.NodeVisitor):
         if allowed_vars:
             current_allowed.update(allowed_vars)
 
-        permitted_modules = set(self.PERMITTED_MODULE_NAMESPACES)
+        self._active_forbidden_names = set(self.FORBIDDEN_NAMES)
+        self._active_forbidden_methods = set(self.FORBIDDEN_SIDE_EFFECT_METHODS)
+        self._active_permitted_builtins = set(self.PERMITTED_BUILTINS)
+        self._active_permitted_modules = set(self.PERMITTED_MODULE_NAMESPACES)
 
         local_assigned = self._collect_local_assigned_names(tree)
         self._valid_roots = (
             current_allowed
             | local_assigned
-            | permitted_modules
-            | self.PERMITTED_BUILTINS
+            | self._active_permitted_modules
+            | self._active_permitted_builtins
             | {"self", "cls"}
         )
         self.visit(tree)
@@ -206,7 +256,7 @@ class ASTCapabilityValidator(ast.NodeVisitor):
     def visit_Name(self, node: ast.Name) -> None:
         if self.error is not None:
             return
-        if node.id.startswith("__") or node.id.endswith("__") or node.id in self.FORBIDDEN_NAMES:
+        if node.id.startswith("__") or node.id.endswith("__") or node.id in self._active_forbidden_names:
             self.error = f"Forbidden identifier or builtin reference: '{node.id}'"
             return
         self.generic_visit(node)
@@ -217,7 +267,7 @@ class ASTCapabilityValidator(ast.NodeVisitor):
         if node.attr.startswith("__") or node.attr.endswith("__"):
             self.error = f"Forbidden dunder attribute access: '.{node.attr}'"
             return
-        if node.attr in self.FORBIDDEN_NAMES:
+        if node.attr in self._active_forbidden_names:
             self.error = f"Forbidden attribute access: '.{node.attr}'"
             return
         root_id = self._find_attribute_root(node)
@@ -231,20 +281,15 @@ class ASTCapabilityValidator(ast.NodeVisitor):
             return
         func = node.func
         if isinstance(func, ast.Name):
-            if func.id not in self.PERMITTED_BUILTINS and func.id not in self._valid_roots:
+            if func.id not in self._active_permitted_builtins and func.id not in self._valid_roots:
                 self.error = f"Call to non-whitelisted function or builtin: '{func.id}()'"
                 return
         elif isinstance(func, ast.Attribute):
-            if func.attr.startswith("_") or func.attr in self.FORBIDDEN_NAMES:
+            if func.attr.startswith("_") or func.attr in self._active_forbidden_names:
                 self.error = f"Forbidden method call: '.{func.attr}()'"
                 return
-            # Block known OS/process/network/file-write methods even on variables
-            if func.attr in (
-                "system", "popen", "spawn", "execv", "fork", "kill", "remove", "unlink",
-                "rmdir", "rmtree", "connect", "bind", "listen", "makefile", "to_pickle",
-                "read_pickle", "load_module", "exec_module", "run", "check_output",
-                "write_text", "write_bytes", "urlopen", "urlretrieve", "delete",
-            ):
+            # Block declared forbidden side-effecting methods even on variables
+            if func.attr in self._active_forbidden_methods:
                 self.error = f"Forbidden side-effecting method call: '.{func.attr}()'"
                 return
             root_id = self._find_attribute_root(func)
@@ -297,11 +342,11 @@ class SynthesisEngine:
     def synthesize_micro_cell(
         self,
         gap_concept: str,
-        expected_input: str,
-        expected_output: str,
-        fetcher: LiveDocFetcher,
+        expected_input: Optional[str] = None,
+        expected_output: Optional[str] = None,
+        fetcher: Optional[Any] = None,
         domain: str = "Python_Core",
-        stage: Optional[int] = None,
+        stage: Optional[int] = 1,
     ) -> Dict[str, Any]:
         """
         Queries official API documentation and uses the LLM to synthesize
@@ -329,26 +374,85 @@ class SynthesisEngine:
                 live_docs = str(getattr(live_docs, "content", "") or "")
         live_docs = live_docs or "No live documentation available."
 
-        role = "source" if (not expected_input or str(expected_input).lower() in ("any", "none")) else (
-            "sink" if (not expected_output or str(expected_output).lower() in ("none", "void", "noreturn")) else "transformer"
-        )
+        try:
+            from lattice import TypeRegistry
+        except (ImportError, ValueError):
+            from .lattice import TypeRegistry
+        reg = TypeRegistry.get_instance()
+        top_types = set(reg.get_verification_semantics("universal_top_types") or ())
+        empty_types = set(reg.get_verification_semantics("empty_carrier_types") or ())
+        path_type_names = set(reg.get_verification_semantics("path_type_names") or ())
+        path_tokens = set(reg.get_path_port_tokens() or ()) | path_type_names
+
+        def _is_path_type(t_name: Optional[str]) -> bool:
+            if not t_name:
+                return False
+            clean = str(t_name).strip().lower()
+            if clean in path_tokens:
+                return True
+            try:
+                for pt in path_type_names:
+                    if reg.is_known_type_name(pt) and reg.is_subtype(clean, pt):
+                        return True
+            except Exception:
+                pass
+            return False
+
+        in_str = str(expected_input).strip().lower() if expected_input else ""
+        out_str = str(expected_output).strip().lower() if expected_output else ""
+
+        is_path_in = _is_path_type(in_str)
+        is_path_out = _is_path_type(out_str)
+
+        is_source = (not in_str or in_str in top_types or in_str in empty_types or is_path_in)
+        is_sink = (not out_str or out_str in empty_types or is_path_out)
+
+        if is_source and not is_sink:
+            role = "source"
+        elif is_sink and not is_source:
+            role = "sink"
+        elif is_source and is_sink:
+            if not in_str or in_str in top_types or in_str in empty_types:
+                role = "source"
+            else:
+                role = "sink"
+        else:
+            role = "transformer"
+
+        in_placeholder = "{input_locator}" if is_path_in else "{input_var}"
+        out_placeholder = "{output_locator}" if is_path_out else "{output_var}"
 
         if role == "source":
-            template_rule = (
-                "For Source (Initial / Ingress morphism), `code_template` MUST produce the primary output "
-                "assigned to `{output_var}`. If path-driven, use `{filepath}` as the input asset identifier "
-                "(e.g. `{output_var} = <package>.<source_func>({filepath})`)."
-            )
-            input_spec = '{"type_name": "str", "state": "source_identifier"}'
-            sample_template = "{output_var} = <package>.<source_func>({filepath})"
+            if is_path_in:
+                template_rule = (
+                    "For Source (Initial / Ingress morphism with locator input), `code_template` MUST produce the primary output "
+                    f"assigned to `{{output_var}}` by consuming `{in_placeholder}` "
+                    f"(e.g. `{{output_var}} = <package>.<source_func>({in_placeholder})`)."
+                )
+                input_spec = f'{{"type_name": "{expected_input or "path"}", "state": "source_identifier"}}'
+                sample_template = f"{{output_var}} = <package>.<source_func>({in_placeholder})"
+            else:
+                template_rule = (
+                    "For Source (Initial / Ingress morphism), `code_template` MUST produce the primary output "
+                    "assigned to `{output_var}` (e.g. `{output_var} = <package>.<source_func>()`)."
+                )
+                input_spec = "{}"
+                sample_template = "{output_var} = <package>.<source_func>()"
         elif role == "sink":
-            template_rule = (
-                "For Sink (Terminal / Egress morphism), `code_template` MUST consume `{input_var}` and "
-                "complete the lifecycle (exporting, rendering, or evaluation). If path-driven, use `{dest_path}` "
-                "as the destination identifier (e.g. `{input_var}.<sink_func>({dest_path})\\n{output_var} = {dest_path}`)."
-            )
-            input_spec = f'{{"type_name": "{expected_input}", "state": "any"}}'
-            sample_template = "{input_var}.<sink_func>({dest_path})\n{output_var} = {dest_path}"
+            if is_path_out:
+                template_rule = (
+                    "For Sink (Terminal / Egress morphism with destination locator), `code_template` MUST consume `{input_var}` and "
+                    f"persist or export it to `{out_placeholder}` (e.g. `{{input_var}}.<sink_func>({out_placeholder})\\n{{output_var}} = {out_placeholder}`)."
+                )
+                input_spec = f'{{"type_name": "{expected_input}", "state": "any"}}'
+                sample_template = f"{{input_var}}.<sink_func>({out_placeholder})\n{{output_var}} = {out_placeholder}"
+            else:
+                template_rule = (
+                    "For Sink (Terminal / Egress morphism), `code_template` MUST consume `{input_var}` and "
+                    "complete the terminal action or lifecycle (e.g. `{output_var} = <package>.<sink_func>({input_var})` or `{input_var}.<sink_func>()`)."
+                )
+                input_spec = f'{{"type_name": "{expected_input}", "state": "any"}}'
+                sample_template = "{output_var} = <package>.<sink_func>({input_var})"
         else:
             template_rule = (
                 "For Transformer (Intermediate morphism), `code_template` MUST consume `{input_var}` and "
@@ -383,7 +487,7 @@ RULES:
 1. {template_rule}
 2. Put all necessary import statements in the `dependencies` array (e.g. ["import package", "from package import module"]).
 3. Ensure the code is strictly non-interactive (do not use input() or sys.stdin).
-4. Never hardcode file asset paths — always use `{{filepath}}` or `{{dest_path}}` placeholders."""
+4. Never hardcode external asset paths or destinations — always use {in_placeholder} or {out_placeholder} placeholders when loading or persisting external assets."""
 
         full_prompt = f"{system_prompt}\n\nTask: {gap_concept}"
         result_text = ModelManager.get_instance().generate_text(full_prompt, max_tokens=1024)
@@ -814,15 +918,32 @@ def _declared_loop_kind(cell: Any) -> Optional[str]:
     declared = getattr(cell, "loop_kind", None)
     if declared is None and isinstance(meta, dict):
         declared = meta.get("loop_kind")
-    if declared in ("collect", "extremum", "fold", "reduce", "accumulation"):
-        return "fold" if declared in ("fold", "reduce", "accumulation") else declared
 
-    topology = getattr(cell, "topology_type", None)
-    if topology in ("collect_loop", "collection_loop", "accumulate_loop"):
+    try:
+        from lattice import TypeRegistry
+    except (ImportError, ValueError):
+        from .lattice import TypeRegistry
+    reg = TypeRegistry.get_instance()
+
+    fold_kinds = set(reg.get_verification_semantics("fold_loop_kinds") or ())
+    collect_kinds = set(reg.get_verification_semantics("collect_loop_kinds") or ())
+    extremum_kinds = set(reg.get_verification_semantics("extremum_loop_kinds") or ())
+
+    if declared:
+        d_lower = str(declared).lower()
+        if d_lower in fold_kinds:
+            return "fold"
+        if d_lower in collect_kinds:
+            return "collect"
+        if d_lower in extremum_kinds:
+            return "extremum"
+
+    topology = str(getattr(cell, "topology_type", "") or "").lower()
+    if topology in set(reg.get_verification_semantics("collect_loop_topologies") or ()):
         return "collect"
-    if topology in ("extremum_loop", "argmax_loop", "argmin_loop"):
+    if topology in set(reg.get_verification_semantics("extremum_loop_topologies") or ()):
         return "extremum"
-    if topology in ("fold_loop", "reduce_loop", "accumulation_loop", "fold", "reduce"):
+    if topology in set(reg.get_verification_semantics("fold_loop_topologies") or ()):
         return "fold"
     return None
 
@@ -958,9 +1079,8 @@ def _resolve_direction_is_max(cell: Any, bindings: Dict[str, Any]) -> bool:
     direction_port = (
         getattr(cell, "direction_port", None)
         or (meta.get("direction_port") if isinstance(meta, dict) else None)
-        or "direction"
     )
-    raw = bindings.get(direction_port)
+    raw = bindings.get(direction_port) if direction_port else None
     if raw is None:
         try:
             try:
@@ -970,7 +1090,7 @@ def _resolve_direction_is_max(cell: Any, bindings: Dict[str, Any]) -> bool:
             order_ports = TypeRegistry.get_instance().get_verification_semantics("order_flag_names") or ()
         except Exception:
             order_ports = ()
-        for k in tuple(order_ports) + ("direction", "extreme", "mode", "order"):
+        for k in tuple(order_ports):
             if k in bindings and bindings[k] is not None:
                 raw = bindings[k]
                 break

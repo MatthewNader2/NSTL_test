@@ -42,6 +42,9 @@
       "tensor",
       "matrix",
       "array"
+    ],
+    "bridge_tokens": [
+      "array_bridge"
     ]
   },
   "asset_placeholders": {

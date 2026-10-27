@@ -72,14 +72,14 @@ SYSTEM_PROMPT = (
     "Select an ordered sequence of cell IDs from the available list "
     "that completely fulfills ALL steps of the user request from start to finish:\n"
     "- Select operations for each distinct step in the request "
-    "(e.g., loading/reading, cleaning/preprocessing, column selection, transformation/normalization, "
-    "aggregation/statistical calculation, combining/adding parallel branches, mathematical/spectral analysis).\n"
-    "- When operations apply to distinct columns or variables (e.g. normalizing column X, calculating mean of column Y, "
-    "and combining X and Y), select column extraction and transformation cells for EACH branch so both branches exist in the pipeline.\n"
+    "(e.g., loading/initialization, preprocessing/filtering, transformation/computation, "
+    "aggregation/analysis, combining/merging parallel branches, terminal formatting/output).\n"
+    "- When operations apply to distinct inputs, branches, or sub-components, "
+    "select extraction and transformation cells for EACH branch so all required branches exist in the pipeline.\n"
     "- NEVER select multiple redundant alternatives for the same step "
-    "(e.g. choose either dropna or imputer, NOT both; choose either normalize or standardscaler, NOT both; choose exactly one model).\n"
-    "- Do NOT select operations that have no evidence in the prompt (e.g. do NOT select file exporters/writers unless the prompt explicitly asks to save to a file).\n"
-    "- Chain transformations in logical execution order from input data source to final output.\n"
+    "(e.g. choose exactly one operation per functional step; do not select redundant alternative implementations of the same transform).\n"
+    "- Do NOT select operations that have no evidence in the prompt (e.g. do NOT select terminal sinks or exporters unless the prompt explicitly asks for persistence or export).\n"
+    "- Chain transformations in logical execution order from initial ingress to final output.\n"
     "Respond with ONLY a JSON object: {\"path\": [\"CELL_ID\", ...]}"
 )
 
@@ -247,10 +247,10 @@ class M7LLMPathfinderRouteMethod(RouteMethod):
         # unification failing downstream.
         chain = [proposed[0]]
         first = chain[0]
-        if getattr(first, "stage", None) != 1 and any(getattr(p, "required", False) and getattr(p, "default_value", None) is None for p in first.inputs.values()):
-            s1_candidates = [c for c in candidates if getattr(c, "stage", None) == 1]
+        if not self.is_ingress_node(first, orch) and any(getattr(p, "required", False) and getattr(p, "default_value", None) is None for p in first.inputs.values()):
+            s1_candidates = [c for c in candidates if self.is_ingress_node(c, orch)]
             if not s1_candidates and orch and hasattr(orch, "loaded_cells"):
-                s1_candidates = [c for c in orch.loaded_cells.values() if getattr(c, "stage", None) == 1]
+                s1_candidates = [c for c in orch.loaded_cells.values() if self.is_ingress_node(c, orch)]
             if s1_candidates:
                 best_s1 = None
                 best_bridge = None
@@ -277,7 +277,7 @@ class M7LLMPathfinderRouteMethod(RouteMethod):
                     try:
                         p_clauses = self.segment_prompt_clauses(prompt)
                         producer = self._find_type_producer(first, [], candidates, p_clauses, orch)
-                        if producer is not None and getattr(producer, "stage", None) == 1:
+                        if producer is not None and self.is_ingress_node(producer, orch):
                             best_s1 = producer
                     except Exception:
                         pass

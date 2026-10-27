@@ -80,11 +80,11 @@ class M1ClauseAnchorRouteMethod(RouteMethod):
             ]
 
             if idx == 0 and len(clauses) > 1:
-                pool = [c for c in candidates if getattr(c, "stage", None) == 1] or candidates
+                pool = [c for c in candidates if self.is_ingress_node(c, orch)] or candidates
             elif idx == len(clauses) - 1 and len(clauses) > 1 and _clause_has_egress_intent(cl):
-                pool = [c for c in candidates if getattr(c, "stage", None) == 3] or candidates
+                pool = [c for c in candidates if self.is_sink_node(c, orch)] or candidates
             else:
-                pool = [c for c in candidates if getattr(c, "stage", None) != 1] or candidates
+                pool = [c for c in candidates if not self.is_ingress_node(c, orch)] or candidates
 
             pool = [
                 c for c in pool
@@ -95,14 +95,14 @@ class M1ClauseAnchorRouteMethod(RouteMethod):
             if idx == 0 and len(clauses) > 1:
                 src_lits, _ = self.extract_file_literals(prompt, ctx=ctx)
                 src_lit = src_lits[0] if src_lits else None
-                downstream_cands = [c for c in candidates if getattr(c, "stage", None) != 1]
+                downstream_cands = [c for c in candidates if not self.is_ingress_node(c, orch)]
                 from lattice import TypeRegistry
                 reg = TypeRegistry.get_instance()
 
                 _reach_cache: Dict[str, int] = {}
 
                 def _downstream_reach(source_cell: Cell) -> int:
-                    if getattr(source_cell, "stage", None) != 1:
+                    if not self.is_ingress_node(source_cell, orch):
                         return 0
                     cid = source_cell.cell_id
                     if cid in _reach_cache:
@@ -289,17 +289,20 @@ class M1ClauseAnchorRouteMethod(RouteMethod):
                             ancestor_outputs=[(a.cell_id, str(getattr(getattr(a.primary_output, "signature", a.primary_output), "type_name", "")))
                                               for a in routed_path if getattr(a, "primary_output", None) is not None])
 
-        # 3. Handle file-asset endpoint completion if declared in prompt
-        l0_extracted = ExecutionContext._extract_universal_literals(prompt or "") if ctx or prompt else []
-        file_literals = [v for _, t, v in l0_extracted if t == "file_asset"]
+        # 3. Handle endpoint completion if declared in prompt
+        src_file_literals, dest_file_literals = self.extract_file_literals(prompt or "", ctx=ctx)
+        has_egress = bool(dest_file_literals) or _clause_has_egress_intent(prompt or "")
 
-        if file_literals and len(file_literals) >= 2:
+        if has_egress and routed_path:
             last_cell = routed_path[-1]
-            if getattr(last_cell, "stage", None) != 3:
-                sinks = [c for c in candidates if getattr(c, "stage", None) == 3]
+            if not self.is_sink_node(last_cell, orch):
+                sinks = [c for c in candidates if self.is_sink_node(c, orch)]
                 best_sink = None
                 best_s_score = -1.0
+                dst_lit = dest_file_literals[0] if dest_file_literals else None
                 for s in sinks:
+                    if dst_lit is not None and self.file_compat(s, dst_lit) < 0:
+                        continue
                     if self.step_unifies(last_cell, s, prev_path=routed_path):
                         sc = relevance_map.get(s.cell_id, 0.0) + self.calculate_edge_affinity(last_cell, s, orch, relevance_map=relevance_map)
                         if sc > best_s_score:
