@@ -244,13 +244,22 @@ class M1ClauseAnchorRouteMethod(RouteMethod):
         for next_anchor in anchors[1:]:
             curr_cell = routed_path[-1]
 
+            # Check if curr_cell is an unintegrated field mutation on a carrier that next_anchor consumes
+            curr_transforms_field = "transforms_column" in (getattr(curr_cell, "effects", None) or [])
+            from unification import is_edge_valid
+            curr_feeds_next = any(
+                is_edge_valid(out, inp, curr_cell, next_anchor)
+                for out in curr_cell.outputs.values()
+                for inp in next_anchor.inputs.values()
+            )
+
             if self.step_unifies(curr_cell, next_anchor, prev_path=routed_path):
                 self._trace("anchor_connected", cell=next_anchor.cell_id, via="direct", after=curr_cell.cell_id)
                 routed_path.append(next_anchor)
-            elif self.step_unifies_dag(next_anchor, routed_path, ctx=ctx):
+            elif self.step_unifies_dag(next_anchor, routed_path, ctx=ctx) and (curr_feeds_next or not curr_transforms_field):
                 routed_path.append(next_anchor)
             else:
-                bridges = self.find_bridge_chain(curr_cell, next_anchor, candidates)
+                bridges = self.find_bridge_chain(curr_cell, next_anchor, candidates, prev_path=routed_path)
                 if bridges:
                     routed_path.extend(bridges)
                     routed_path.append(next_anchor)

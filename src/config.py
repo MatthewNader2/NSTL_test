@@ -131,7 +131,7 @@ class NSTLSettings(BaseSettings):
         description="Maximum intermediate hops allowed when bridging macro sub-chains.",
     )
     function_words_cutoff: float = Field(
-        default=0.5,
+        default=0.18,
         gt=0.0,
         le=1.0,
         description="Frequency threshold above which corpus words are classified as non-informative function words.",

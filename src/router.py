@@ -861,6 +861,93 @@ class LatticeRouter:
                         tunnel_ids.add(cell.cell_id)
                         relevance_map[cell.cell_id] = max(relevance_map.get(cell.cell_id, 0.0), self.epsilon * 2.0)
 
+            # Property & Qualifier Categorical Boundary Closure:
+            # If an active producer establishes a property/qualifier (e.g. is_complex=True)
+            # that conflicts with an active consumer's precondition/rejected qualifier on a
+            # compatible carrier, discover and inject the resolving morphism h : (T, phi_1) -> (T, phi_2).
+            active_cells = list(final_tunnel)
+            produced_props = []
+            for c in active_cells:
+                c_out = getattr(c.primary_output, "type_name", "")
+                if not c_out:
+                    continue
+                for post in (getattr(c, "postconditions", None) or []):
+                    p_name = post.get("property") if isinstance(post, dict) else getattr(post, "property", None)
+                    p_val = post.get("value") if isinstance(post, dict) else getattr(post, "value", None)
+                    p_op = post.get("operator", "==") if isinstance(post, dict) else getattr(post, "operator", "==")
+                    if p_name is not None:
+                        produced_props.append((c, c_out.lower(), p_name, p_op, p_val))
+                for q in (getattr(c.primary_output, "qualifiers", None) or []):
+                    produced_props.append((c, c_out.lower(), f"qualifier:{str(q).lower()}", "==", True))
+
+            required_props = []
+            for c in active_cells:
+                ins = getattr(c, "inputs", {}) or {}
+                input_list = ins.values() if isinstance(ins, dict) else ins
+                for inp in input_list:
+                    c_in = getattr(inp, "type_name", "")
+                    if not c_in:
+                        continue
+                    for pre in (getattr(c, "preconditions", None) or []):
+                        p_name = pre.get("property") if isinstance(pre, dict) else getattr(pre, "property", None)
+                        p_val = pre.get("value") if isinstance(pre, dict) else getattr(pre, "value", None)
+                        p_op = pre.get("operator", "==") if isinstance(pre, dict) else getattr(pre, "operator", "==")
+                        if p_name is not None:
+                            required_props.append((c, c_in.lower(), p_name, p_op, p_val))
+                    for rq in (getattr(inp, "rejected_qualifiers", None) or []):
+                        required_props.append((c, c_in.lower(), f"qualifier:{str(rq).lower()}", "==", False))
+
+            conflicts = []
+            seen_conflicts = set()
+            for prod_cell, prod_carrier, p_name, p_op, p_val in produced_props:
+                for cons_cell, cons_carrier, req_name, req_op, req_val in required_props:
+                    if prod_cell.cell_id == cons_cell.cell_id:
+                        continue
+                    if p_name == req_name and p_op == "==" and req_op == "==":
+                        if prod_carrier == cons_carrier or (reg and (reg.is_subtype(prod_carrier, cons_carrier) or reg.is_subtype(cons_carrier, prod_carrier))):
+                            if p_val != req_val:
+                                req_hashable = tuple(req_val) if isinstance(req_val, (list, set)) else req_val
+                                c_key = (prod_carrier, p_name, req_hashable)
+                                if c_key not in seen_conflicts:
+                                    seen_conflicts.add(c_key)
+                                    conflicts.append((prod_carrier, p_name, req_val))
+
+            if conflicts:
+                for carrier, prop, target_val in conflicts:
+                    for cand in self.orchestrator.loaded_cells.values():
+                        if cand.cell_id in tunnel_ids:
+                            continue
+                        if getattr(cand, "is_ingress", False) or getattr(cand, "is_sink", False):
+                            continue
+                        cand_in = str(getattr(cand.primary_input, "type_name", "") or "").lower()
+                        cand_out = str(getattr(cand.primary_output, "type_name", "") or "").lower()
+                        if not (cand_in == carrier or (reg and reg.is_subtype(carrier, cand_in))):
+                            continue
+                        if not (cand_out == carrier or (reg and reg.is_subtype(cand_out, carrier))):
+                            continue
+
+                        resolves = False
+                        if prop.startswith("qualifier:"):
+                            q_name = prop.split(":", 1)[1]
+                            cand_out_quals = [str(q).lower() for q in (getattr(cand.primary_output, "qualifiers", None) or [])]
+                            if target_val is False and q_name not in cand_out_quals:
+                                resolves = True
+                        else:
+                            for cp in (getattr(cand, "postconditions", None) or []):
+                                cp_name = cp.get("property") if isinstance(cp, dict) else getattr(cp, "property", None)
+                                cp_val = cp.get("value") if isinstance(cp, dict) else getattr(cp, "value", None)
+                                cp_op = cp.get("operator", "==") if isinstance(cp, dict) else getattr(cp, "operator", "==")
+                                if cp_name == prop and cp_op == "==" and cp_val == target_val:
+                                    resolves = True
+                                    break
+
+                        if resolves:
+                            final_tunnel.append(cand)
+                            tunnel_ids.add(cand.cell_id)
+                            # 0.15 >= 0.05 guarantees inclusion in protected_ids during stratified pruning
+                            relevance_map[cand.cell_id] = max(relevance_map.get(cand.cell_id, 0.0), 0.15)
+                            logger.info("[ROUTER] Injected resolving morphism %s for refinement conflict (%s, %s == %s)", cand.cell_id, carrier, prop, target_val)
+
         if carriers_out or carriers_in:
             prompt_toks = CellTokenizer.tokenize_prompt(prompt) if prompt else set()
             active_domains = set(c.domain_name for c in final_tunnel if c.domain_name)
@@ -1000,7 +1087,7 @@ class LatticeRouter:
             sorted_st = sorted(cells, key=lambda c: relevance_map.get(c.cell_id, 0.0), reverse=True)[:cap]
             keep_stage_cells.extend(sorted_st)
 
-        bridge_ids = {c.cell_id for c in tunnel_cells if getattr(c, "node_role", "") == "bridge" or getattr(c, "node_type", "") == "tunnel"}
+        bridge_ids = {c.cell_id for c in tunnel_cells if getattr(c, "node_role", "") == "bridge" or getattr(c, "node_type", "") == "tunnel" }
         keep_ids = {c.cell_id for c in keep_stage_cells} | protected_ids | bridge_ids
         return [c for c in tunnel_cells if c.cell_id in keep_ids] or tunnel_cells
 

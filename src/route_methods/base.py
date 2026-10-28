@@ -402,10 +402,19 @@ class RouteMethod(ABC):
         Checks if consumer cell can validly execute in the multi-carrier environment.
         Enforces:
           1. Stage 1 cells cannot be appended as intermediate transitions.
-          2. Type-monadic verification via LatticePlanner._verify_transition with prompt literals.
-          3. Multi-carrier DAG scope verification via unify_cell_with_scope across available path wires.
+          2. Direct morphism condition: producer must have an output edge to consumer.
+          3. Type-monadic verification via LatticePlanner._verify_transition with prompt literals.
         """
         if self.is_ingress_node(consumer):
+            return False
+
+        from unification import is_edge_valid
+        producer_feeds_consumer = any(
+            is_edge_valid(out, inp, producer, consumer)
+            for out in producer.outputs.values()
+            for inp in consumer.inputs.values()
+        )
+        if not producer_feeds_consumer:
             return False
 
         orch = self.orchestrator
@@ -471,6 +480,7 @@ class RouteMethod(ABC):
         dst_cell: Cell,
         candidates: Optional[List[Cell]] = None,
         max_hops: int = 4,
+        prev_path: Optional[List[Cell]] = None,
     ) -> List[Cell]:
         """
         Unified Shortest-Path Precondition Bridge Closure:
@@ -492,7 +502,7 @@ class RouteMethod(ABC):
                     b_cloned.matched_clause_idx = getattr(dst_cell, "matched_clause_idx", None)
                     cloned_chain.append(b_cloned)
                 return cloned_chain
-        single = self.find_bridge(src_cell, dst_cell, candidates or [], orchestrator=orch)
+        single = self.find_bridge(src_cell, dst_cell, candidates or [], orchestrator=orch, prev_path=prev_path)
         return [single] if single else []
 
     def find_bridge(
@@ -519,6 +529,14 @@ class RouteMethod(ABC):
         best_score = -1.0
         current_scope = prev_path if prev_path else [src_cell]
 
+        reg = getattr(orch, "lattice", None) or getattr(orch, "registry", None)
+        if reg is None or not hasattr(reg, "get_verification_semantics"):
+            try:
+                from lattice import TypeRegistry
+                reg = TypeRegistry.get_instance()
+            except Exception:
+                reg = None
+
         prompt_str = getattr(self, "prompt", "") or (getattr(orchestrator, "prompt", "") if orchestrator else "")
         prompt_l = str(prompt_str).lower()
 
@@ -535,10 +553,19 @@ class RouteMethod(ABC):
             cand_role = str(getattr(cand, "node_role", "") or getattr(cand, "role", "") or "").lower()
             cand_tags = {str(t).lower() for t in (getattr(cand, "semantic_tags", None) or [])}
             bridge_tokens = set(reg.get_verification_semantics("bridge_tokens") or ())
+            # Domain-agnostic Lens Injection: a morphism that writes an assigned value/field
+            # back into a composite carrier (mu : Record x Field -> Record) is an eligible bridge.
+            is_lens_setter = (
+                any(getattr(p, "binds", None) == "assigned_value" or getattr(p, "port_role", None) in ("value_input", "assigned_value") for p in cand.inputs.values())
+                and any(getattr(p, "binds", None) == "data_carrier" or getattr(p, "port_role", None) == "data_input" for p in cand.inputs.values())
+                and any(getattr(p, "structure_kind", None) == "composite" or getattr(p, "abstract_type", None) == "table" for p in cand.outputs.values())
+            )
+
             is_declared_bridge = (
                 cand_role in _bridge_roles()
                 or getattr(cand, "node_type", "") in ("tunnel", "bridge")
                 or bool(bridge_tokens & cand_tags)
+                or is_lens_setter
             )
             resolves_property_mismatch = False
 
@@ -576,8 +603,15 @@ class RouteMethod(ABC):
 
             if not is_declared_bridge and not resolves_property_mismatch:
                 continue
+            from unification import is_edge_valid
             can_src_to_cand = self.step_unifies(src_cell, cand, prev_path=current_scope) or self.step_unifies_dag(cand, current_scope)
-            can_cand_to_dst = self.step_unifies(cand, dst_cell, prev_path=current_scope + [cand]) or self.step_unifies_dag(dst_cell, current_scope + [cand])
+            # A candidate is only a bridge to dst_cell if dst_cell actually consumes an output from cand
+            cand_feeds_dst = any(
+                is_edge_valid(out, inp, cand, dst_cell)
+                for out in cand.outputs.values()
+                for inp in dst_cell.inputs.values()
+            )
+            can_cand_to_dst = cand_feeds_dst and (self.step_unifies(cand, dst_cell, prev_path=current_scope + [cand]) or self.step_unifies_dag(dst_cell, current_scope + [cand]))
             if can_src_to_cand and can_cand_to_dst:
                 aff1 = self.calculate_edge_affinity(src_cell, cand, orchestrator)
                 aff2 = self.calculate_edge_affinity(cand, dst_cell, orchestrator)

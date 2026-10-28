@@ -932,14 +932,8 @@ def _segment_prompt_clauses(prompt: str) -> List[str]:
         if not p_clean: continue
         p_toks = CellTokenizer.tokenize_prompt(p_clean)
         if not p_toks: continue
-        if merged and _is_sink_directive(p_clean):
-            if ExecutionContext._extract_target_sink(p_clean):
-                continue
-            merged[-1] = merged[-1] + ", " + p_clean
-            continue
-        if merged and p_toks.issubset(CellTokenizer.tokenize_prompt(merged[-1])):
-            merged[-1] = merged[-1] + ", " + p_clean
-            continue
+        # Preserve natural clause boundaries without hardcoded sink-directive mergers.
+        # Clauses separated by top-level punctuation are distinct sub-goals.
         merged.append(p_clean)
 
     # Drop fragments that no cell in the tree could ever cover.
