@@ -4526,11 +4526,11 @@ class LatticeOrchestrator:
             return False
 
         cfg_roles = (
-            set(reg.get_column_projection_tokens())
+            set(reg.get_projection_tokens())
+            | set(reg.get_verification_semantics("projection_port_roles") or ())
             | set(reg.get_verification_semantics("config_roles") or ())
             | set(reg.get_verification_semantics("configuration_roles") or ())
             | set(reg.get_verification_semantics("parameter_roles") or ())
-            | {"literal_parameter", "parameter", "dim_size"}
         )
 
         dataflow_inputs = []

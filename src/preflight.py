@@ -1052,6 +1052,9 @@ class PreflightLinter:
         # -----------------------------------------------------------------
         # Check 3b: Explicit Unresolved Port Detection
         # -----------------------------------------------------------------
+        reg = cls._registry()
+        key_binds = set(reg.get_verification_semantics("key_binds") or ())
+        proj_roles = cls._role_set("get_projection_tokens", "get_column_projection_tokens")
         for cell, bindings in pipeline_bindings:
             for p_name, val in bindings.items():
                 if val is UNRESOLVED_PORT:
@@ -1068,6 +1071,14 @@ class PreflightLinter:
                         f"value: '{val}'"
                     )
                     _add_violation("unresolved_port", msg, cell_id=cell.cell_id, port_name=p_name, details={"value": str(val)})
+                else:
+                    port_sig = getattr(cell, "inputs", {}).get(p_name)
+                    if port_sig and getattr(port_sig, "required", False):
+                        p_role = cls._port_role(port_sig)
+                        p_binds = str(getattr(port_sig, "binds", "") or "").lower()
+                        if (p_binds in key_binds or p_role in proj_roles) and str(val).strip("'\"") == "":
+                            msg = f"Cell '{cell.cell_id}' required key/projection port '{p_name}' has ungrounded empty binding: {val!r}"
+                            _add_violation("unresolved_key_port", msg, cell_id=cell.cell_id, port_name=p_name, details={"value": str(val)})
 
         # -----------------------------------------------------------------
         # Check 3c: Object-Receiver Ports Must Bind a Variable, Not a Literal

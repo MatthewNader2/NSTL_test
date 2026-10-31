@@ -84,6 +84,13 @@ class M1ClauseAnchorRouteMethod(RouteMethod):
                 pool = [c for c in candidates if self.is_ingress_node(c, orch)] or candidates
             elif idx == len(clauses) - 1 and len(clauses) > 1 and _clause_has_egress_intent(cl):
                 pool = [c for c in candidates if self.is_sink_node(c, orch)] or candidates
+                _, dest_lits = self.extract_file_literals(prompt, ctx=ctx)
+                dest_lit = dest_lits[0] if dest_lits else None
+                if dest_lit:
+                    compat_cands = [c for c in pool if self.file_compat(c, dest_lit) > 0]
+                    if compat_cands:
+                        max_c = max(self.file_compat(c, dest_lit) for c in compat_cands)
+                        pool = [c for c in compat_cands if self.file_compat(c, dest_lit) >= max_c]
             else:
                 pool = [c for c in candidates if not self.is_ingress_node(c, orch)] or candidates
 
@@ -96,6 +103,11 @@ class M1ClauseAnchorRouteMethod(RouteMethod):
             if idx == 0 and len(clauses) > 1:
                 src_lits, _ = self.extract_file_literals(prompt, ctx=ctx)
                 src_lit = src_lits[0] if src_lits else None
+                if src_lit:
+                    compat_cands = [c for c in pool if self.file_compat(c, src_lit) > 0]
+                    if compat_cands:
+                        max_c = max(self.file_compat(c, src_lit) for c in compat_cands)
+                        pool = [c for c in compat_cands if self.file_compat(c, src_lit) >= max_c]
                 downstream_cands = [c for c in candidates if not self.is_ingress_node(c, orch)]
                 from lattice import TypeRegistry
                 reg = TypeRegistry.get_instance()
@@ -272,16 +284,6 @@ class M1ClauseAnchorRouteMethod(RouteMethod):
 
         for next_anchor in anchors[1:]:
             curr_cell = routed_path[-1]
-
-            # Check if curr_cell is an unintegrated field mutation on a carrier that next_anchor consumes
-            curr_transforms_field = "transforms_column" in (getattr(curr_cell, "effects", None) or [])
-            from unification import is_edge_valid
-            curr_feeds_next = any(
-                is_edge_valid(out, inp, curr_cell, next_anchor)
-                for out in curr_cell.outputs.values()
-                for inp in next_anchor.inputs.values()
-            )
-
             connected = False
             if self.step_unifies(curr_cell, next_anchor, prev_path=routed_path):
                 self._trace("anchor_connected", cell=next_anchor.cell_id, via="direct", after=curr_cell.cell_id)

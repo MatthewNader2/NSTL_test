@@ -3655,7 +3655,7 @@ class ExecutionContext:
                 if is_col_port:
                     cand_indices.extend([i for i in range(len(self.ordered_literals))
                                          if i in self.used_indices and self.literal_clause_map.get(i) == self.current_cell_clause_idx
-                                         and getattr(self.ordered_literals[i], "kind", self.ordered_literals[i][1]) == "identifier"])
+                                         and getattr(self.ordered_literals[i], "kind", self.ordered_literals[i][1]) in ("identifier", "quoted_str")])
                 # 3. Unconsumed literals from prior clauses (or global)
                 cand_indices.extend([i for i in range(len(self.ordered_literals))
                                      if i not in self.used_indices and self.literal_clause_map.get(i) is not None
@@ -3665,7 +3665,7 @@ class ExecutionContext:
 
             for idx in cand_indices:
                 lit_pos, kind, val = self.ordered_literals[idx]
-                if idx in self.used_indices and not (is_col_port and self.current_cell_clause_idx is not None and self.literal_clause_map.get(idx) == self.current_cell_clause_idx and kind == "identifier"):
+                if idx in self.used_indices and not (is_col_port and self.current_cell_clause_idx is not None and self.literal_clause_map.get(idx) == self.current_cell_clause_idx and kind in ("identifier", "quoted_str")):
                     continue
                 if kind not in ("quoted_str", "identifier"):
                     continue
@@ -3828,15 +3828,24 @@ class ExecutionContext:
         # 7. Port default value declared in tree schema
         if port_sig.default_value is not None:
             def_str = str(port_sig.default_value).strip()
-            if def_str in ("True", "False", "None"):
-                return def_str
-            if not is_str:
-                return def_str
-            # For string ports, check if def_str is an unquoted module constant (module-scoped enum attribute)
-            parts = def_str.split(".")
-            if len(parts) > 1 and parts[0] in sys.modules:
-                return def_str
-            return def_str if (def_str.startswith('"') or def_str.startswith("'")) else json.dumps(def_str)
+            key_binds = set(registry.get_verification_semantics("key_binds") or ())
+            proj_roles = set(registry.get_projection_tokens()) | set(registry.get_verification_semantics("projection_port_roles") or ())
+            is_key_req = getattr(port_sig, "required", False) and (
+                getattr(port_sig, "binds", "") in key_binds
+                or str(getattr(port_sig, "port_role", "") or "").lower() in proj_roles
+            )
+            if is_key_req and def_str.strip("'\"") == "":
+                pass
+            else:
+                if def_str in ("True", "False", "None"):
+                    return def_str
+                if not is_str:
+                    return def_str
+                # For string ports, check if def_str is an unquoted module constant (module-scoped enum attribute)
+                parts = def_str.split(".")
+                if len(parts) > 1 and parts[0] in sys.modules:
+                    return def_str
+                return def_str if (def_str.startswith('"') or def_str.startswith("'")) else json.dumps(def_str)
 
         # 8. Pure Vector Semantic Slot Projection for unquoted string/identifier arguments.
         if is_operational and is_str and self.prompt:
@@ -5375,7 +5384,27 @@ class UnificationGate:
                         has_target_origin = any(str(orig).lower() in target_lits for orig in var_origins)
                         port_state = str(getattr(concrete_sig, "state", "") or "").lower()
                         port_role = str(getattr(p_sig, "port_role", "") or getattr(p_sig, "role", "") or "").lower()
-                        is_target_port = "target" in port_state or "target" in port_role or "sink" in port_role or "destination" in port_role
+                        reg = TypeRegistry.get_instance()
+                        target_roles = set(reg.get_verification_semantics("target_roles") or ())
+                        sink_roles = (
+                            set(reg.get_verification_semantics("sink_roles") or ())
+                            | set(reg.get_verification_semantics("destination_roles") or ())
+                            | set(reg.get_verification_semantics("terminal_roles") or ())
+                        )
+                        target_states = (
+                            set(reg.get_verification_semantics("target_states") or ())
+                            | set(reg.get_verification_semantics("terminal_states") or ())
+                            | set(reg.get_verification_semantics("materialization_states") or ())
+                        )
+                        p_role_toks = set(CellTokenizer.tokenize_identifier(port_role)) if port_role else set()
+                        p_state_toks = set(CellTokenizer.tokenize_identifier(port_state)) if port_state else set()
+                        is_target_port = bool(
+                            port_role in target_roles
+                            or port_role in sink_roles
+                            or port_state in target_states
+                            or (p_role_toks & (target_roles | sink_roles))
+                            or (p_state_toks & target_states)
+                        )
 
                         target_affinity = 0.0
                         if has_target_origin:
@@ -5450,13 +5479,24 @@ class UnificationGate:
                 # C. Check default value declared in tree
                 if p_sig.default_value is not None:
                     val = str(p_sig.default_value)
-                    c_tname = str(getattr(concrete_sig, "type_name", "") or "").lower()
-                    c_is_str = c_tname in ("str", "enum", "column_identifier", "filepath", "path") or TypeRegistry.get_instance().is_subtype(c_tname, "str")
-                    if c_is_str and not (val.startswith(("'", '"')) or val in ("None", "True", "False")):
-                        val = repr(val)
-                    cell_bindings[p_name] = val
-                    accumulated_sigma.bind(p_name, val)
-                    continue
+                    reg = TypeRegistry.get_instance()
+                    key_binds = set(reg.get_verification_semantics("key_binds") or ())
+                    proj_roles = set(reg.get_projection_tokens()) | set(reg.get_verification_semantics("projection_port_roles") or ())
+                    is_key_req = p_sig.required and (
+                        getattr(p_sig, "binds", "") in key_binds
+                        or str(getattr(p_sig, "port_role", "") or "").lower() in proj_roles
+                    )
+                    if is_key_req and val.strip("'\"") == "":
+                        # A required key/projection port cannot be grounded by an empty string default
+                        pass
+                    else:
+                        c_tname = str(getattr(concrete_sig, "type_name", "") or "").lower()
+                        c_is_str = c_tname in ("str", "enum", "column_identifier", "filepath", "path") or reg.is_subtype(c_tname, "str")
+                        if c_is_str and not (val.startswith(("'", '"')) or val in ("None", "True", "False")):
+                            val = repr(val)
+                        cell_bindings[p_name] = val
+                        accumulated_sigma.bind(p_name, val)
+                        continue
 
                 # D. Declared-domain enum grounding (reflection-driven, zero domain hardcodes)
                 p_domain = getattr(concrete_sig, "domain", "") or ""

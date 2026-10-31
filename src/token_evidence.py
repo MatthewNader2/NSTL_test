@@ -71,6 +71,7 @@ class TokenEvidence:
                 skip |= set(reg.get_prompt_filler_tokens())
                 skip |= set(reg.get_sentence_connectives())
                 skip |= set(reg.get_function_words())
+                skip |= set(reg.get_verification_semantics("generic_prepositions") or ())
             except Exception:
                 pass
             self._skip = skip
@@ -99,12 +100,11 @@ class TokenEvidence:
             for lit in lits:
                 _, kind, val = lit
                 if kind == "file_asset":
-                    parts = str(val).rsplit(".", 1)
-                    stem = parts[0]
-                    for t in CellTokenizer.tokenize_identifier(stem):
-                        t_low = t.lower()
-                        if t_low not in unquoted_toks:
-                            lit_toks.add(t_low)
+                    for part in str(val).split("."):
+                        for t in CellTokenizer.tokenize_identifier(part):
+                            t_low = t.lower()
+                            if t_low not in unquoted_toks:
+                                lit_toks.add(t_low)
                 elif kind in ("quoted_str", "numeric"):
                     for t in CellTokenizer.tokenize_identifier(str(val)):
                         t_low = t.lower()
