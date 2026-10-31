@@ -72,7 +72,7 @@ class M3GreedyFreezeRouteMethod(RouteMethod):
         stage1_cands = [c for c in candidates if self.is_ingress_node(c, orch)]
         entry_pool = stage1_cands if stage1_cands else candidates[:5]
 
-        clauses = self.segment_prompt_clauses(prompt)
+        clauses = self.segment_prompt_clauses(prompt, ctx=ctx)
         first_clause = clauses[0] if clauses else prompt
         src_lit = src_file_literals[0] if src_file_literals else None
         dst_lit = dest_file_literals[0] if dest_file_literals else None

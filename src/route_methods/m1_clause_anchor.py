@@ -65,8 +65,9 @@ class M1ClauseAnchorRouteMethod(RouteMethod):
         if not candidates:
             return [tunnel[0]]
 
-        clauses = self.segment_prompt_clauses(prompt)
+        clauses = self.segment_prompt_clauses(prompt, ctx=ctx)
         anchors: List[Cell] = []
+        clause_alts: Dict[int, List[Cell]] = {}
 
         # 1. Identify anchor cells for each clause via semantic set-covering and stage awareness
         for idx, cl in enumerate(clauses):
@@ -150,11 +151,39 @@ class M1ClauseAnchorRouteMethod(RouteMethod):
             ev = get_evidence(orch)
             clause_cells: List[Cell] = []
             if ev is not None:
+                cl_toks_all = CellTokenizer.tokenize_prompt(cl)
+                alt_scored = []
+                for c in pool:
+                    o = ev.identity_overlap(cl_toks_all, c)
+                    if o["hit"] > 0.0:
+                        alt_scored.append((o["rank"], relevance_map.get(c.cell_id, 0.0), c))
+                alt_scored.sort(key=lambda x: (x[0], x[1]), reverse=True)
+                clause_alts[idx] = []
+                for _, _, c in alt_scored:
+                    c_inst = c.clone() if hasattr(c, "clone") else c
+                    c_inst.matched_clause_idx = idx
+                    c_inst.clause_literals = cl_literals
+                    clause_alts[idx].append(c_inst)
+
                 for c, _o in anchors_for_clause(ev, cl, pool, relevance_map, on_event=self._trace, clause_idx=idx):
                     c_inst = c.clone() if hasattr(c, "clone") else c
                     c_inst.matched_clause_idx = idx
                     c_inst.clause_literals = cl_literals
                     clause_cells.append(c_inst)
+
+                if len(clause_cells) > 1:
+                    from unification import is_edge_valid
+                    ordered_clause_cells: List[Cell] = []
+                    for c in clause_cells:
+                        inserted = False
+                        for i, other in enumerate(ordered_clause_cells):
+                            if any(is_edge_valid(out, inp, c, other) for out in c.outputs.values() for inp in other.inputs.values()):
+                                ordered_clause_cells.insert(i, c)
+                                inserted = True
+                                break
+                        if not inserted:
+                            ordered_clause_cells.append(c)
+                    clause_cells = ordered_clause_cells
                 if not clause_cells and pool:
                     # No lattice cell carries identity evidence for this clause:
                     # fall back to the retrieval score (maximizing reachable downstream anchors for ingress) and SAY so.
@@ -253,42 +282,104 @@ class M1ClauseAnchorRouteMethod(RouteMethod):
                 for inp in next_anchor.inputs.values()
             )
 
+            connected = False
             if self.step_unifies(curr_cell, next_anchor, prev_path=routed_path):
                 self._trace("anchor_connected", cell=next_anchor.cell_id, via="direct", after=curr_cell.cell_id)
                 routed_path.append(next_anchor)
-            elif self.step_unifies_dag(next_anchor, routed_path, ctx=ctx) and (curr_feeds_next or not curr_transforms_field):
-                routed_path.append(next_anchor)
+                connected = True
             else:
-                bridges = self.find_bridge_chain(curr_cell, next_anchor, candidates, prev_path=routed_path)
-                if bridges:
-                    routed_path.extend(bridges)
-                    routed_path.append(next_anchor)
+                # Type-directed repair: check if a candidate producer on the current clause bridges to next_anchor
+                producer = self._find_type_producer(next_anchor, routed_path, candidates, clauses, orch)
+                if producer is not None:
+                    self._trace("producer_inserted", cell=producer.cell_id, for_anchor=next_anchor.cell_id,
+                                clause_idx=getattr(next_anchor, "matched_clause_idx", None),
+                                reason="anchor input type unmet by scope; producer has same-clause identity evidence and unifies from scope")
+                    if not self.step_unifies(curr_cell, producer, prev_path=routed_path):
+                        p_bridges = self.find_bridge_chain(curr_cell, producer, candidates, prev_path=routed_path)
+                        if p_bridges:
+                            for pb in p_bridges:
+                                pb.matched_clause_idx = getattr(producer, "matched_clause_idx", None)
+                                pb.clause_literals = getattr(producer, "clause_literals", {})
+                            routed_path.extend(p_bridges)
+                    routed_path.extend([producer, next_anchor])
+                    connected = True
                 else:
-                    # In a DAG, if next_anchor does not unify directly with curr_cell,
-                    # check if next_anchor unifies or bridges from any earlier ancestor in routed_path
-                    connected = False
+                    # Sequential carrier continuity takes precedence over DAG-scope fallback
+                    bridges = self.find_bridge_chain(curr_cell, next_anchor, candidates, prev_path=routed_path)
+                    if bridges:
+                        for b in bridges:
+                            b.matched_clause_idx = getattr(next_anchor, "matched_clause_idx", None)
+                            b.clause_literals = getattr(next_anchor, "clause_literals", {})
+                        routed_path.extend(bridges)
+                        routed_path.append(next_anchor)
+                        connected = True
+                    elif self.step_unifies_dag(next_anchor, routed_path, ctx=ctx):
+                        self._trace("anchor_connected", cell=next_anchor.cell_id, via="dag_scope", after=curr_cell.cell_id)
+                        routed_path.append(next_anchor)
+                        connected = True
+                    else:
+                        # In a DAG, if next_anchor does not unify directly with curr_cell,
+                        # check if next_anchor unifies or bridges from any earlier ancestor in routed_path
+                        for ancestor in reversed(routed_path[:-1]):
+                            if self.step_unifies(ancestor, next_anchor, prev_path=routed_path) or self.step_unifies_dag(next_anchor, routed_path, ctx=ctx):
+                                routed_path.append(next_anchor)
+                                connected = True
+                                break
+                            anc_bridge = self.find_bridge(ancestor, next_anchor, candidates, orch, prev_path=routed_path)
+                            if anc_bridge:
+                                anc_bridge.matched_clause_idx = getattr(next_anchor, "matched_clause_idx", None)
+                                anc_bridge.clause_literals = getattr(next_anchor, "clause_literals", {})
+                                routed_path.extend([anc_bridge, next_anchor])
+                                connected = True
+                                break
+
+            if not connected:
+                cl_idx = getattr(next_anchor, "matched_clause_idx", None)
+                alts = clause_alts.get(cl_idx, [])
+                for alt in alts:
+                    if alt.cell_id == next_anchor.cell_id or any(c.cell_id == alt.cell_id for c in routed_path if getattr(c, "matched_clause_idx", None) == cl_idx):
+                        continue
+                    if self.step_unifies(curr_cell, alt, prev_path=routed_path):
+                        routed_path.append(alt)
+                        connected = True
+                        self._trace("anchor_alternative_connected", clause_idx=cl_idx, original=next_anchor.cell_id, cell=alt.cell_id, via="direct")
+                        break
+                    alt_bridges = self.find_bridge_chain(curr_cell, alt, candidates, prev_path=routed_path)
+                    if alt_bridges:
+                        for b in alt_bridges:
+                            b.matched_clause_idx = getattr(alt, "matched_clause_idx", None)
+                            b.clause_literals = getattr(alt, "clause_literals", {})
+                        routed_path.extend(alt_bridges)
+                        routed_path.append(alt)
+                        connected = True
+                        self._trace("anchor_alternative_connected", clause_idx=cl_idx, original=next_anchor.cell_id, cell=alt.cell_id, via="bridge_chain")
+                        break
+                    if self.step_unifies_dag(alt, routed_path, ctx=ctx):
+                        routed_path.append(alt)
+                        connected = True
+                        self._trace("anchor_alternative_connected", clause_idx=cl_idx, original=next_anchor.cell_id, cell=alt.cell_id, via="dag_scope")
+                        break
                     for ancestor in reversed(routed_path[:-1]):
-                        if self.step_unifies(ancestor, next_anchor, prev_path=routed_path) or self.step_unifies_dag(next_anchor, routed_path, ctx=ctx):
-                            routed_path.append(next_anchor)
+                        if self.step_unifies(ancestor, alt, prev_path=routed_path) or self.step_unifies_dag(alt, routed_path, ctx=ctx):
+                            routed_path.append(alt)
                             connected = True
+                            self._trace("anchor_alternative_connected", clause_idx=cl_idx, original=next_anchor.cell_id, cell=alt.cell_id, via="ancestor")
                             break
-                        anc_bridge = self.find_bridge(ancestor, next_anchor, candidates, orch, prev_path=routed_path)
-                        if anc_bridge:
-                            routed_path.extend([anc_bridge, next_anchor])
+                        anc_b = self.find_bridge(ancestor, alt, candidates, orch, prev_path=routed_path)
+                        if anc_b:
+                            anc_b.matched_clause_idx = getattr(alt, "matched_clause_idx", None)
+                            anc_b.clause_literals = getattr(alt, "clause_literals", {})
+                            routed_path.extend([anc_b, alt])
                             connected = True
+                            self._trace("anchor_alternative_connected", clause_idx=cl_idx, original=next_anchor.cell_id, cell=alt.cell_id, via="ancestor_bridge")
                             break
-                    if not connected:
-                        producer = self._find_type_producer(next_anchor, routed_path, candidates, clauses, orch)
-                        if producer is not None:
-                            self._trace("producer_inserted", cell=producer.cell_id, for_anchor=next_anchor.cell_id,
-                                        clause_idx=getattr(next_anchor, "matched_clause_idx", None),
-                                        reason="anchor input type unmet by scope; producer has same-clause identity evidence and unifies from scope")
-                            routed_path.extend([producer, next_anchor])
-                            connected = True
-                    if not connected:
-                        # Previously dropped without a trace. A clause losing its
-                        # only anchor here is exactly how "perform FFT" vanished.
-                        self._trace(
+                    if connected:
+                        break
+
+            if not connected:
+                # Previously dropped without a trace. A clause losing its
+                # only anchor here is exactly how "perform FFT" vanished.
+                self._trace(
                             "anchor_dropped", cell=next_anchor.cell_id,
                             clause_idx=getattr(next_anchor, "matched_clause_idx", None),
                             reason="no direct unification, no DAG-scope unification, no bridge from any ancestor",
@@ -352,6 +443,16 @@ class M1ClauseAnchorRouteMethod(RouteMethod):
                 except Exception as fb_err:
                     logger.debug(f"[M1] Fallback to LatticePlanner failed: {fb_err}")
             return []
+
+        # Propagate matched_clause_idx forward to any unindexed bridge cells
+        for i, c in enumerate(routed_path):
+            if getattr(c, "matched_clause_idx", None) is None:
+                for nxt in routed_path[i + 1:]:
+                    n_idx = getattr(nxt, "matched_clause_idx", None)
+                    if n_idx is not None:
+                        c.matched_clause_idx = n_idx
+                        c.clause_literals = getattr(nxt, "clause_literals", {})
+                        break
 
         max_allowed = max(32, len(clauses) * 4 + 4, max_transforms + 8)
         return routed_path[:max_allowed]

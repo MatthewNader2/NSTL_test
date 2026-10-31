@@ -4512,7 +4512,7 @@ class LatticeOrchestrator:
             getattr(cand, "domain_name", "") in cf_domains
             or getattr(cand, "node_type", "") in cf_topologies
             or getattr(cand, "topology_type", "") in cf_topologies
-            or getattr(cand, "cell_type", "") == "macro"
+            or (getattr(cand, "cell_type", "") == "macro" and getattr(cand, "node_role", "") != "bridge")
         ):
             return False
 
@@ -4526,9 +4526,11 @@ class LatticeOrchestrator:
             return False
 
         cfg_roles = (
-            set(reg.get_verification_semantics("config_roles") or ())
+            set(reg.get_column_projection_tokens())
+            | set(reg.get_verification_semantics("config_roles") or ())
             | set(reg.get_verification_semantics("configuration_roles") or ())
             | set(reg.get_verification_semantics("parameter_roles") or ())
+            | {"literal_parameter", "parameter", "dim_size"}
         )
 
         dataflow_inputs = []

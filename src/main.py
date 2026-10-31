@@ -333,6 +333,8 @@ def run_prompt(request: Union[RunRequest, Dict[str, Any], str]) -> RunResponse:
 
     req_ctx = ExecutionContext(prompt=effective_prompt)
     if intent_data and isinstance(intent_data, dict):
+        if intent_data.get("operations") and isinstance(intent_data["operations"], list):
+            req_ctx.operations = [str(op).replace("_", " ").strip() for op in intent_data["operations"] if str(op).strip()]
         if intent_data.get("hyperparameters") and isinstance(intent_data["hyperparameters"], dict):
             req_ctx.hyperparameters = dict(intent_data["hyperparameters"])
         if intent_data.get("slots") and isinstance(intent_data["slots"], dict):
@@ -341,8 +343,6 @@ def run_prompt(request: Union[RunRequest, Dict[str, Any], str]) -> RunResponse:
             for p_key, p_val in intent_data["parameters"].items():
                 if p_key:
                     req_ctx.parameters.setdefault(str(p_key), p_val)
-        if intent_data.get("by_column"):
-            req_ctx.parameters["by_column"] = str(intent_data["by_column"]).strip()
         if intent_data.get("source_files"):
             req_ctx.parameters["source_uris"] = list(intent_data["source_files"])
         if intent_data.get("dest_files"):

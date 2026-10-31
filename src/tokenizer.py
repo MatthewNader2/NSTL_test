@@ -281,8 +281,7 @@ class CellTokenizer:
         split_positions = set()
         # Structural newlines outside quotes/brackets are universal clause boundaries
         for idx, ch in enumerate(text):
-            if ch == '
-' and not _is_inside_protected(idx):
+            if ch == '\n' and not _is_inside_protected(idx):
                 split_positions.add(idx)
         for idx, (s, e, w) in enumerate(raw_words):
             if _is_inside_protected(s) and _is_inside_protected(e - 1):

@@ -815,20 +815,12 @@ class PipelineDebugger:
         t_trans = 0.0
         intent_data = None
 
-        if prof == "E":
+        if prof in ("E", "S"):
             mm = ModelManager.get_instance()
-            if mm.profile and mm.has_translator_pass():
-                t0_t = time.perf_counter()
-                trans_system = get_translator_prompt(self.orchestrator)
-                effective_prompt = mm.generate_text(prompt_clean, max_tokens=128, system_prompt=trans_system)
-                effective_prompt = ensure_comprehensive_prompt(prompt_clean, effective_prompt)
-                t_trans = (time.perf_counter() - t0_t) * 1000.0
-        elif prof == "S":
-            mm = ModelManager.get_instance()
-            if mm.profile and mm.has_semantic_compiler():
+            if mm.profile and (mm.has_translator_pass() or mm.has_semantic_compiler()):
                 t0_t = time.perf_counter()
                 intent_data = mm.compile_semantic_intent(prompt_clean)
-                effective_prompt = ensure_comprehensive_prompt(prompt_clean, intent_data.get("effective_prompt"))
+                effective_prompt = ensure_comprehensive_prompt(prompt_clean, intent_data.get("effective_prompt") or prompt_clean)
                 t_trans = (time.perf_counter() - t0_t) * 1000.0
 
         clauses = _segment_prompt_clauses(effective_prompt)
@@ -1075,6 +1067,8 @@ class PipelineDebugger:
 
         dbg_ctx = ExecutionContext(prompt=effective_prompt)
         if intent_data and isinstance(intent_data, dict):
+            if intent_data.get("operations") and isinstance(intent_data["operations"], list):
+                dbg_ctx.operations = [str(op).replace("_", " ").strip() for op in intent_data["operations"] if str(op).strip()]
             if intent_data.get("hyperparameters") and isinstance(intent_data["hyperparameters"], dict):
                 dbg_ctx.hyperparameters = dict(intent_data["hyperparameters"])
             if intent_data.get("slots") and isinstance(intent_data["slots"], dict):
@@ -1083,8 +1077,6 @@ class PipelineDebugger:
                 for p_key, p_val in intent_data["parameters"].items():
                     if p_key:
                         dbg_ctx.parameters.setdefault(str(p_key), p_val)
-            if intent_data.get("by_column"):
-                dbg_ctx.parameters["by_column"] = str(intent_data["by_column"]).strip()
             if intent_data.get("source_files"):
                 dbg_ctx.parameters["source_uris"] = list(intent_data["source_files"])
             if intent_data.get("dest_files"):
@@ -2765,26 +2757,17 @@ class NSTLInteractiveShell(cmd.Cmd):
         effective_prompt = prompt
         t_trans = 0.0
         intent_data = None
-        if prof == "E":
+        if prof in ("E", "S"):
             mm = ModelManager.get_instance()
-            if mm.profile and mm.has_translator_pass():
-                t0_trans = time.perf_counter()
-                trans_system = get_translator_prompt(self.orchestrator)
-                effective_prompt = mm.generate_text(prompt, max_tokens=128, system_prompt=trans_system)
-                effective_prompt = ensure_comprehensive_prompt(prompt, effective_prompt)
-                t_trans = (time.perf_counter() - t0_trans) * 1000.0
-                console.print(f"[bold magenta][Translator Pass ({t_trans:.1f}ms)][/bold magenta] [italic]{effective_prompt}[/italic]")
-        elif prof == "S":
-            mm = ModelManager.get_instance()
-            if mm.profile and mm.has_semantic_compiler():
+            if mm.profile and (mm.has_translator_pass() or mm.has_semantic_compiler()):
                 t0_trans = time.perf_counter()
                 intent_data = mm.compile_semantic_intent(prompt)
-                effective_prompt = ensure_comprehensive_prompt(prompt, intent_data.get("effective_prompt"))
+                effective_prompt = ensure_comprehensive_prompt(prompt, intent_data.get("effective_prompt") or prompt)
                 t_trans = (time.perf_counter() - t0_trans) * 1000.0
                 task_str = intent_data.get("task", "generic")
                 tgt_sink = intent_data.get("target_sink", "")
                 tgt_info = f" | Target: {tgt_sink}" if tgt_sink else ""
-                console.print(f"[bold magenta][Profile S Compiler ({t_trans:.1f}ms)][/bold magenta] Task: {task_str}{tgt_info}")
+                console.print(f"[bold magenta][Profile {prof} Compiler ({t_trans:.1f}ms)][/bold magenta] Task: {task_str}{tgt_info}")
                 if intent_data.get("hyperparameters"):
                     console.print(f"  [dim]Extracted Params: {intent_data['hyperparameters']}[/dim]")
 

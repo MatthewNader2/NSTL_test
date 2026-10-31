@@ -170,7 +170,7 @@ class LatticeVocabulary:
         lc = getattr(self.orchestrator, "loaded_cells", None) or {}
         return list(lc.values())
 
-    def _get(self, key: str, build):
+    def _check_stamp(self) -> None:
         lc = getattr(self.orchestrator, "loaded_cells", None) or {}
         stamp = (id(lc), len(lc))
         if stamp != self._stamp:
@@ -178,6 +178,9 @@ class LatticeVocabulary:
             self._bridge_cache = {}
             self._port_memo = {}
             self._stamp = stamp
+
+    def _get(self, key: str, build):
+        self._check_stamp()
         if key not in self._memo:
             self._memo[key] = build()
         return self._memo[key]
@@ -388,7 +391,7 @@ class LatticeVocabulary:
         return frozenset(str(w).lower() for w in TypeRegistry.get_instance().get_egress_tokens())
 
     def is_key_port(self, p: Any) -> bool:
-        self._get("stages", lambda: None)
+        self._check_stamp()
         key = ("key", id(p))
         hit = self._port_memo.get(key)
         if hit is None:
@@ -533,7 +536,7 @@ class LatticeVocabulary:
         """A bridge morphism converts between unrelated carriers (input and output
         carriers are neither equal nor subtype-related)."""
         cid = str(getattr(cell, "cell_id", ""))
-        self._get("stages", lambda: None)  # refresh stamp / clear cache if lattice changed
+        self._check_stamp()  # refresh stamp / clear cache if lattice changed
         hit = self._bridge_cache.get(cid)
         if hit is not None:
             return hit
@@ -562,7 +565,7 @@ class LatticeVocabulary:
         return self._get("sink_input_signatures", build)
 
     def is_materializable_carrier(self, out_port: Any) -> bool:
-        self._get("stages", lambda: None)
+        self._check_stamp()
         key = ("mat", id(out_port))
         hit = self._port_memo.get(key)
         if hit is None:

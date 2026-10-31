@@ -60,7 +60,7 @@ class M10MonteCarloRouteMethod(RouteMethod):
             return []
         pool = [c for c in tunnel if getattr(c, "node_type", "") != "constant" and not c.cell_id.startswith("MACRO_")]
         ev = self._evidence()
-        clauses = self.segment_prompt_clauses(prompt)
+        clauses = self.segment_prompt_clauses(prompt, ctx=ctx)
         if ev is None or not pool or not clauses:
             return self._delegate_to_m1("evidence service or clause segmentation unavailable", prompt, tunnel, relevance_map, orch,
                                         ctx=ctx, start_sig=start_sig, goal_sig=goal_sig, max_transforms=max_transforms)

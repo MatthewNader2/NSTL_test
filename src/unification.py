@@ -2355,6 +2355,7 @@ class ExecutionContext:
         self.parameters: Dict[str, Any] = dict(parameters or {})
         self.used_indices: Set[int] = set()
         self.consumed_tokens: Set[str] = set()
+        self.consumed_vars: Set[str] = set()
         # Tuple-member consumption tracking: (var_name, member_index) pairs already
         # bound by earlier cells. Later cells consuming the same heterogeneous
         # product prefer the remaining members — this is how allocation semantics
@@ -2458,6 +2459,7 @@ class ExecutionContext:
         self.scope_variables = {}
         self.used_indices = set()
         self.consumed_tokens = set()
+        self.consumed_vars = set()
         self.consumed_members = set()
         self.consumed_keys = set()
         self.target_literals = set()
@@ -2503,6 +2505,9 @@ class ExecutionContext:
         new_ctx.target_literals = set(self.target_literals)
         new_ctx.current_cell_clause_idx = self.current_cell_clause_idx
         new_ctx.literal_clause_map = dict(self.literal_clause_map)
+        new_ctx.ordered_literals = list(self.ordered_literals)
+        new_ctx.identifier_roles = dict(self.identifier_roles)
+        new_ctx.clause_spans = list(self.clause_spans)
         new_ctx.unresolved_ports = list(self.unresolved_ports)
         new_ctx.unbindable_count = self.unbindable_count
         new_ctx.var_counter = self.var_counter
@@ -2510,6 +2515,8 @@ class ExecutionContext:
         new_ctx.hyperparameters = dict(self.hyperparameters)
         new_ctx.runtime_aliases = dict(getattr(self, "runtime_aliases", {}) or {})
         new_ctx.diagnostics = self.diagnostics
+        if new_ctx.llm_slots:
+            new_ctx.sync_llm_slots()
         return new_ctx
 
     @staticmethod
@@ -2682,6 +2689,7 @@ class ExecutionContext:
         self._prompt = val or ""
         self.used_indices = set()
         self.consumed_tokens = set()
+        self.consumed_vars = set()
         self.consumed_members = set()
         self.consumed_keys = set()
         self.target_literals = set()
@@ -2689,8 +2697,9 @@ class ExecutionContext:
         if t_sink:
             self.target_literals.add(t_sink)
         self.ordered_literals = self._extract_universal_literals(self._prompt)
-        self.literal_clause_map = self._build_literal_clause_map(self._prompt, self.ordered_literals)
         self.identifier_roles = self._build_identifier_role_map(self._prompt)
+        self.sync_llm_slots()
+        self.literal_clause_map = self._build_literal_clause_map(self._prompt, self.ordered_literals)
 
     @staticmethod
     def _extract_universal_literals(prompt: str) -> List[Tuple[int, str, str]]:
@@ -2849,6 +2858,95 @@ class ExecutionContext:
     def _build_identifier_role_map(prompt: str) -> Dict[int, FrozenSet[str]]:
         """Universal stub: zero prompt-based role mapping heuristics; resolved by LLM in neural profiles."""
         return {}
+
+    def sync_llm_slots(self) -> None:
+        """
+        Synchronizes semantic symbol and entity slots (extracted by neural profiles
+        in Layer 0) into ordered_literals and identifier_roles.
+        Preserves pure symbolic integrity: if llm_slots is empty (e.g. Profile 0 / A),
+        no identifiers are injected.
+        """
+        if not getattr(self, "llm_slots", None) or not getattr(self, "_prompt", None):
+            return
+
+        from lattice import TypeRegistry
+        reg = TypeRegistry.get_instance()
+        col_tokens = reg.get_column_projection_tokens()
+        reg_types = reg.get_registered_types()
+
+        candidate_symbols = set()
+        for k, v in self.llm_slots.items():
+            if isinstance(k, str) and k.strip():
+                candidate_symbols.add(k.strip())
+            if isinstance(v, str) and v.strip():
+                candidate_symbols.add(v.strip())
+            elif isinstance(v, (list, tuple, set)):
+                for item in v:
+                    if isinstance(item, str) and item.strip():
+                        candidate_symbols.add(item.strip())
+            elif isinstance(v, dict):
+                for sub_k, sub_v in v.items():
+                    if sub_k.lower() in ("name", "path", "column", "target", "field", "feature", "key") and isinstance(sub_v, str) and sub_v.strip():
+                        candidate_symbols.add(sub_v.strip())
+
+        if getattr(self, "target_key", None):
+            candidate_symbols.add(str(self.target_key).strip())
+
+        filtered_symbols = set()
+        for sym in candidate_symbols:
+            s_low = sym.lower()
+            if keyword.iskeyword(s_low) or s_low in reg_types:
+                continue
+            if s_low in ("true", "false", "none", "null", "generic", "data", "dataset", "table", "file"):
+                continue
+            filtered_symbols.add(sym)
+
+        if not filtered_symbols:
+            return
+
+        words_with_pos: List[Tuple[int, str]] = []
+        cur_word: List[str] = []
+        w_start = None
+        for idx, ch in enumerate(self._prompt):
+            if not ch.isspace():
+                if w_start is None:
+                    w_start = idx
+                cur_word.append(ch)
+            else:
+                if cur_word:
+                    words_with_pos.append((w_start, "".join(cur_word)))
+                    cur_word = []
+                    w_start = None
+        if cur_word and w_start is not None:
+            words_with_pos.append((w_start, "".join(cur_word)))
+
+        existing_spans = {
+            (getattr(s, "pos", s[0]), str(getattr(s, "val", s[2])).strip().lower())
+            for s in self.ordered_literals
+        }
+
+        new_spans = []
+        for pos, raw_w in words_with_pos:
+            w_clean = raw_w.strip(" '\".,;:()[]{}=:")
+            if not w_clean:
+                continue
+            if w_clean in filtered_symbols:
+                w_pos = self._prompt.find(w_clean, pos)
+                if w_pos == -1:
+                    w_pos = pos
+                key = (w_pos, w_clean.lower())
+                if key not in existing_spans:
+                    existing_spans.add(key)
+                    span = LiteralSpan(w_pos, "identifier", w_clean, end_pos=w_pos + len(w_clean))
+                    new_spans.append(span)
+                    self.identifier_roles[w_pos] = frozenset(col_tokens)
+                    if getattr(self, "target_key", None) and w_clean.lower() == str(self.target_key).strip().lower():
+                        self.target_literals.add(w_clean.lower())
+
+        if new_spans:
+            self.ordered_literals.extend(new_spans)
+            self.ordered_literals.sort(key=lambda s: getattr(s, "pos", s[0]))
+            self.literal_clause_map = self._build_literal_clause_map(self._prompt, self.ordered_literals)
 
     def _get_clause_idx_for_pos(self, pos: int) -> int:
         """Map a character position in the prompt to its enclosing clause index."""
@@ -3547,14 +3645,27 @@ class ExecutionContext:
                 or p_state in _declared_role_semantics("projection_port_states")
             )
 
-            # Check unconsumed literals for operational parameter candidates (prioritizing current clause)
-            cand_indices = list(range(len(self.ordered_literals)))
+            # Check literals for operational parameter candidates (prioritizing current clause)
+            cand_indices = []
             if self.current_cell_clause_idx is not None:
-                cand_indices.sort(key=lambda i: 0 if self.literal_clause_map.get(i) == self.current_cell_clause_idx else 1)
+                # 1. Unconsumed literals in the current clause
+                cand_indices.extend([i for i in range(len(self.ordered_literals))
+                                     if i not in self.used_indices and self.literal_clause_map.get(i) == self.current_cell_clause_idx])
+                # 2. Reusable identifiers from the same clause (e.g. select and set on the same column in a transform)
+                if is_col_port:
+                    cand_indices.extend([i for i in range(len(self.ordered_literals))
+                                         if i in self.used_indices and self.literal_clause_map.get(i) == self.current_cell_clause_idx
+                                         and getattr(self.ordered_literals[i], "kind", self.ordered_literals[i][1]) == "identifier"])
+                # 3. Unconsumed literals from prior clauses (or global)
+                cand_indices.extend([i for i in range(len(self.ordered_literals))
+                                     if i not in self.used_indices and self.literal_clause_map.get(i) is not None
+                                     and self.literal_clause_map.get(i) < self.current_cell_clause_idx])
+            else:
+                cand_indices = [i for i in range(len(self.ordered_literals)) if i not in self.used_indices]
 
             for idx in cand_indices:
                 lit_pos, kind, val = self.ordered_literals[idx]
-                if idx in self.used_indices:
+                if idx in self.used_indices and not (is_col_port and self.current_cell_clause_idx is not None and self.literal_clause_map.get(idx) == self.current_cell_clause_idx and kind == "identifier"):
                     continue
                 if kind not in ("quoted_str", "identifier"):
                     continue
@@ -3681,7 +3792,7 @@ class ExecutionContext:
 
                 all_available = [
                     idx for idx, (_, kind, val) in enumerate(self.ordered_literals)
-                    if idx not in self.used_indices and kind == "quoted_str"
+                    if idx not in self.used_indices and kind in ("quoted_str", "identifier")
                     and str(val).lower() not in target_lits
                 ]
                 if cell_clause is not None and lit_clause_map:
@@ -4471,6 +4582,8 @@ class UnificationGate:
             ctx._var_counter = 0
         if hasattr(ctx, "_prompt") and ctx._prompt:
             ctx.ordered_literals = ctx._extract_universal_literals(ctx._prompt)
+            if hasattr(ctx, "sync_llm_slots"):
+                ctx.sync_llm_slots()
             ctx.literal_clause_map = ctx._build_literal_clause_map(ctx._prompt, ctx.ordered_literals)
 
         accumulated_sigma = Substitution()
@@ -4509,11 +4622,11 @@ class UnificationGate:
         if prompt_text and cells:
             try:
                 from .route_methods.base import RouteMethod
-                RouteMethod.tag_cells_with_clause_indices(cells, prompt_text, orchestrator=getattr(self, "orchestrator", None))
+                RouteMethod.tag_cells_with_clause_indices(cells, prompt_text, orchestrator=getattr(self, "orchestrator", None), ctx=ctx)
             except Exception as e1:
                 try:
                     from route_methods.base import RouteMethod
-                    RouteMethod.tag_cells_with_clause_indices(cells, prompt_text, orchestrator=getattr(self, "orchestrator", None))
+                    RouteMethod.tag_cells_with_clause_indices(cells, prompt_text, orchestrator=getattr(self, "orchestrator", None), ctx=ctx)
                 except Exception as e2:
                     logger.warning("Failed to tag cells with clause indices: %s | %s", e1, e2)
 
@@ -4743,6 +4856,8 @@ class UnificationGate:
                                 ctx.trace_binding(f"planned_wire_rejected_{_rej[0]}", cell=cell.cell_id, port=p_name, var=v_name, **{k: v for k, v in _rej[1].items() if k not in ("cell", "port", "var")})
                                 continue
                             cell_bindings[p_name] = v_name
+                            if hasattr(ctx, "consumed_vars"):
+                                ctx.consumed_vars.add(v_name)
                             bound_producer = True
                             if prod_cell is not None and hasattr(prod_cell, "outputs") and hasattr(cell, "inputs"):
                                 out_port = prod_cell.outputs.get(out_port_name) or prod_cell.primary_output
@@ -4777,6 +4892,8 @@ class UnificationGate:
                                 ctx.trace_binding(f"dag_scope_rejected_{_rej[0]}", cell=cell.cell_id, port=p_name, var=v_name, **{k: v for k, v in _rej[1].items() if k not in ("cell", "port", "var")})
                                 continue
                             cell_bindings[p_name] = v_name
+                            if hasattr(ctx, "consumed_vars"):
+                                ctx.consumed_vars.add(v_name)
                             bound_producer = True
                 else:
                     # Fallback backward search if whole-scope unification was not satisfied
@@ -4980,6 +5097,8 @@ class UnificationGate:
                 if best_assign:
                     for p_name, v_name in best_assign.items():
                         cell_bindings[p_name] = v_name
+                        if hasattr(ctx, "consumed_vars"):
+                            ctx.consumed_vars.add(v_name)
                     accumulated_sigma = test_sub
                     if producer_var is not None and producer_var in assigned_vars:
                         bound_producer = True
@@ -5002,6 +5121,8 @@ class UnificationGate:
                             u_sub = unify(prod_sig.signature, prim_in.signature, accumulated_sigma)
                             if u_sub is not None:
                                 cell_bindings[prim_in.name] = producer_var
+                                if hasattr(ctx, "consumed_vars"):
+                                    ctx.consumed_vars.add(producer_var)
                                 accumulated_sigma = u_sub
                                 bound_producer = True
 
@@ -5017,6 +5138,8 @@ class UnificationGate:
                         u_sub = unify(prod_sig.signature, p_sig.signature, accumulated_sigma)
                         if u_sub is not None:
                             cell_bindings[p_name] = producer_var
+                            if hasattr(ctx, "consumed_vars"):
+                                ctx.consumed_vars.add(producer_var)
                             accumulated_sigma = u_sub
                             bound_producer = True
                             break
@@ -5247,7 +5370,22 @@ class UnificationGate:
                                 clause_causality = -1.0
 
                         recency_idx = list(ctx.variables.keys()).index(v_name) if v_name in ctx.variables else 0
-                        prio = (is_planned_score, clause_causality, recency_idx)
+                        var_origins = getattr(ctx, "var_origins", {}).get(v_name, set())
+                        target_lits = getattr(ctx, "target_literals", set())
+                        has_target_origin = any(str(orig).lower() in target_lits for orig in var_origins)
+                        port_state = str(getattr(concrete_sig, "state", "") or "").lower()
+                        port_role = str(getattr(p_sig, "port_role", "") or getattr(p_sig, "role", "") or "").lower()
+                        is_target_port = "target" in port_state or "target" in port_role or "sink" in port_role or "destination" in port_role
+
+                        target_affinity = 0.0
+                        if has_target_origin:
+                            target_affinity = 1.0 if is_target_port else -1.0
+                        elif is_target_port:
+                            target_affinity = -0.5
+
+                        is_unconsumed = 1 if v_name not in getattr(ctx, "consumed_vars", set()) else 0
+
+                        prio = (is_planned_score, target_affinity, is_unconsumed, clause_causality, recency_idx)
                         candidate_vars.append((prio, v_name, u_v))
 
                 if candidate_vars:
@@ -5261,12 +5399,16 @@ class UnificationGate:
 
                 if scoped_var is not None:
                     cell_bindings[p_name] = scoped_var
+                    if hasattr(ctx, "consumed_vars"):
+                        ctx.consumed_vars.add(scoped_var)
                     continue
 
                 if scoped_var is None and candidate_vars and candidate_vars[0][0][1] >= 0:
                     _, scoped_var, accumulated_sigma = candidate_vars[0]
                     ctx.trace_binding("fallback_bound", cell=cell.cell_id, port=p_name, var=scoped_var)
                     cell_bindings[p_name] = scoped_var
+                    if hasattr(ctx, "consumed_vars"):
+                        ctx.consumed_vars.add(scoped_var)
                     continue
 
                 # A2. Product-member projection: bind {port} to var[i] when the port's
@@ -6860,6 +7002,12 @@ class UnificationGate:
                 self.context.hyperparameters = dict(intent_data["hyperparameters"])
             if intent_data.get("slots") and isinstance(intent_data["slots"], dict):
                 self.context.llm_slots = dict(intent_data["slots"])
+                if hasattr(self.context, "sync_llm_slots"):
+                    self.context.sync_llm_slots()
+            tgt = intent_data.get("target_sink") or intent_data.get("target_key")
+            if tgt:
+                self.context.target_key = str(tgt).strip()
+                self.context.target_literals.add(str(tgt).strip().lower())
             # Profile S (Semantic Compiler): literals extracted by the typed
             # IR compiler become declared context parameters — deterministic
             # binding without re-scanning the prompt.

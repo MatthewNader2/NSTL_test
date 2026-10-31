@@ -511,7 +511,8 @@ class RouteMethod(ABC):
         dst_cell: Cell,
         candidates: List[Cell],
         orchestrator: Optional[LatticeOrchestrator] = None,
-        prev_path: Optional[List[Cell]] = None
+        prev_path: Optional[List[Cell]] = None,
+        allow_holes: bool = False
     ) -> Optional[Cell]:
         """
         Finds a bridging cell B in candidates such that:
@@ -635,11 +636,11 @@ class RouteMethod(ABC):
             return b_inst
 
         # Open-World Continuum (Issue 5): If no pre-harvested bridge exists in the lattice,
-        # instantiate a TypedHoleCell(tau_src -> tau_dst) when synthesis is available.
+        # instantiate a TypedHoleCell(tau_src -> tau_dst) when synthesis is available and allowed.
         # Categorical guard: A unary data-carrier hole bridge cannot synthesize a trained
         # model/estimator instance or object receiver. Furthermore, the hole bridge must
         # validly satisfy dst_cell in the current scope.
-        if best_b is None and src_cell.primary_output and dst_cell.primary_input:
+        if allow_holes and best_b is None and src_cell.primary_output and dst_cell.primary_input:
             try:
                 from dag_plan import TypedHoleCell
                 from inference import ModelManager
@@ -811,14 +812,18 @@ class RouteMethod(ABC):
         return src_lits, dest_lits
 
     @classmethod
-    def segment_prompt_clauses(cls, prompt: str) -> List[str]:
+    def segment_prompt_clauses(cls, prompt: str, ctx: Optional[Any] = None) -> List[str]:
         """
         Partitions user prompt into sequential procedural clauses.
-        Delegates to the planner's single LANGUAGE-level segmenter so clause
-        counts agree everywhere (the retired verb-lookahead splitter here used
-        domain vocabulary as split triggers — the planner's segmenter splits
-        only on punctuation/sequencing and merges list continuations).
+        For suitable profiles with a semantic compiler (e.g. Profile E/S),
+        unifies intent by adopting the fine-grained atomic operations in ctx.operations.
+        For profiles without a neural compiler (e.g. Profile 0/A), delegates strictly
+        to the syntactic punctuation-based segmenter.
         """
+        if ctx is not None and getattr(ctx, "operations", None):
+            ops = [str(op).strip() for op in ctx.operations if str(op).strip()]
+            if ops:
+                return ops
         try:
             from .planner import _segment_prompt_clauses
         except (ImportError, ValueError):
@@ -826,7 +831,7 @@ class RouteMethod(ABC):
         return _segment_prompt_clauses(prompt)
 
     @classmethod
-    def tag_cells_with_clause_indices(cls, path: List[Cell], prompt: str, orchestrator: Any = None) -> List[Dict[str, Any]]:
+    def tag_cells_with_clause_indices(cls, path: List[Cell], prompt: str, orchestrator: Any = None, ctx: Optional[Any] = None) -> List[Dict[str, Any]]:
         """
         Tag path cells with the prompt clause they SERVE (matched_clause_idx).
 
@@ -847,7 +852,7 @@ class RouteMethod(ABC):
         if orch is None:
             orch = _ACTIVE_ORCHESTRATOR[0] if _ACTIVE_ORCHESTRATOR else None
         ev = get_evidence(orch)
-        clauses = cls.segment_prompt_clauses(prompt)
+        clauses = cls.segment_prompt_clauses(prompt, ctx=ctx)
         if ev is None or not clauses:
             return decisions
         clause_toks = [ev.clause_tokens(cl) for cl in clauses]

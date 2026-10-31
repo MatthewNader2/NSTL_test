@@ -663,23 +663,35 @@ class BenchmarkProfile_C(InferenceProfile):
                 "domain": {"type": "string"},
                 "inputs": {"type": "array", "items": {"type": "string"}},
                 "outputs": {"type": "array", "items": {"type": "string"}},
-                "operations": {"type": "array", "items": {"type": "string"}},
-                "parameters": {"type": "object"},
-                "slots": {"type": "object"},
+                "operations": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Strictly ordered sequence of atomic, irreducible computational morphisms. Each step must represent a single discrete transformation or calculation."
+                },
+                "parameters": {
+                    "type": "object",
+                    "description": "Key-value mapping of explicit execution parameters, hyperparameters, and file references extracted from the specification."
+                },
+                "slots": {
+                    "type": "object",
+                    "description": "Mapping of named entities, symbolic variables, field/feature identifiers, or target variables referenced in the specification."
+                },
                 "effective_prompt": {"type": "string"},
             },
-            "required": ["task", "domain", "operations"]
+            "required": ["task", "domain", "operations", "parameters", "slots"]
         }
 
         target_system_prompt = system_prompt or (
-            "You are a structured semantic compiler for algorithmic pipelines and computational graphs. "
-            "Given a user request, extract the execution task, domain, input entities, output artifacts, "
-            "ordered sequence of operations, parameter constraints, and symbol slot bindings. "
+            "You are a formal semantic compiler for category-theoretic computational pipelines and algorithmic graphs. "
+            "Given a user specification, decompose it into a strictly ordered sequence of atomic, irreducible computational morphisms ('operations'). "
+            "Each operation must represent a single, discrete transformation or calculation preserving its targets and parameters. "
+            "Never combine multiple transformations into a single operation: decompose compound instructions into their constituent sequential steps. "
+            "Extract all variable and symbol slot bindings (into 'slots'), parameter constraints, configurations, and input/output artifacts (into 'parameters'). "
             "Output ONLY valid JSON."
         )
 
         try:
-            raw = self.generate_text(prompt, max_tokens=384, schema=target_schema, system_prompt=target_system_prompt)
+            raw = self.generate_text(prompt, max_tokens=1024, schema=target_schema, system_prompt=target_system_prompt)
             data = None
             try:
                 data = json.loads(raw)

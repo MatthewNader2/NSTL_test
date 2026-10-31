@@ -198,7 +198,7 @@ class M11LatentCognitiveRouteMethod(RouteMethod):
         except Exception as mk_exc:
             logger.debug("[M11] Markov potential computation skipped: %s", mk_exc)
 
-        clauses = self.segment_prompt_clauses(prompt)
+        clauses = self.segment_prompt_clauses(prompt, ctx=ctx)
         if not clauses:
             clauses = [prompt]
 

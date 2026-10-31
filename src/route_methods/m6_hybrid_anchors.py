@@ -62,7 +62,7 @@ class M6HybridAnchorsRouteMethod(RouteMethod):
 
         ingress_cands = [c for c in candidates if self.is_ingress_node(c, orch)]
         sink_cands = [c for c in candidates if self.is_sink_node(c, orch)]
-        clauses = self.segment_prompt_clauses(prompt)
+        clauses = self.segment_prompt_clauses(prompt, ctx=ctx)
         first_clause = clauses[0] if clauses else (prompt or "")
         last_clause = clauses[-1] if clauses else (prompt or "")
         src_lit = src_file_literals[0] if src_file_literals else None

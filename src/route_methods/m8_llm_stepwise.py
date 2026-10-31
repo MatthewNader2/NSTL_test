@@ -225,7 +225,7 @@ class M8LLMStepwisePathfinderRouteMethod(RouteMethod):
             entry_cell = entry_candidates[0]
 
         _ev = self._evidence()
-        clauses = self.segment_prompt_clauses(prompt)
+        clauses = self.segment_prompt_clauses(prompt, ctx=ctx)
         if not clauses:
             clauses = [prompt]
         num_clauses = len(clauses)
@@ -371,7 +371,7 @@ class M8LLMStepwisePathfinderRouteMethod(RouteMethod):
                 rem_lines = [f"- {_format_cell_signature(c)}" for c in remaining_nodes]
                 rem_block = f"\n\nOther Candidate Nodes in Pool (Goals / Rest of Pipeline):\n" + "\n".join(rem_lines)
 
-            clauses = self.segment_prompt_clauses(prompt)
+            clauses = self.segment_prompt_clauses(prompt, ctx=ctx)
             finish_hint = " (or 'FINISH' if pipeline is complete)" if (not uncovered_indices and (is_terminal_sink(curr, orch) or (clauses and len(path) >= len(clauses)))) else ""
             step_msg = (
                 f"Request: {prompt}\n\n"

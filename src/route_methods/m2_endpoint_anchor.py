@@ -69,7 +69,7 @@ class M2EndpointAnchorRouteMethod(RouteMethod):
         prompt_tokens = CellTokenizer.tokenize_prompt(prompt)
         src_file_literals, dest_file_literals = self.extract_file_literals(prompt or "", ctx=ctx)
 
-        clauses = self.segment_prompt_clauses(prompt)
+        clauses = self.segment_prompt_clauses(prompt, ctx=ctx)
         first_clause = clauses[0] if clauses else prompt
         last_clause = clauses[-1] if clauses else prompt
         src_lit = src_file_literals[0] if src_file_literals else None
@@ -143,7 +143,7 @@ class M2EndpointAnchorRouteMethod(RouteMethod):
         if best_sink and best_source.cell_id == best_sink.cell_id:
             return [best_source]
 
-        clauses = self.segment_prompt_clauses(prompt)
+        clauses = self.segment_prompt_clauses(prompt, ctx=ctx)
         num_clauses = len(clauses) if clauses else 1
 
         # 3. For multi-clause compound prompts (> 2 clauses), chain forward through intermediate transformations
